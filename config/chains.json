@@ -1,0 +1,95 @@
+{
+  "version": "1.0.0",
+  "networks": [
+    {
+      "chainId": 10,
+      "name": "Optimism",
+      "vmType": "EVM",
+      "rpcUrl": "https://mainnet.optimism.io",
+      "portalAddress": "0x1234567890123456789012345678901234567890",
+      "blockExplorer": "https://optimistic.etherscan.io",
+      "nativeCurrency": {
+        "name": "Ether",
+        "symbol": "ETH",
+        "decimals": 18
+      },
+      "vmConfig": {
+        "chainIdNumber": 10,
+        "maxFeePerGas": "1000000000",
+        "maxPriorityFeePerGas": "1000000"
+      }
+    },
+    {
+      "chainId": 8453,
+      "name": "Base",
+      "vmType": "EVM",
+      "rpcUrl": "https://mainnet.base.org",
+      "portalAddress": "0x1234567890123456789012345678901234567890",
+      "blockExplorer": "https://basescan.org",
+      "nativeCurrency": {
+        "name": "Ether",
+        "symbol": "ETH",
+        "decimals": 18
+      },
+      "vmConfig": {
+        "chainIdNumber": 8453,
+        "maxFeePerGas": "1000000000",
+        "maxPriorityFeePerGas": "1000000"
+      }
+    },
+    {
+      "chainId": 42161,
+      "name": "Arbitrum",
+      "vmType": "EVM",
+      "rpcUrl": "https://arb1.arbitrum.io/rpc",
+      "portalAddress": "0x1234567890123456789012345678901234567890",
+      "blockExplorer": "https://arbiscan.io",
+      "nativeCurrency": {
+        "name": "Ether",
+        "symbol": "ETH",
+        "decimals": 18
+      },
+      "vmConfig": {
+        "chainIdNumber": 42161,
+        "maxFeePerGas": "1000000000",
+        "maxPriorityFeePerGas": "1000000"
+      }
+    },
+    {
+      "chainId": "tron",
+      "name": "Tron",
+      "vmType": "TVM",
+      "rpcUrl": "https://api.trongrid.io",
+      "portalAddress": "TYourPortalContractAddressHere111111111111",
+      "blockExplorer": "https://tronscan.org",
+      "nativeCurrency": {
+        "name": "Tron",
+        "symbol": "TRX",
+        "decimals": 6
+      },
+      "vmConfig": {
+        "fullNode": "https://api.trongrid.io",
+        "solidityNode": "https://api.trongrid.io",
+        "eventServer": "https://api.trongrid.io",
+        "energyLimit": 100000
+      }
+    },
+    {
+      "chainId": "solana",
+      "name": "Solana",
+      "vmType": "SVM",
+      "rpcUrl": "https://api.mainnet-beta.solana.com",
+      "portalAddress": "YourPortalProgramIdHere11111111111111111111",
+      "blockExplorer": "https://explorer.solana.com",
+      "nativeCurrency": {
+        "name": "Solana",
+        "symbol": "SOL",
+        "decimals": 9
+      },
+      "vmConfig": {
+        "commitment": "confirmed",
+        "programId": "YourPortalProgramIdHere11111111111111111111"
+      }
+    }
+  ]
+}

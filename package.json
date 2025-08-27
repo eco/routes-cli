@@ -1,0 +1,79 @@
+{
+  "name": "eco-portal-cli",
+  "description": "Multi-VM CLI for creating cross-chain token transfer intents using Eco Protocol with Viem for EVM",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "bin": {
+    "eco-portal": "./dist/index.js"
+  },
+  "type": "module",
+  "author": "Eco Protocol",
+  "license": "MIT",
+  "scripts": {
+    "dev": "nodemon --watch 'src/**/*.ts' --exec 'tsx' src/index.ts",
+    "build": "rimraf dist && tsc && copyfiles -u 1 'src/**/*.json' dist && copyfiles -u 1 'config/*.json' dist/config",
+    "start": "node dist/index.js",
+    "start:dev": "tsx src/index.ts",
+    "test": "jest --coverage",
+    "test:watch": "jest --watch",
+    "lint": "eslint . --ext .ts,.tsx",
+    "lint:fix": "eslint . --ext .ts,.tsx --fix",
+    "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,md}\"",
+    "type-check": "tsc --noEmit",
+    "precommit": "npm run lint && npm run type-check && npm run test",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "commander": "^11.1.0",
+    "inquirer": "^9.2.12",
+    "chalk": "^5.3.0",
+    "ora": "^7.0.1",
+    "cli-table3": "^0.6.3",
+    "viem": "^2.21.0",
+    "@solana/web3.js": "^1.87.0",
+    "tronweb": "^5.3.0",
+    "bs58": "^5.0.0",
+    "dotenv": "^16.3.1",
+    "joi": "^17.11.0",
+    "winston": "^3.11.0",
+    "axios": "^1.6.2",
+    "lodash": "^4.17.21",
+    "configstore": "^6.0.0",
+    "cosmiconfig": "^9.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3",
+    "ts-node": "^10.9.2",
+    "nodemon": "^3.0.2",
+    "tsx": "^4.6.2",
+    "@types/node": "^20.10.5",
+    "@types/inquirer": "^9.0.7",
+    "@types/lodash": "^4.14.202",
+    "jest": "^29.7.0",
+    "@types/jest": "^29.5.11",
+    "ts-jest": "^29.1.1",
+    "eslint": "^8.56.0",
+    "@typescript-eslint/parser": "^6.15.0",
+    "@typescript-eslint/eslint-plugin": "^6.15.0",
+    "prettier": "^3.1.1",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-prettier": "^5.1.2",
+    "rimraf": "^5.0.5",
+    "copyfiles": "^2.4.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "blockchain",
+    "defi",
+    "cross-chain",
+    "evm",
+    "tron",
+    "solana",
+    "viem",
+    "cli",
+    "intent",
+    "token-transfer"
+  ]
+}
