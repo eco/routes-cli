@@ -73,7 +73,7 @@ export class MultiVMIntentBuilder {
       reward: {
         deadline: refundDeadline,
         creator: params.sourceChain.portalAddress, // Creator is the source chain portal
-        prover: '0xC09483299100ab9960eA1F641b0f94B9E6e0923C',
+        prover: '0xde255Aab8e56a6Ae6913Df3a9Bbb6a9f22367f4C',
         nativeValue: BigInt(0),
         tokens: [
           {
