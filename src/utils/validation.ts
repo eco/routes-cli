@@ -279,7 +279,7 @@ export class ValidationService {
       }
 
       // Validate deadline logic
-      if (params.deadlines.refund <= params.deadlines.route) {
+      if (params.deadlines.refund < params.deadlines.route) {
         return {
           valid: false,
           error: 'Refund deadline must be longer than route deadline',

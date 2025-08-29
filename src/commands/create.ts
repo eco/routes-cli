@@ -363,7 +363,7 @@ async function promptDeadline(
           return 'Please enter a valid number';
         }
 
-        if (minHours && hours <= minHours) {
+        if (minHours && hours < minHours) {
           return `${type} deadline must be longer than ${minHours} hours`;
         }
 
