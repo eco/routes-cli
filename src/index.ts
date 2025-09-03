@@ -5,11 +5,10 @@
  * Main entry point
  */
 
-import { Command } from 'commander';
-import chalk from 'chalk';
-import { createPublishCommand } from './commands/publish';
-import { createCreateCommand } from './commands/create';
-import { updatePortalAddresses } from './config/chains';
+import { Command } from "commander";
+import chalk from "chalk";
+import { createPublishCommand } from "./commands/publish";
+import { updatePortalAddresses } from "./config/chains";
 
 // Load environment variables and update configuration
 updatePortalAddresses(process.env);
@@ -18,24 +17,23 @@ updatePortalAddresses(process.env);
 const program = new Command();
 
 program
-  .name('intent-cli')
-  .description('CLI tool for publishing intents to EVM, TVM, and SVM chains')
-  .version('1.0.0');
+  .name("intent-cli")
+  .description("CLI tool for publishing intents to EVM, TVM, and SVM chains")
+  .version("1.0.0");
 
 // Add commands
-program.addCommand(createCreateCommand());
 program.addCommand(createPublishCommand());
 
 // List chains command
 program
-  .command('chains')
-  .description('List supported chains')
+  .command("chains")
+  .description("List supported chains")
   .action(() => {
-    const { listChains } = require('./config/chains');
+    const { listChains } = require("./config/chains");
     const chains = listChains();
-    
-    console.log(chalk.blue('\n📋 Supported Chains:\n'));
-    
+
+    console.log(chalk.blue("\n📋 Supported Chains:\n"));
+
     chains.forEach((chain: any) => {
       console.log(chalk.yellow(`${chain.name}`));
       console.log(chalk.gray(`  ID: ${chain.id}`));
@@ -47,18 +45,20 @@ program
 
 // List tokens command
 program
-  .command('tokens')
-  .description('List configured tokens')
+  .command("tokens")
+  .description("List configured tokens")
   .action(() => {
-    const { listTokens } = require('./config/tokens');
+    const { listTokens } = require("./config/tokens");
     const tokens = listTokens();
-    
-    console.log(chalk.blue('\n💰 Configured Tokens:\n'));
-    
+
+    console.log(chalk.blue("\n💰 Configured Tokens:\n"));
+
     tokens.forEach((token: any) => {
       console.log(chalk.yellow(`${token.symbol} - ${token.name}`));
       console.log(chalk.gray(`  Decimals: ${token.decimals}`));
-      console.log(chalk.gray(`  Chains: ${Object.keys(token.addresses).join(', ')}`));
+      console.log(
+        chalk.gray(`  Chains: ${Object.keys(token.addresses).join(", ")}`),
+      );
       console.log();
     });
   });

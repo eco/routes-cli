@@ -5,7 +5,7 @@
 import chalk from "chalk";
 import { Command } from "commander";
 import inquirer from "inquirer";
-import { Hex } from "viem";
+import { Address, encodeFunctionData, erc20Abi, Hex, parseUnits } from "viem";
 import { ChainType, Intent } from "../core/interfaces/intent";
 import { BasePublisher } from "../blockchain/base-publisher";
 import { EvmPublisher } from "../blockchain/evm-publisher";
@@ -17,13 +17,18 @@ import {
   getChainByName,
   listChains,
 } from "../config/chains";
-import { getTokenAddress, listTokens } from "../config/tokens";
+import {
+  getTokenAddress,
+  getTokenBySymbol,
+  listTokens,
+} from "../config/tokens";
 import { loadEnvConfig } from "../config/env";
 import { AddressNormalizer } from "../core/utils/address-normalizer";
 import { IntentBuilder } from "../builders/intent-builder";
 import { privateKeyToAccount } from "viem/accounts";
 import { TronWeb } from "tronweb";
 import { Keypair } from "@solana/web3.js";
+import {serialize} from "../commons/utils/serialize";
 
 export function createPublishCommand(): Command {
   const command = new Command("publish");
@@ -42,6 +47,9 @@ export function createPublishCommand(): Command {
 
         const { intent, sourceChain, destChain } =
           await buildIntentInteractively(options);
+
+        console.log(chalk.gray(`Intent: ${serialize(intent)}`));
+
 
         // Load configuration
         const env = loadEnvConfig();
@@ -279,17 +287,20 @@ async function buildIntentInteractively(options: any): Promise<{
   // 6. Prompt for route configuration
   console.log(chalk.blue("\n📏 Route Configuration (Destination Chain)"));
 
-  let routeTokenAddress = await selectToken(destChain, "route");
+  const routeToken = await selectToken(destChain, "route");
   let routeAmount: bigint;
 
   const { routeAmountStr } = await inquirer.prompt([
     {
       type: "input",
       name: "routeAmountStr",
-      message: `Enter route amount:`,
+      message: `Enter route amount${routeToken.symbol ? ` (${routeToken.symbol})` : ""} in human-readable format (e.g., "100" for 100 tokens):`,
       validate: (input) => {
         try {
-          BigInt(input);
+          const num = parseFloat(input);
+          if (isNaN(num) || num <= 0) {
+            return "Please enter a positive number";
+          }
           return true;
         } catch {
           return "Invalid amount";
@@ -297,22 +308,27 @@ async function buildIntentInteractively(options: any): Promise<{
       },
     },
   ]);
-  routeAmount = BigInt(routeAmountStr);
+
+  // Convert human-readable amount to token units using parseUnits
+  routeAmount = parseUnits(routeAmountStr, routeToken.decimals);
 
   // 7. Prompt for reward configuration
   console.log(chalk.blue("\n💰 Reward Configuration (Source Chain)"));
 
-  let rewardTokenAddress = await selectToken(sourceChain, "reward");
+  const rewardToken = await selectToken(sourceChain, "reward");
   let rewardAmount: bigint;
 
   const { rewardAmountStr } = await inquirer.prompt([
     {
       type: "input",
       name: "rewardAmountStr",
-      message: `Enter reward amount:`,
+      message: `Enter reward amount${rewardToken.symbol ? ` (${rewardToken.symbol})` : ""} in human-readable format (e.g., "10" for 10 tokens):`,
       validate: (input) => {
         try {
-          BigInt(input);
+          const num = parseFloat(input);
+          if (isNaN(num) || num <= 0) {
+            return "Please enter a positive number";
+          }
           return true;
         } catch {
           return "Invalid amount";
@@ -320,7 +336,9 @@ async function buildIntentInteractively(options: any): Promise<{
       },
     },
   ]);
-  rewardAmount = BigInt(rewardAmountStr);
+
+  // Convert human-readable amount to token units using parseUnits
+  rewardAmount = parseUnits(rewardAmountStr, rewardToken.decimals);
 
   // 8. Set fixed deadlines
   const now = Math.floor(Date.now() / 1000);
@@ -338,13 +356,22 @@ async function buildIntentInteractively(options: any): Promise<{
     .setRewardDeadline(rewardDeadline);
 
   builder.addRouteToken(
-    AddressNormalizer.normalize(routeTokenAddress, destChain.type),
+    AddressNormalizer.normalize(routeToken.address, destChain.type),
     routeAmount,
   );
 
   builder.addRewardToken(
-    AddressNormalizer.normalize(rewardTokenAddress, sourceChain.type),
+    AddressNormalizer.normalize(rewardToken.address, sourceChain.type),
     rewardAmount,
+  );
+
+  builder.addCall(
+    AddressNormalizer.normalize(routeToken.address, destChain.type),
+    encodeFunctionData({
+      abi: erc20Abi,
+      functionName: "transfer",
+      args: [creatorAddress as Address, routeAmount],
+    }),
   );
 
   // 10. Show summary and confirm
@@ -363,8 +390,26 @@ async function buildIntentInteractively(options: any): Promise<{
       `Reward deadline: ${new Date(Number(rewardDeadline) * 1000).toLocaleString()}`,
     ),
   );
-  console.log(chalk.gray(`Route token: ${routeTokenAddress}`));
-  console.log(chalk.gray(`Reward token: ${rewardTokenAddress}`));
+  console.log(
+    chalk.gray(
+      `Route token: ${routeToken.address}${routeToken.symbol ? ` (${routeToken.symbol})` : ""}`,
+    ),
+  );
+  console.log(
+    chalk.gray(
+      `Route amount: ${routeAmountStr} (${routeAmount.toString()} units)`,
+    ),
+  );
+  console.log(
+    chalk.gray(
+      `Reward token: ${rewardToken.address}${rewardToken.symbol ? ` (${rewardToken.symbol})` : ""}`,
+    ),
+  );
+  console.log(
+    chalk.gray(
+      `Reward amount: ${rewardAmountStr} (${rewardAmount.toString()} units)`,
+    ),
+  );
 
   const { confirm } = await inquirer.prompt([
     {
@@ -385,7 +430,10 @@ async function buildIntentInteractively(options: any): Promise<{
 /**
  * Select a token for a specific chain
  */
-async function selectToken(chain: ChainConfig, type: string): Promise<string> {
+async function selectToken(
+  chain: ChainConfig,
+  type: string,
+): Promise<{ address: string; decimals: number; symbol?: string }> {
   // Get available tokens for this chain
   const allTokens = listTokens();
   const chainTokens = allTokens.filter((token) => {
@@ -396,22 +444,22 @@ async function selectToken(chain: ChainConfig, type: string): Promise<string> {
   const choices = [
     ...chainTokens.map((t) => ({
       name: `${t.symbol} - ${t.name}`,
-      value: getTokenAddress(t.symbol, chain.id),
+      value: t.symbol,
     })),
     { name: "Custom Token Address", value: "CUSTOM" },
   ];
 
-  const { token } = await inquirer.prompt([
+  const { tokenChoice } = await inquirer.prompt([
     {
       type: "list",
-      name: "token",
+      name: "tokenChoice",
       message: `Select ${type} token:`,
       choices,
     },
   ]);
 
-  if (token === "CUSTOM") {
-    const { address } = await inquirer.prompt([
+  if (tokenChoice === "CUSTOM") {
+    const { address, decimals } = await inquirer.prompt([
       {
         type: "input",
         name: "address",
@@ -425,10 +473,37 @@ async function selectToken(chain: ChainConfig, type: string): Promise<string> {
           }
         },
       },
+      {
+        type: "input",
+        name: "decimals",
+        message: "Enter token decimals (e.g., 18 for most ERC20, 6 for USDC):",
+        default: "18",
+        validate: (input) => {
+          const num = parseInt(input);
+          return !isNaN(num) && num >= 0 && num <= 255
+            ? true
+            : "Please enter a valid number between 0 and 255";
+        },
+      },
     ]);
-    return address;
+    return { address, decimals: parseInt(decimals) };
+  }
+
+  // Get token config for selected symbol
+  const tokenConfig = getTokenBySymbol(tokenChoice);
+  if (!tokenConfig) {
+    throw new Error(`Token ${tokenChoice} not found`);
+  }
+
+  const tokenAddress = getTokenAddress(tokenChoice, chain.id);
+  if (!tokenAddress) {
+    throw new Error(`Token ${tokenChoice} not available on chain ${chain.id}`);
   }
 
   // Denormalize the token address to chain-native format for display
-  return AddressNormalizer.denormalize(token, chain.type);
+  return {
+    address: AddressNormalizer.denormalize(tokenAddress, chain.type),
+    decimals: tokenConfig.decimals,
+    symbol: tokenConfig.symbol,
+  };
 }

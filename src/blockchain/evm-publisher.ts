@@ -9,6 +9,8 @@ import {
   Hex,
   http,
   parseEventLogs,
+  erc20Abi,
+  maxUint256,
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import * as chains from "viem/chains";
@@ -48,6 +50,77 @@ export class EvmPublisher extends BasePublisher {
         chainConfig.portalAddress,
         ChainType.EVM,
       );
+
+      // Check native balance if required
+      if (intent.reward.nativeAmount > 0n) {
+        const balance = await publicClient.getBalance({
+          address: account.address,
+        });
+        
+        if (balance < intent.reward.nativeAmount) {
+          throw new Error(
+            `Insufficient native balance. Required: ${intent.reward.nativeAmount}, Available: ${balance}`
+          );
+        }
+        console.log(`✓ Native balance sufficient: ${balance} wei`);
+      }
+
+      // Check and approve tokens for the reward
+      console.log("\nChecking token balances and approvals...");
+      for (const token of intent.reward.tokens) {
+        const tokenAddress = AddressNormalizer.denormalize(
+          token.token,
+          ChainType.EVM,
+        ) as Hex;
+        
+        // Check token balance first
+        const tokenBalance = await publicClient.readContract({
+          address: tokenAddress,
+          abi: erc20Abi,
+          functionName: 'balanceOf',
+          args: [account.address],
+        });
+
+        if (tokenBalance < token.amount) {
+          throw new Error(
+            `Insufficient token balance for ${tokenAddress}. Required: ${token.amount}, Available: ${tokenBalance}`
+          );
+        }
+        console.log(`✓ Token balance sufficient for ${tokenAddress}: ${tokenBalance}`);
+        
+        // Check current allowance
+        const allowance = await publicClient.readContract({
+          address: tokenAddress,
+          abi: erc20Abi,
+          functionName: 'allowance',
+          args: [account.address, portalAddress as Hex],
+        });
+
+        if (allowance < token.amount) {
+          console.log(`Approving token ${tokenAddress}...`);
+          
+          // Approve max amount to avoid future approvals
+          const approveTx = await walletClient.writeContract({
+            address: tokenAddress,
+            abi: erc20Abi,
+            functionName: 'approve',
+            args: [portalAddress as Hex, maxUint256],
+          });
+          
+          // Wait for approval confirmation
+          const approvalReceipt = await publicClient.waitForTransactionReceipt({ 
+            hash: approveTx 
+          });
+          
+          if (approvalReceipt.status !== 'success') {
+            throw new Error(`Token approval failed for ${tokenAddress}`);
+          }
+          
+          console.log(`✓ Token approved: ${tokenAddress}`);
+        } else {
+          console.log(`✓ Token already approved: ${tokenAddress}`);
+        }
+      }
 
       // Encode route for destination chain type
       const destChainType = chainConfig.type;
@@ -89,10 +162,11 @@ export class EvmPublisher extends BasePublisher {
         ],
       });
 
-      // Send transaction
+      // Send transaction with native value if required
       const hash = await walletClient.sendTransaction({
         to: portalAddress as Hex,
         data,
+        value: intent.reward.nativeAmount,
       });
 
       // Wait for transaction receipt
@@ -145,20 +219,48 @@ export class EvmPublisher extends BasePublisher {
     senderAddress: string,
   ): Promise<{ valid: boolean; error?: string }> {
     try {
-      // Check if sender has enough balance for reward native amount on the source chain
-      const balance = await this.getBalance(
-        senderAddress,
-        intent.sourceChainId,
-      );
+      const chain = this.getChain(intent.sourceChainId);
+      const publicClient = createPublicClient({
+        chain,
+        transport: http(this.rpcUrl),
+      });
 
-      if (balance < intent.reward.nativeAmount) {
-        return {
-          valid: false,
-          error: `Insufficient balance. Required: ${intent.reward.nativeAmount}, Available: ${balance}`,
-        };
+      // Check if sender has enough balance for reward native amount on the source chain
+      if (intent.reward.nativeAmount > 0n) {
+        const balance = await this.getBalance(
+          senderAddress,
+          intent.sourceChainId,
+        );
+
+        if (balance < intent.reward.nativeAmount) {
+          return {
+            valid: false,
+            error: `Insufficient native balance. Required: ${intent.reward.nativeAmount}, Available: ${balance}`,
+          };
+        }
       }
 
-      // TODO: Check token balances
+      // Check token balances
+      for (const token of intent.reward.tokens) {
+        const tokenAddress = AddressNormalizer.denormalize(
+          token.token,
+          ChainType.EVM,
+        ) as Hex;
+        
+        const tokenBalance = await publicClient.readContract({
+          address: tokenAddress,
+          abi: erc20Abi,
+          functionName: 'balanceOf',
+          args: [senderAddress as Hex],
+        });
+
+        if (tokenBalance < token.amount) {
+          return {
+            valid: false,
+            error: `Insufficient token balance for ${tokenAddress}. Required: ${token.amount}, Available: ${tokenBalance}`,
+          };
+        }
+      }
 
       return { valid: true };
     } catch (error: any) {
