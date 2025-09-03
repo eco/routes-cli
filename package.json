@@ -1,0 +1,43 @@
+{
+  "name": "intent-publisher-cli",
+  "version": "1.0.0",
+  "description": "CLI tool for publishing intents to EVM, TVM, and SVM chains",
+  "main": "dist/index.js",
+  "bin": {
+    "intent-cli": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "ts-node src/index.ts",
+    "start": "node dist/index.js",
+    "start:dev": "tsx src/index.ts",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "blockchain",
+    "intent",
+    "cli",
+    "evm",
+    "tvm",
+    "svm"
+  ],
+  "author": "Eco Protocol",
+  "license": "MIT",
+  "dependencies": {
+    "@solana/web3.js": "^1.78.0",
+    "chalk": "^4.1.2",
+    "commander": "^12.1.0",
+    "dotenv": "^16.4.5",
+    "inquirer": "^9.3.7",
+    "tronweb": "^6.0.0",
+    "viem": "^2.21.58"
+  },
+  "devDependencies": {
+    "@types/inquirer": "^9.0.7",
+    "@types/node": "^20.16.16",
+    "prettier": "^3.6.2",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.20.5",
+    "typescript": "^5.7.2"
+  }
+}
