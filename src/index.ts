@@ -9,6 +9,7 @@ import { Command } from "commander";
 import chalk from "chalk";
 import { createPublishCommand } from "./commands/publish";
 import { updatePortalAddresses } from "./config/chains";
+import { logger } from "./utils/logger";
 
 // Load environment variables and update configuration
 updatePortalAddresses(process.env);
@@ -32,15 +33,17 @@ program
     const { listChains } = require("./config/chains");
     const chains = listChains();
 
-    console.log(chalk.blue("\n📋 Supported Chains:\n"));
+    logger.title("📋 Supported Chains");
 
-    chains.forEach((chain: any) => {
-      console.log(chalk.yellow(`${chain.name}`));
-      console.log(chalk.gray(`  ID: ${chain.id}`));
-      console.log(chalk.gray(`  Type: ${chain.type}`));
-      console.log(chalk.gray(`  Native: ${chain.nativeCurrency.symbol}`));
-      console.log();
-    });
+    const headers = ["Name", "ID", "Type", "Native Currency"];
+    const rows = chains.map((chain: any) => [
+      chalk.yellow(chain.name),
+      chain.id,
+      chain.type,
+      chain.nativeCurrency.symbol
+    ]);
+
+    logger.displayTable(headers, rows);
   });
 
 // List tokens command
@@ -51,15 +54,19 @@ program
     const { listTokens } = require("./config/tokens");
     const tokens = listTokens();
 
-    console.log(chalk.blue("\n💰 Configured Tokens:\n"));
+    logger.title("💰 Configured Tokens");
 
-    tokens.forEach((token: any) => {
-      console.log(chalk.yellow(`${token.symbol} - ${token.name}`));
-      console.log(chalk.gray(`  Decimals: ${token.decimals}`));
-      console.log(
-        chalk.gray(`  Chains: ${Object.keys(token.addresses).join(", ")}`),
-      );
-      console.log();
+    const headers = ["Symbol", "Name", "Decimals", "Available Chains"];
+    const rows = tokens.map((token: any) => [
+      chalk.yellow(token.symbol),
+      token.name,
+      token.decimals,
+      Object.keys(token.addresses).join(", ")
+    ]);
+
+    logger.displayTable(headers, rows, {
+      colWidths: [10, 25, 10, 35],
+      wordWrap: true
     });
   });
 

@@ -10,7 +10,7 @@ import { PortalEncoder } from "../core/utils/portal-encoder";
 import { getChainById } from "../config/chains";
 import { portalAbi } from "../commons/abis/portal.abi";
 import { erc20Abi } from "viem";
-import chalk from "chalk";
+import { logger } from "../utils/logger";
 
 export class TvmPublisher extends BasePublisher {
   private tronWeb: TronWeb;
@@ -59,19 +59,22 @@ export class TvmPublisher extends BasePublisher {
         AddressNormalizer.denormalizeToTvm(sourceToken.token),
       );
 
+      const approvalSpinner = logger.spinner('Approving tokens...');
+      
       const approvalTxId = await tokenContract
         .approve(portalAddress, sourceToken.amount)
         .send({ from: senderAddress });
 
-      console.log(chalk.gray("Approving tokens..."));
+      logger.updateSpinner('Waiting for approval confirmation...');
 
       const approvalSuccessful = await this.waitForTransaction(approvalTxId);
 
-      console.log(chalk.green("✓ Tokens Approved"));
-
       if (!approvalSuccessful) {
+        logger.fail('Token approval failed');
         throw new Error("Approval failed");
       }
+      
+      logger.succeed('Tokens approved');
 
       const portalContract = this.tronWeb.contract(portalAbi, portalAddress);
 
@@ -94,26 +97,32 @@ export class TvmPublisher extends BasePublisher {
 
       // Call publish function
       // Pass parameters as separate arguments
+      const publishSpinner = logger.spinner('Publishing intent to Portal contract...');
       const tx = await portalContract
         .publishAndFund(destination, routeHash, reward, false)
         .send({
           from: senderAddress,
           callValue: Number(intent.reward.nativeAmount), // TRX amount in sun
         });
+      
+      logger.updateSpinner('Waiting for transaction confirmation...');
 
       if (tx) {
+        logger.succeed('Transaction confirmed');
         return {
           success: true,
           transactionHash: tx,
           intentHash: intent.intentHash,
         };
       } else {
+        logger.fail('Transaction failed');
         return {
           success: false,
           error: "Transaction failed",
         };
       }
     } catch (error: any) {
+      logger.stopSpinner();
       return {
         success: false,
         error: error.message || "Unknown error",

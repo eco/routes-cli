@@ -5,6 +5,7 @@
 import chalk from "chalk";
 import { Command } from "commander";
 import inquirer from "inquirer";
+import { logger } from "../utils/logger";
 import { Address, encodeFunctionData, erc20Abi, Hex, parseUnits } from "viem";
 import { ChainType, Intent } from "../core/interfaces/intent";
 import { BasePublisher } from "../blockchain/base-publisher";
@@ -44,7 +45,7 @@ export function createPublishCommand(): Command {
     .action(async (options) => {
       try {
         // Interactive mode
-        console.log(chalk.blue("🎨 Interactive Intent Publishing\n"));
+        logger.title("🎨 Interactive Intent Publishing");
 
         const { intent, sourceChain, destChain } =
           await buildIntentInteractively(options);
@@ -126,45 +127,44 @@ export function createPublishCommand(): Command {
             throw new Error("Unknown chain type");
         }
 
-        console.log(chalk.gray(`Sender: ${senderAddress}`));
-        console.log(
-          chalk.gray(`Source: ${sourceChain.name} (${sourceChain.id})`),
-        );
-        console.log(
-          chalk.gray(`Destination: ${destChain.name} (${destChain.id})`),
-        );
+        logger.log(`Sender: ${senderAddress}`);
+        logger.log(`Source: ${sourceChain.name} (${sourceChain.id})`);
+        logger.log(`Destination: ${destChain.name} (${destChain.id})`);
 
         // Validate
+        const validationSpinner = logger.spinner(
+          "Validating intent configuration...",
+        );
         const validation = await publisher.validate(intent, senderAddress);
         if (!validation.valid) {
+          logger.fail(`Validation failed: ${validation.error}`);
           throw new Error(`Validation failed: ${validation.error}`);
         }
-
-        console.log(chalk.green("✓ Validation passed"));
+        logger.succeed("Validation passed");
 
         if (options.dryRun) {
-          console.log(chalk.yellow("Dry run - not publishing"));
+          logger.warning("Dry run - not publishing");
           return;
         }
 
         // Publish
+        const publishSpinner = logger.spinner(
+          "Publishing intent to blockchain...",
+        );
         const result = await publisher.publish(intent, privateKey);
 
         if (result.success) {
-          console.log(chalk.green("✅ Intent published successfully!"));
-          console.log(chalk.gray(`Transaction: ${result.transactionHash}`));
-          if (result.intentHash) {
-            console.log(chalk.gray(`Intent Hash: ${result.intentHash}`));
-          }
-          if (result.vaultAddress) {
-            console.log(chalk.gray(`Vault: ${result.vaultAddress}`));
-          }
+          logger.succeed("Intent published successfully!");
+          logger.displayTransactionResult(result);
         } else {
+          logger.fail("Publishing failed");
           throw new Error(result.error || "Publishing failed");
         }
       } catch (error: any) {
-        console.error(chalk.red(`❌ Error: ${error.message}`));
-        console.error(chalk.red(`❌ Error Stack: ${error.stack}`));
+        logger.error(`Error: ${error.message}`);
+        if (process.env.DEBUG) {
+          logger.error(`Stack: ${error.stack}`);
+        }
         process.exit(1);
       }
     });
@@ -285,7 +285,7 @@ async function buildIntentInteractively(options: any): Promise<{
   }
 
   // 6. Prompt for route configuration
-  console.log(chalk.blue("\n📏 Route Configuration (Destination Chain)"));
+  logger.section("📏 Route Configuration (Destination Chain)");
 
   const routeToken = await selectToken(destChain, "route");
   let routeAmount: bigint;
@@ -314,7 +314,7 @@ async function buildIntentInteractively(options: any): Promise<{
   routeAmount = parseUnits(routeAmountStr, routeToken.decimals);
 
   // 7. Prompt for reward configuration
-  console.log(chalk.blue("\n💰 Reward Configuration (Source Chain)"));
+  logger.section("💰 Reward Configuration (Source Chain)");
 
   const rewardToken = await selectToken(sourceChain, "reward");
   let rewardAmount: bigint;
@@ -379,40 +379,18 @@ async function buildIntentInteractively(options: any): Promise<{
 
   // 10. Show summary and confirm
   const intent = builder.build();
-  console.log(chalk.yellow("\n📋 Intent Summary:"));
-  console.log(chalk.gray(`Source: ${sourceChain.name} (${sourceChain.id})`));
-  console.log(chalk.gray(`Destination: ${destChain.name} (${destChain.id})`));
-  console.log(chalk.gray(`Creator: ${creatorAddress}`));
-  console.log(
-    chalk.gray(
-      `Route deadline: ${new Date(Number(routeDeadline) * 1000).toLocaleString()}`,
-    ),
-  );
-  console.log(
-    chalk.gray(
-      `Reward deadline: ${new Date(Number(rewardDeadline) * 1000).toLocaleString()}`,
-    ),
-  );
-  console.log(
-    chalk.gray(
-      `Route token: ${routeToken.address}${routeToken.symbol ? ` (${routeToken.symbol})` : ""}`,
-    ),
-  );
-  console.log(
-    chalk.gray(
-      `Route amount: ${routeAmountStr} (${routeAmount.toString()} units)`,
-    ),
-  );
-  console.log(
-    chalk.gray(
-      `Reward token: ${rewardToken.address}${rewardToken.symbol ? ` (${rewardToken.symbol})` : ""}`,
-    ),
-  );
-  console.log(
-    chalk.gray(
-      `Reward amount: ${rewardAmountStr} (${rewardAmount.toString()} units)`,
-    ),
-  );
+
+  logger.displayIntentSummary({
+    source: `${sourceChain.name} (${sourceChain.id})`,
+    destination: `${destChain.name} (${destChain.id})`,
+    creator: AddressNormalizer.denormalize(creatorAddress, sourceChain.type),
+    routeDeadline: new Date(Number(routeDeadline) * 1000).toLocaleString(),
+    rewardDeadline: new Date(Number(rewardDeadline) * 1000).toLocaleString(),
+    routeToken: `${routeToken.address}${routeToken.symbol ? ` (${routeToken.symbol})` : ""}`,
+    routeAmount: `${routeAmountStr} (${routeAmount.toString()} units)`,
+    rewardToken: `${rewardToken.address}${rewardToken.symbol ? ` (${rewardToken.symbol})` : ""}`,
+    rewardAmount: `${rewardAmountStr} (${rewardAmount.toString()} units)`,
+  });
 
   const { confirm } = await inquirer.prompt([
     {

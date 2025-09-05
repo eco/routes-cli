@@ -20,6 +20,7 @@ import { AddressNormalizer } from "../core/utils/address-normalizer";
 import { PortalEncoder } from "../core/utils/portal-encoder";
 import { getChainById } from "../config/chains";
 import { portalAbi } from "../commons/abis/portal.abi";
+import { logger } from "../utils/logger";
 
 export class EvmPublisher extends BasePublisher {
   async publish(intent: Intent, privateKey: string): Promise<PublishResult> {
@@ -53,27 +54,35 @@ export class EvmPublisher extends BasePublisher {
 
       // Check native balance if required
       if (intent.reward.nativeAmount > 0n) {
+        const balanceSpinner = logger.spinner('Checking native balance...');
         const balance = await publicClient.getBalance({
           address: account.address,
         });
         
         if (balance < intent.reward.nativeAmount) {
+          logger.fail(`Insufficient native balance. Required: ${intent.reward.nativeAmount}, Available: ${balance}`);
           throw new Error(
             `Insufficient native balance. Required: ${intent.reward.nativeAmount}, Available: ${balance}`
           );
         }
-        console.log(`✓ Native balance sufficient: ${balance} wei`);
+        logger.succeed(`Native balance sufficient: ${balance} wei`);
       }
 
       // Check and approve tokens for the reward
-      console.log("\nChecking token balances and approvals...");
-      for (const token of intent.reward.tokens) {
+      if (intent.reward.tokens.length > 0) {
+        logger.info('Checking token balances and approvals...');
+      }
+      
+      for (let i = 0; i < intent.reward.tokens.length; i++) {
+        const token = intent.reward.tokens[i];
         const tokenAddress = AddressNormalizer.denormalize(
           token.token,
           ChainType.EVM,
         ) as Hex;
         
         // Check token balance first
+        const tokenSpinner = logger.spinner(`Checking balance for token ${i + 1}/${intent.reward.tokens.length}: ${tokenAddress}`);
+        
         const tokenBalance = await publicClient.readContract({
           address: tokenAddress,
           abi: erc20Abi,
@@ -82,11 +91,13 @@ export class EvmPublisher extends BasePublisher {
         });
 
         if (tokenBalance < token.amount) {
+          logger.fail(`Insufficient token balance for ${tokenAddress}`);
           throw new Error(
             `Insufficient token balance for ${tokenAddress}. Required: ${token.amount}, Available: ${tokenBalance}`
           );
         }
-        console.log(`✓ Token balance sufficient for ${tokenAddress}: ${tokenBalance}`);
+        
+        logger.succeed(`Token balance sufficient: ${tokenBalance}`);
         
         // Check current allowance
         const allowance = await publicClient.readContract({
@@ -97,7 +108,7 @@ export class EvmPublisher extends BasePublisher {
         });
 
         if (allowance < token.amount) {
-          console.log(`Approving token ${tokenAddress}...`);
+          const approveSpinner = logger.spinner(`Approving token ${tokenAddress}...`);
           
           // Approve max amount to avoid future approvals
           const approveTx = await walletClient.writeContract({
@@ -108,17 +119,19 @@ export class EvmPublisher extends BasePublisher {
           });
           
           // Wait for approval confirmation
+          logger.updateSpinner('Waiting for approval confirmation...');
           const approvalReceipt = await publicClient.waitForTransactionReceipt({ 
             hash: approveTx 
           });
           
           if (approvalReceipt.status !== 'success') {
+            logger.fail(`Token approval failed for ${tokenAddress}`);
             throw new Error(`Token approval failed for ${tokenAddress}`);
           }
           
-          console.log(`✓ Token approved: ${tokenAddress}`);
+          logger.succeed(`Token approved: ${tokenAddress}`);
         } else {
-          console.log(`✓ Token already approved: ${tokenAddress}`);
+          logger.info(`Token already approved: ${tokenAddress}`);
         }
       }
 
@@ -163,6 +176,7 @@ export class EvmPublisher extends BasePublisher {
       });
 
       // Send transaction with native value if required
+      const publishSpinner = logger.spinner('Publishing intent to Portal contract...');
       const hash = await walletClient.sendTransaction({
         to: portalAddress as Hex,
         data,
@@ -170,7 +184,9 @@ export class EvmPublisher extends BasePublisher {
       });
 
       // Wait for transaction receipt
+      logger.updateSpinner('Waiting for transaction confirmation...');
       const receipt = await publicClient.waitForTransactionReceipt({ hash });
+      logger.succeed('Transaction confirmed');
 
       if (receipt.status === "success") {
         const [intentPublishEvent] = parseEventLogs({
@@ -192,6 +208,7 @@ export class EvmPublisher extends BasePublisher {
         };
       }
     } catch (error: any) {
+      logger.stopSpinner();
       return {
         success: false,
         error: error.message || "Unknown error",

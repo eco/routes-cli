@@ -16,6 +16,7 @@ import { Intent, ChainType } from '../core/interfaces/intent';
 import { AddressNormalizer } from '../core/utils/address-normalizer';
 import { PortalEncoder } from '../core/utils/portal-encoder';
 import { getChainById } from '../config/chains';
+import { logger } from '../utils/logger';
 
 export class SvmPublisher extends BasePublisher {
   private connection: Connection;
@@ -84,6 +85,7 @@ export class SvmPublisher extends BasePublisher {
       // Create and send transaction
       const transaction = new Transaction().add(instruction);
       
+      const publishSpinner = logger.spinner('Publishing intent to Solana network...');
       const signature = await sendAndConfirmTransaction(
         this.connection,
         transaction,
@@ -93,12 +95,15 @@ export class SvmPublisher extends BasePublisher {
         }
       );
       
+      logger.succeed('Transaction confirmed');
+      
       return {
         success: true,
         transactionHash: signature,
         intentHash: intent.intentHash,
       };
     } catch (error: any) {
+      logger.stopSpinner();
       return {
         success: false,
         error: error.message || 'Unknown error',

@@ -26,9 +26,11 @@
   "dependencies": {
     "@solana/web3.js": "^1.78.0",
     "chalk": "^4.1.2",
+    "cli-table3": "^0.6.5",
     "commander": "^12.1.0",
     "dotenv": "^16.4.5",
     "inquirer": "^9.3.7",
+    "ora": "^8.2.0",
     "tronweb": "^6.0.0",
     "viem": "^2.21.58"
   },
