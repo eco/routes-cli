@@ -1,0 +1,17 @@
+{
+  "name": "evm-intent-simple",
+  "version": "1.0.0",
+  "description": "Simple EVM to EVM intent creation example",
+  "main": "create-intent.ts",
+  "scripts": {
+    "start": "tsx create-intent.ts"
+  },
+  "dependencies": {
+    "viem": "^2.21.54",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}
