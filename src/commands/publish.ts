@@ -14,6 +14,7 @@ import {
   Hex,
   parseUnits,
   zeroAddress,
+  isAddress as isViemAddress,
 } from "viem";
 import { ChainType, Intent } from "../core/interfaces/intent";
 import { BasePublisher } from "../blockchain/base-publisher";
@@ -36,7 +37,7 @@ import { AddressNormalizer } from "../core/utils/address-normalizer";
 import { IntentBuilder } from "../builders/intent-builder";
 import { privateKeyToAccount } from "viem/accounts";
 import { TronWeb } from "tronweb";
-import { Keypair } from "@solana/web3.js";
+import { Keypair, PublicKey } from "@solana/web3.js";
 import { serialize } from "../commons/utils/serialize";
 import { UniversalAddress } from "../core/types/universal-address";
 import { getQuote } from "../core/utils/quote";
@@ -328,20 +329,69 @@ async function buildIntentInteractively(options: any): Promise<{
 
   const routeToken = await selectToken(destChain, "route");
 
-  // 7. Get quote
+  // 7. Prompt for recipient address
+  logger.section("👤 Recipient Configuration");
+
+  const { recipientAddress } = await inquirer.prompt([
+    {
+      type: "input",
+      name: "recipientAddress",
+      message: `Enter recipient address on ${destChain.name} (${destChain.type} chain):`,
+      validate: (input) => {
+        if (!input || input.trim() === "") {
+          return "Recipient address is required";
+        }
+
+        try {
+          // Validate the address format based on destination chain type
+          switch (destChain.type) {
+            case ChainType.EVM:
+              if (!isViemAddress(input)) {
+                return `Invalid EVM address format. Expected format: 0x... (40 hex characters after 0x)`;
+              }
+              break;
+            case ChainType.TVM:
+              if (!TronWeb.isAddress(input)) {
+                return `Invalid Tron address format. Expected format: T... (base58) or 41... (hex)`;
+              }
+              break;
+            case ChainType.SVM:
+              try {
+                new PublicKey(input);
+              } catch {
+                return `Invalid Solana address format. Expected format: base58 encoded public key`;
+              }
+              break;
+            default:
+              return `Unsupported destination chain type: ${destChain.type}`;
+          }
+
+          // Try to normalize the address to ensure it's fully valid
+          AddressNormalizer.normalize(input, destChain.type);
+          return true;
+        } catch (error: any) {
+          return `Invalid address: ${error.message}`;
+        }
+      },
+    },
+  ]);
+
+  // Normalize the recipient address
+  const normalizedRecipient = AddressNormalizer.normalize(
+    recipientAddress,
+    destChain.type,
+  );
+
+  // 8. Get quote
   let routeAmount: bigint;
   try {
-    const destinationChainType = ChainTypeDetector.detect(destChain.id);
-
     logger.spinner("Getting quote...");
 
     const quote = await getQuote({
       source: sourceChain.id,
       destination: destChain.id,
-      recipient: AddressNormalizer.denormalize(
-        AddressNormalizer.normalizeEvm(zeroAddress),
-        destinationChainType,
-      ),
+      funder: AddressNormalizer.denormalize(creatorAddress, sourceChain.type),
+      recipient: recipientAddress,
       amount: rewardAmount,
       routeToken: routeToken.address,
       rewardToken: rewardToken.address,
@@ -376,13 +426,13 @@ async function buildIntentInteractively(options: any): Promise<{
     routeAmount = parseUnits(routeAmountStr, routeToken.decimals);
   }
 
-  // 8. Set fixed deadlines
+  // 9. Set fixed deadlines
   const now = Math.floor(Date.now() / 1000);
   const routeDeadline = BigInt(now + 2 * 60 * 60); // 2 hours
   const rewardDeadline = routeDeadline; // Same as route
   // const rewardDeadline = BigInt(now + 3 * 60 * 60); // 3 hours
 
-  // 9. Build intent
+  // 10. Build intent
   const builder = new IntentBuilder()
     .setSourceChain(sourceChain.id)
     .setDestinationChain(destChain.id)
@@ -407,17 +457,21 @@ async function buildIntentInteractively(options: any): Promise<{
     encodeFunctionData({
       abi: erc20Abi,
       functionName: "transfer",
-      args: [AddressNormalizer.denormalizeToEvm(creatorAddress), routeAmount],
+      args: [
+        AddressNormalizer.denormalizeToEvm(normalizedRecipient),
+        routeAmount,
+      ],
     }),
   );
 
-  // 10. Show summary and confirm
+  // 11. Show summary and confirm
   const intent = builder.build();
 
   logger.displayIntentSummary({
     source: `${sourceChain.name} (${sourceChain.id})`,
     destination: `${destChain.name} (${destChain.id})`,
     creator: AddressNormalizer.denormalize(creatorAddress, sourceChain.type),
+    recipient: recipientAddress,
     routeDeadline: new Date(Number(routeDeadline) * 1000).toLocaleString(),
     rewardDeadline: new Date(Number(rewardDeadline) * 1000).toLocaleString(),
     routeToken: `${routeToken.address}${routeToken.symbol ? ` (${routeToken.symbol})` : ""}`,

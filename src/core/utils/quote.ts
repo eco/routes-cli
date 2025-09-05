@@ -4,6 +4,7 @@ interface QuoteRequest {
   source: bigint;
   destination: bigint;
   amount: bigint;
+  funder: string;
   recipient: string;
   routeToken: string;
   rewardToken: string;
@@ -47,15 +48,14 @@ export async function getQuote(requestOpts: QuoteRequest) {
   const url = new URL("/api/v3/quotes/getQuote", quoteUrl);
 
   const request = {
-    dAppID: "dapp",
+    dAppID: "eco-routes-cli",
     quoteRequest: {
       sourceChainID: Number(requestOpts.source),
       sourceToken: requestOpts.rewardToken,
       destinationChainID: Number(requestOpts.destination),
       destinationToken: requestOpts.routeToken,
       sourceAmount: requestOpts.amount.toString(),
-      funder: requestOpts.recipient,
-      refundRecipient: requestOpts.recipient,
+      funder: requestOpts.funder,
       recipient: requestOpts.recipient,
     },
   };
