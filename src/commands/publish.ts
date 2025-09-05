@@ -6,7 +6,15 @@ import chalk from "chalk";
 import { Command } from "commander";
 import inquirer from "inquirer";
 import { logger } from "../utils/logger";
-import { Address, encodeFunctionData, erc20Abi, Hex, parseUnits } from "viem";
+import {
+  Address,
+  encodeFunctionData,
+  erc20Abi,
+  formatUnits,
+  Hex,
+  parseUnits,
+  zeroAddress,
+} from "viem";
 import { ChainType, Intent } from "../core/interfaces/intent";
 import { BasePublisher } from "../blockchain/base-publisher";
 import { EvmPublisher } from "../blockchain/evm-publisher";
@@ -31,6 +39,8 @@ import { TronWeb } from "tronweb";
 import { Keypair } from "@solana/web3.js";
 import { serialize } from "../commons/utils/serialize";
 import { UniversalAddress } from "../core/types/universal-address";
+import { getQuote } from "../core/utils/quote";
+import { ChainTypeDetector } from "../core/utils/chain-detector";
 
 export function createPublishCommand(): Command {
   const command = new Command("publish");
@@ -284,36 +294,7 @@ async function buildIntentInteractively(options: any): Promise<{
     throw new Error(`No portal configured for ${destChain.name}`);
   }
 
-  // 6. Prompt for route configuration
-  logger.section("📏 Route Configuration (Destination Chain)");
-
-  const routeToken = await selectToken(destChain, "route");
-  let routeAmount: bigint;
-
-  const { routeAmountStr } = await inquirer.prompt([
-    {
-      type: "input",
-      name: "routeAmountStr",
-      message: `Enter route amount${routeToken.symbol ? ` (${routeToken.symbol})` : ""} in human-readable format (e.g., "100" for 100 tokens):`,
-      default: "0.07",
-      validate: (input) => {
-        try {
-          const num = parseFloat(input);
-          if (isNaN(num) || num <= 0) {
-            return "Please enter a positive number";
-          }
-          return true;
-        } catch {
-          return "Invalid amount";
-        }
-      },
-    },
-  ]);
-
-  // Convert human-readable amount to token units using parseUnits
-  routeAmount = parseUnits(routeAmountStr, routeToken.decimals);
-
-  // 7. Prompt for reward configuration
+  // 6. Prompt for reward configuration
   logger.section("💰 Reward Configuration (Source Chain)");
 
   const rewardToken = await selectToken(sourceChain, "reward");
@@ -341,6 +322,59 @@ async function buildIntentInteractively(options: any): Promise<{
 
   // Convert human-readable amount to token units using parseUnits
   rewardAmount = parseUnits(rewardAmountStr, rewardToken.decimals);
+
+  // 7. Prompt for route configuration
+  logger.section("📏 Route Configuration (Destination Chain)");
+
+  const routeToken = await selectToken(destChain, "route");
+
+  // 7. Get quote
+  let routeAmount: bigint;
+  try {
+    const destinationChainType = ChainTypeDetector.detect(destChain.id);
+
+    logger.spinner("Getting quote...");
+
+    const quote = await getQuote({
+      source: sourceChain.id,
+      destination: destChain.id,
+      recipient: AddressNormalizer.denormalize(
+        AddressNormalizer.normalizeEvm(zeroAddress),
+        destinationChainType,
+      ),
+      amount: rewardAmount,
+      routeToken: routeToken.address,
+      rewardToken: rewardToken.address,
+    });
+    routeAmount = BigInt(quote.quoteResponse.destinationAmount);
+
+    logger.succeed("Quote fetched");
+  } catch (error) {
+    logger.fail("Quote failed. Enter amount manually");
+
+    const { routeAmountStr } = await inquirer.prompt([
+      {
+        type: "input",
+        name: "routeAmountStr",
+        message: `Enter route amount${routeToken.symbol ? ` (${routeToken.symbol})` : ""} in human-readable format (e.g., "100" for 100 tokens):`,
+        default: "0.07",
+        validate: (input) => {
+          try {
+            const num = parseFloat(input);
+            if (isNaN(num) || num <= 0) {
+              return "Please enter a positive number";
+            }
+            return true;
+          } catch {
+            return "Invalid amount";
+          }
+        },
+      },
+    ]);
+
+    // Convert human-readable amount to token units using parseUnits
+    routeAmount = parseUnits(routeAmountStr, routeToken.decimals);
+  }
 
   // 8. Set fixed deadlines
   const now = Math.floor(Date.now() / 1000);
@@ -387,7 +421,7 @@ async function buildIntentInteractively(options: any): Promise<{
     routeDeadline: new Date(Number(routeDeadline) * 1000).toLocaleString(),
     rewardDeadline: new Date(Number(rewardDeadline) * 1000).toLocaleString(),
     routeToken: `${routeToken.address}${routeToken.symbol ? ` (${routeToken.symbol})` : ""}`,
-    routeAmount: `${routeAmountStr} (${routeAmount.toString()} units)`,
+    routeAmount: `${formatUnits(routeAmount, routeToken.decimals)} (${routeAmount.toString()} units)`,
     rewardToken: `${rewardToken.address}${rewardToken.symbol ? ` (${rewardToken.symbol})` : ""}`,
     rewardAmount: `${rewardAmountStr} (${rewardAmount.toString()} units)`,
   });

@@ -59,22 +59,22 @@ export class TvmPublisher extends BasePublisher {
         AddressNormalizer.denormalizeToTvm(sourceToken.token),
       );
 
-      const approvalSpinner = logger.spinner('Approving tokens...');
-      
+      logger.spinner("Approving tokens...");
+
       const approvalTxId = await tokenContract
         .approve(portalAddress, sourceToken.amount)
         .send({ from: senderAddress });
 
-      logger.updateSpinner('Waiting for approval confirmation...');
+      logger.updateSpinner("Waiting for approval confirmation...");
 
       const approvalSuccessful = await this.waitForTransaction(approvalTxId);
 
       if (!approvalSuccessful) {
-        logger.fail('Token approval failed');
+        logger.fail("Token approval failed");
         throw new Error("Approval failed");
       }
-      
-      logger.succeed('Tokens approved');
+
+      logger.succeed("Tokens approved");
 
       const portalContract = this.tronWeb.contract(portalAbi, portalAddress);
 
@@ -97,25 +97,27 @@ export class TvmPublisher extends BasePublisher {
 
       // Call publish function
       // Pass parameters as separate arguments
-      const publishSpinner = logger.spinner('Publishing intent to Portal contract...');
+      const publishSpinner = logger.spinner(
+        "Publishing intent to Portal contract...",
+      );
       const tx = await portalContract
         .publishAndFund(destination, routeHash, reward, false)
         .send({
           from: senderAddress,
           callValue: Number(intent.reward.nativeAmount), // TRX amount in sun
         });
-      
-      logger.updateSpinner('Waiting for transaction confirmation...');
+
+      logger.updateSpinner("Waiting for transaction confirmation...");
 
       if (tx) {
-        logger.succeed('Transaction confirmed');
+        logger.succeed("Transaction confirmed");
         return {
           success: true,
           transactionHash: tx,
           intentHash: intent.intentHash,
         };
       } else {
-        logger.fail('Transaction failed');
+        logger.fail("Transaction failed");
         return {
           success: false,
           error: "Transaction failed",
