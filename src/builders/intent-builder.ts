@@ -137,14 +137,8 @@ export class IntentBuilder {
         intent.route.salt,
         intent.sourceChainId,
         intent.destination,
-        AddressNormalizer.denormalize(
-          intent.route.portal,
-          ChainTypeDetector.detect(intent.destination),
-        ) as `0x${string}`,
-        AddressNormalizer.denormalize(
-          intent.reward.creator,
-          ChainTypeDetector.detect(intent.sourceChainId),
-        ) as `0x${string}`,
+        AddressNormalizer.denormalizeToEvm(intent.route.portal),
+        AddressNormalizer.denormalizeToEvm(intent.reward.creator),
       ],
     );
 
