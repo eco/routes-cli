@@ -1,23 +1,43 @@
-# Intent Publisher CLI
+# Routes CLI - Intent Publisher
 
-A standalone CLI tool for creating and publishing intents to EVM, TVM (Tron), and SVM (Solana) blockchains.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Node.js Version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg)](https://nodejs.org/)
 
-## Features
+A powerful command-line interface for creating and publishing cross-chain intents on EVM, TVM (Tron), and SVM (Solana) blockchains. Built by Eco Protocol for seamless multi-chain interactions.
 
-- 🚀 **Multi-chain Support**: Publish intents to EVM, Tron, and Solana chains
-- 🎨 **Interactive Publishing**: Step-by-step wizard for publishing intents with automatic configuration
-- 📦 **Interactive Creation**: Advanced intent builder for complex scenarios
-- 🔐 **Secure**: Private keys stored in environment variables
-- 🛠️ **Extensible**: Easy to add new chains and tokens
-- ⏰ **Smart Defaults**: Automatic deadline calculation (2h route, 3h reward)
-- 📦 **Standalone**: Independent Node.js project, no NestJS dependencies
+## 🌟 Key Features
 
-## Installation
+- **🌍 Multi-chain Support**: Seamlessly publish intents across EVM, Tron (TVM), and Solana (SVM) chains
+- **💸 Quote Integration**: Real-time route quotes for optimal pricing and path finding
+- **🎯 Interactive Wizards**: Intuitive step-by-step guides for intent creation and publishing
+- **🔐 Secure Key Management**: Environment-based private key storage with multi-format support
+- **📊 Rich CLI Experience**: Beautiful tables, spinners, and colored output for better UX
+- **⚡ Smart Defaults**: Automatic deadline calculation and intelligent configuration
+- **🔌 Extensible Architecture**: Easy integration of new chains and tokens
+- **📦 Standalone Operation**: Zero external service dependencies
+
+## 📋 Prerequisites
+
+- Node.js >= 18.0.0
+- pnpm (recommended) or npm
+- Private keys for the chains you want to use
+
+## 📦 Installation
+
+### Clone and Build
 
 ```bash
-cd cli
+git clone https://github.com/eco-protocol/routes-cli.git
+cd routes-cli
 pnpm install
 pnpm build
+```
+
+### Global Installation (Optional)
+
+```bash
+pnpm link
+# Now you can use 'eco-routes-cli' globally
 ```
 
 ## Configuration
@@ -39,103 +59,104 @@ EVM_RPC_URL=https://eth-mainnet.g.alchemy.com/v2/...
 TVM_RPC_URL=https://api.trongrid.io
 SVM_RPC_URL=https://api.mainnet-beta.solana.com
 
-# Portal contract addresses
+# Optional: Portal contract addresses
 PORTAL_ADDRESS_ETH=0x...
 PORTAL_ADDRESS_OPTIMISM=0x...
 PORTAL_ADDRESS_TRON=T...
 PORTAL_ADDRESS_SOLANA=...
 ```
 
-## Usage
+## 🚀 Quick Start
 
-### Interactive Intent Creation
+1. **Set up your environment:**
+   ```bash
+   cp .env.example .env
+   # Edit .env with your private keys
+   ```
 
-Create an intent using the interactive wizard:
+2. **Publish your first intent:**
+   ```bash
+   pnpm dev publish
+   # Follow the interactive prompts
+   ```
 
-```bash
-pnpm dev create
-# or after building:
-node dist/index.js create
-```
+3. **View available chains:**
+   ```bash
+   pnpm dev chains
+   ```
 
-The wizard will guide you through:
-- Selecting source and destination chains
-- Setting creator and prover addresses
-- Configuring token transfers
-- Adding contract calls
-- Setting deadlines
+## 📖 Usage Guide
 
-### Interactive Publishing (Recommended)
+### 🎯 Interactive Publishing (Recommended)
 
-The easiest way to publish an intent - just run:
+The simplest and most user-friendly way to publish intents:
 
 ```bash
 pnpm dev publish
-# or after building:
-node dist/index.js publish
 ```
 
-The CLI will guide you through:
-1. **Chain Selection**: Choose source and destination chains
-2. **Token Configuration**: 
-   - Select route token (destination chain) - native or specific token
-   - Enter route amount
-   - Select reward token (source chain) - native or specific token
-   - Enter reward amount
-3. **Automatic Setup**:
-   - Creator address is derived from your wallet
-   - Prover address is taken from chain configuration
-   - Portal address is taken from destination chain configuration
-   - Route deadline: 2 hours from now
-   - Reward deadline: 3 hours from now
-4. **Confirmation**: Review and confirm before publishing
+#### Publishing Flow
 
-### Semi-Interactive Publishing
+1. **🔗 Chain Selection**
+   - Select source chain (where rewards come from)
+   - Select destination chain (where route executes)
+   - Automatic quote fetching for optimal routing
 
-Provide chains, get prompted for tokens:
+2. **💰 Token Configuration**
+   - **Route Token**: Choose destination chain token (native or ERC20/TRC20/SPL)
+   - **Route Amount**: Specify amount to transfer on destination
+   - **Reward Token**: Choose source chain token for prover reward
+   - **Reward Amount**: Specify reward amount for proof submission
+
+3. **⚙️ Automatic Configuration**
+   - Creator address derived from your wallet
+   - Prover address from chain configuration
+   - Portal address from destination chain
+   - Smart deadline calculation:
+     - Route deadline: 2 hours from now
+     - Reward deadline: 3 hours from now
+
+4. **✅ Review & Confirm**
+   - Display complete intent details
+   - Show estimated gas costs
+   - Confirm before blockchain submission
+
+### 🔄 Semi-Interactive Publishing
+
+Specify chains via command line, configure tokens interactively:
 
 ```bash
+# Mainnet examples
 pnpm dev publish --source ethereum --destination optimism
+pnpm dev publish --source tron --destination base
+pnpm dev publish --source solana --destination ethereum
 
-# Using testnets
+# Testnet examples
 pnpm dev publish --source base-sepolia --destination optimism-sepolia
 pnpm dev publish --source tron-shasta --destination base-sepolia
 ```
 
-### Direct Publishing (JSON)
+### ⚙️ Command Options
 
-For automation, provide complete intent JSON:
+| Option | Alias | Description | Example |
+|--------|-------|-------------|----------|
+| `--source` | `-s` | Source chain name or ID | `ethereum`, `1` |
+| `--destination` | `-d` | Destination chain name or ID | `optimism`, `10` |
+| `--verbose` | `-v` | Show detailed output | |
 
-```bash
-pnpm dev publish \
-  --source ethereum \
-  --destination optimism \
-  --intent '{"route": {...}, "reward": {...}}'
-```
+### 📊 Information Commands
 
-### Command Options
-- `-s, --source <chain>`: Source chain (name or ID)
-- `-d, --destination <chain>`: Destination chain (name or ID)
-- `-i, --intent <json>`: Intent JSON data (skips interactive mode)
-- `-k, --private-key <key>`: Override environment private key
-- `-r, --rpc <url>`: Override RPC URL
-- `--dry-run`: Validate without publishing
-
-### List Supported Chains
-
+#### List Supported Chains
 ```bash
 pnpm dev chains
+# Output: Formatted table with chain names, IDs, types, and native currencies
 ```
 
-Shows all supported chains with their IDs, types, and native currencies.
-
-### List Configured Tokens
-
+#### List Configured Tokens
 ```bash
 pnpm dev tokens
+# Output: Table showing token symbols, names, decimals, and chain availability
 ```
-
-Shows all pre-configured tokens with their addresses on different chains.
 
 ## Intent Structure
 
@@ -156,59 +177,7 @@ An intent consists of two main parts:
 - `nativeAmount`: Native token reward amount
 - `tokens`: Array of token rewards
 
-## Supported Chains
-
-### EVM Chains
-The CLI supports all EVM chains that are defined in the `viem/chains` package. Popular supported chains include:
-- Ethereum (ID: 1)
-- Optimism (ID: 10)
-- Base (ID: 8453)
-- Arbitrum One (ID: 42161)
-- Polygon (ID: 137)
-- BNB Smart Chain (ID: 56)
-- Avalanche (ID: 43114)
-
-**Note**: When using an EVM chain, it must exist in viem's chain definitions. The CLI will throw an error if you try to use an unsupported chain ID.
-
-### TVM Chains
-- Tron (ID: 1000000001)
-
-### SVM Chains
-- Solana (ID: 999999999)
-
-## Adding New Chains
-
-### For EVM Chains
-EVM chains must be supported by viem. To add a new EVM chain:
-1. Verify the chain exists in `viem/chains`
-2. Add the configuration to `src/config/chains.ts`
-
-If your chain doesn't exist in viem, you'll need to either:
-- Contribute the chain definition to the viem project
-- Use a different chain that is supported
-
-### For TVM/SVM Chains
-Edit `src/config/chains.ts`:
-
-```typescript
-export const CHAIN_CONFIGS: Record<string, ChainConfig> = {
-  // ... existing chains
-  
-  mychain: {
-    id: 12345n,
-    name: 'MyChain',
-    type: ChainType.EVM,
-    rpcUrl: 'https://rpc.mychain.com',
-    portalAddress: toUniversalAddress('0x...'),
-    proverAddress: toUniversalAddress('0x...'),
-    nativeCurrency: {
-      name: 'MyToken',
-      symbol: 'MTK',
-      decimals: 18,
-    },
-  },
-};
-```
+## 🔧 Customization & Extension
 
 ## Adding New Tokens
 
@@ -230,60 +199,122 @@ export const TOKEN_CONFIGS: Record<string, TokenConfig> = {
 };
 ```
 
-## Development
+## 🛠️ Development
 
-### Build the project
-```bash
-pnpm build
+### Available Scripts
+
+| Script | Description |
+|--------|-------------|
+| `pnpm build` | Compile TypeScript to JavaScript |
+| `pnpm dev <command>` | Run in development mode with ts-node |
+| `pnpm start <command>` | Run compiled version |
+| `pnpm clean` | Remove build artifacts |
+
+### Project Structure
+
+```
+routes-cli/
+├── src/
+│   ├── blockchain/       # Chain-specific implementations
+│   ├── builders/         # Intent builder patterns
+│   ├── commands/         # CLI command implementations
+│   ├── config/           # Chain and token configurations
+│   ├── core/            # Core types and utilities
+│   ├── scripts/         # Standalone scripts
+│   └── utils/           # Helper utilities
+├── dist/                # Compiled output
+├── .env.example         # Environment template
+└── package.json         # Project dependencies
 ```
 
-### Run in development mode
+## 🏗️ Architecture
+
+### Core Concepts
+
+- **UniversalAddress**: Chain-agnostic 32-byte address representation enabling cross-chain compatibility
+- **PortalEncoder**: Specialized encoder for intent data across different blockchain types
+- **AddressNormalizer**: Bidirectional converter between chain-native and universal address formats
+- **IntentBuilder**: Fluent builder pattern for constructing complex intents programmatically
+- **ChainTypeDetector**: Automatic chain type detection from configuration
+- **Quote System**: Integration with routing protocols for optimal path finding
+
+### Design Principles
+
+1. **Chain Abstraction**: Uniform interface across different blockchain types
+2. **Type Safety**: Full TypeScript support with strict typing
+3. **Modularity**: Pluggable architecture for easy extension
+4. **User Experience**: Interactive wizards with rich CLI feedback
+
+## 🔑 Private Key Formats
+
+| Chain Type | Format | Example |
+|------------|--------|----------|
+| **EVM** | Hex with prefix | `0x1234...` (64 hex chars) |
+| **Tron** | Hex without prefix | `1234...` (64 hex chars) |
+| **Solana** | Base58 | `5Jd7F...` |
+| | Byte array | `[1,2,3,...]` |
+| | Comma-separated | `1,2,3,...` |
+
+## 🚨 Troubleshooting
+
+### Common Issues
+
+| Issue | Solution |
+|-------|----------|
+| `Invalid address format` | Check address matches chain type requirements |
+| `Insufficient balance` | Ensure wallet has enough tokens and gas |
+| `Chain not found` | Verify chain name/ID in supported list |
+| `RPC timeout` | Check network connection or use custom RPC |
+| `Private key error` | Verify key format matches chain type |
+| `Quote unavailable` | Check source/destination pair compatibility |
+
+### Debug Mode
+
 ```bash
-pnpm dev <command>
+# Enable verbose logging
+export DEBUG=eco-routes-cli:*
+pnpm dev publish --verbose
 ```
 
-### Run compiled version
-```bash
-node dist/index.js <command>
-```
+## 🔒 Security Best Practices
 
-## Architecture
+1. **Never commit `.env` files** - Add to `.gitignore`
+2. **Use environment variables** - Don't hardcode private keys
+3. **Hardware wallets recommended** - For production environments
+4. **Validate before publishing** - Use `--dry-run` flag
+5. **Audit intent details** - Review all parameters before confirmation
+6. **Secure RPC endpoints** - Use authenticated endpoints when possible
+7. **Rotate keys regularly** - Especially for automated systems
 
-The CLI uses several key concepts from the solver:
+## 🤝 Contributing
 
-- **UniversalAddress**: Chain-agnostic 32-byte address representation
-- **PortalEncoder**: Encodes intent data for different chain types
-- **AddressNormalizer**: Converts between chain-native and universal addresses
-- **IntentBuilder**: Builder pattern for constructing intents
+Contributions are welcome! Please follow these steps:
 
-## Private Key Formats
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'feat: add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-### EVM
-- Hex format: `0x1234...` (64 hex characters)
+## 📄 License
 
-### Tron
-- Hex format: `1234...` (64 hex characters, no 0x prefix)
+This project is licensed under the MIT License.
 
-### Solana
-- Base58 format: `5Jd7F...`
-- Array format: `[1,2,3,...]`
-- Comma-separated: `1,2,3,...`
+## 🙏 Acknowledgments
 
-## Error Handling
+- Built with [Viem](https://viem.sh/) for EVM interactions
+- [TronWeb](https://tronweb.network/) for Tron support
+- [Solana Web3.js](https://solana-labs.github.io/solana-web3.js/) for Solana integration
+- [Commander.js](https://github.com/tj/commander.js/) for CLI framework
+- [Inquirer.js](https://github.com/SBoudrias/Inquirer.js/) for interactive prompts
 
-The CLI provides detailed error messages for common issues:
-- Invalid addresses
-- Insufficient balances
-- Missing configuration
-- Network errors
+## 📞 Support
 
-## Security
+- **Documentation**: [Full API Reference](https://docs.eco.org/routes-cli)
+- **Issues**: [GitHub Issues](https://github.com/eco-protocol/routes-cli/issues)
 
-- Never commit your `.env` file
-- Keep private keys secure
-- Use hardware wallets in production
-- Validate all inputs before publishing
+---
 
-## License
-
-MIT
+<p align="center">
+  Made with ❤️ by <a href="https://eco.com">Eco Protocol</a>
+</p>
