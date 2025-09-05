@@ -2,64 +2,105 @@
  * TVM (Tron) Chain Publisher
  */
 
-import { TronWeb } from 'tronweb';
-import { BasePublisher, PublishResult } from './base-publisher';
-import { Intent, ChainType } from '../core/interfaces/intent';
-import { AddressNormalizer } from '../core/utils/address-normalizer';
-import { PortalEncoder } from '../core/utils/portal-encoder';
-import { getChainById } from '../config/chains';
+import { TronWeb } from "tronweb";
+import { BasePublisher, PublishResult } from "./base-publisher";
+import { Intent, ChainType } from "../core/interfaces/intent";
+import { AddressNormalizer } from "../core/utils/address-normalizer";
+import { PortalEncoder } from "../core/utils/portal-encoder";
+import { getChainById } from "../config/chains";
+import { portalAbi } from "../commons/abis/portal.abi";
+import { erc20Abi } from "viem";
+import chalk from "chalk";
 
 export class TvmPublisher extends BasePublisher {
   private tronWeb: TronWeb;
-  
+
   constructor(rpcUrl: string) {
     super(rpcUrl);
     this.tronWeb = new TronWeb({
       fullHost: rpcUrl,
     });
   }
-  
+
   async publish(intent: Intent, privateKey: string): Promise<PublishResult> {
     try {
       // Set private key
       this.tronWeb.setPrivateKey(privateKey);
       const senderAddress = this.tronWeb.address.fromPrivateKey(privateKey);
-      
+
       // Get Portal address
       const chainConfig = getChainById(intent.sourceChainId);
       if (!chainConfig?.portalAddress) {
-        throw new Error(`No Portal address configured for chain ${intent.sourceChainId}`);
+        throw new Error(
+          `No Portal address configured for chain ${intent.sourceChainId}`,
+        );
       }
-      
-      const portalAddress = AddressNormalizer.denormalize(chainConfig.portalAddress, ChainType.TVM);
-      
+
+      const portalAddress = AddressNormalizer.denormalize(
+        chainConfig.portalAddress,
+        ChainType.TVM,
+      );
+
       // Encode route for destination chain type
-      const destChainType = chainConfig.type;
-      const routeEncoded = PortalEncoder.encodeRoute(intent.route, destChainType);
-      
-      // Get Portal contract
-      const contract = await this.tronWeb.contract().at(portalAddress);
-      
-      // Prepare parameters
-      const destination = Number(intent.destination);
-      const route = '0x' + routeEncoded.toString('hex');
-      const reward = {
-        deadline: Number(intent.reward.deadline),
-        creator: AddressNormalizer.denormalize(intent.reward.creator, ChainType.TVM),
-        prover: AddressNormalizer.denormalize(intent.reward.prover, ChainType.TVM),
-        nativeAmount: intent.reward.nativeAmount.toString(),
-        tokens: intent.reward.tokens.map(t => ({
-          token: AddressNormalizer.denormalize(t.token, ChainType.TVM),
-          amount: t.amount.toString(),
-        })),
-      };
-      
+      const destChainConfig = getChainById(BigInt(intent.destination));
+      if (!destChainConfig) {
+        throw new Error(`Unknown destination chain: ${intent.destination}`);
+      }
+      const destChainType = destChainConfig.type;
+      const routeEncoded = PortalEncoder.encodeRoute(
+        intent.route,
+        destChainType,
+      );
+
+      // Get Portal contract with ABI
+      const sourceToken = intent.reward.tokens[0];
+      const tokenContract = this.tronWeb.contract(
+        erc20Abi,
+        AddressNormalizer.denormalizeToTvm(sourceToken.token),
+      );
+
+      const approvalTxId = await tokenContract
+        .approve(portalAddress, sourceToken.amount)
+        .send({ from: senderAddress });
+
+      console.log(chalk.gray("Approving tokens..."));
+
+      const approvalSuccessful = await this.waitForTransaction(approvalTxId);
+
+      console.log(chalk.green("✓ Tokens Approved"));
+
+      if (!approvalSuccessful) {
+        throw new Error("Approval failed");
+      }
+
+      const portalContract = this.tronWeb.contract(portalAbi, portalAddress);
+
+      // Prepare parameters - TronWeb expects strings for numbers
+      const destination = intent.destination;
+      const routeHash = "0x" + routeEncoded.toString("hex");
+      const reward: Parameters<typeof portalContract.publishAndFund>[0][2] = [
+        intent.reward.deadline,
+        AddressNormalizer.denormalize(intent.reward.creator, ChainType.TVM),
+        AddressNormalizer.denormalize(intent.reward.prover, ChainType.TVM),
+        intent.reward.nativeAmount,
+        intent.reward.tokens.map(
+          (t) =>
+            [
+              AddressNormalizer.denormalize(t.token, ChainType.TVM),
+              t.amount,
+            ] as const,
+        ),
+      ];
+
       // Call publish function
-      const tx = await contract.publish(destination, route, reward).send({
-        from: senderAddress,
-        callValue: Number(intent.reward.nativeAmount), // TRX amount in sun
-      });
-      
+      // Pass parameters as separate arguments
+      const tx = await portalContract
+        .publishAndFund(destination, routeHash, reward, false)
+        .send({
+          from: senderAddress,
+          callValue: Number(intent.reward.nativeAmount), // TRX amount in sun
+        });
+
       if (tx) {
         return {
           success: true,
@@ -69,17 +110,17 @@ export class TvmPublisher extends BasePublisher {
       } else {
         return {
           success: false,
-          error: 'Transaction failed',
+          error: "Transaction failed",
         };
       }
     } catch (error: any) {
       return {
         success: false,
-        error: error.message || 'Unknown error',
+        error: error.message || "Unknown error",
       };
     }
   }
-  
+
   async getBalance(address: string, chainId?: bigint): Promise<bigint> {
     try {
       const balance = await this.tronWeb.trx.getBalance(address);
@@ -88,34 +129,68 @@ export class TvmPublisher extends BasePublisher {
       return 0n;
     }
   }
-  
-  async validate(intent: Intent, senderAddress: string): Promise<{ valid: boolean; error?: string }> {
+
+  async validate(
+    intent: Intent,
+    senderAddress: string,
+  ): Promise<{ valid: boolean; error?: string }> {
     try {
       // Check if sender has enough balance for reward native amount
       const balance = await this.getBalance(senderAddress);
-      
+
       if (balance < intent.reward.nativeAmount) {
         return {
           valid: false,
           error: `Insufficient TRX balance. Required: ${intent.reward.nativeAmount}, Available: ${balance}`,
         };
       }
-      
+
       // Check if addresses are valid Tron addresses
-      const creatorAddress = AddressNormalizer.denormalize(intent.reward.creator, ChainType.TVM);
+      const creatorAddress = AddressNormalizer.denormalize(
+        intent.reward.creator,
+        ChainType.TVM,
+      );
       if (!TronWeb.isAddress(creatorAddress)) {
         return {
           valid: false,
           error: `Invalid Tron creator address: ${creatorAddress}`,
         };
       }
-      
+
       return { valid: true };
     } catch (error: any) {
       return {
         valid: false,
-        error: error.message || 'Validation failed',
+        error: error.message || "Validation failed",
       };
     }
+  }
+
+  /**
+   * Waits for a transaction to be confirmed on the blockchain
+   * @param txId - Transaction ID to wait for
+   * @returns true if confirmed, false if timeout
+   */
+  async waitForTransaction(txId: string): Promise<boolean> {
+    for (let i = 0; i < 20; i++) {
+      const txInfo = await this.tronWeb.trx.getTransactionInfo(txId);
+      if (
+        txInfo &&
+        txInfo.blockNumber &&
+        txInfo.receipt?.result === "SUCCESS"
+      ) {
+        return true;
+      }
+
+      if (txInfo?.receipt?.result === "FAILED") {
+        throw new Error(
+          `Transaction failed: ${txInfo.receipt.result || "Unknown error"}. txId: ${txId}. Received: ${JSON.stringify(txInfo.receipt)}`,
+        );
+      }
+
+      // Wait before next attempt
+      await new Promise((resolve) => setTimeout(resolve, 4_000)); // Wait 4s
+    }
+    return false;
   }
 }

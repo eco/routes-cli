@@ -28,7 +28,8 @@ import { IntentBuilder } from "../builders/intent-builder";
 import { privateKeyToAccount } from "viem/accounts";
 import { TronWeb } from "tronweb";
 import { Keypair } from "@solana/web3.js";
-import {serialize} from "../commons/utils/serialize";
+import { serialize } from "../commons/utils/serialize";
+import { UniversalAddress } from "../core/types/universal-address";
 
 export function createPublishCommand(): Command {
   const command = new Command("publish");
@@ -47,9 +48,6 @@ export function createPublishCommand(): Command {
 
         const { intent, sourceChain, destChain } =
           await buildIntentInteractively(options);
-
-        console.log(chalk.gray(`Intent: ${serialize(intent)}`));
-
 
         // Load configuration
         const env = loadEnvConfig();
@@ -245,18 +243,18 @@ async function buildIntentInteractively(options: any): Promise<{
     throw new Error(`No private key configured for ${sourceChain.type} chain`);
   }
 
-  let creatorAddress: string;
+  let creatorAddress: UniversalAddress;
   switch (sourceChain.type) {
     case ChainType.EVM:
       const account = privateKeyToAccount(privateKey as Hex);
-      creatorAddress = account.address;
+      creatorAddress = AddressNormalizer.normalizeEvm(account.address);
       break;
     case ChainType.TVM:
       const tronAddress = TronWeb.address.fromPrivateKey(privateKey);
       if (!tronAddress) {
         throw new Error("Invalid Tron private key");
       }
-      creatorAddress = tronAddress;
+      creatorAddress = AddressNormalizer.normalizeTvm(tronAddress);
       break;
     case ChainType.SVM:
       let keypair: Keypair;
@@ -268,7 +266,9 @@ async function buildIntentInteractively(options: any): Promise<{
         const bytes = bs58.decode(privateKey);
         keypair = Keypair.fromSecretKey(bytes);
       }
-      creatorAddress = keypair.publicKey.toBase58();
+      creatorAddress = AddressNormalizer.normalizeSvm(
+        keypair.publicKey.toBase58(),
+      );
       break;
     default:
       throw new Error("Unknown chain type");
@@ -295,6 +295,7 @@ async function buildIntentInteractively(options: any): Promise<{
       type: "input",
       name: "routeAmountStr",
       message: `Enter route amount${routeToken.symbol ? ` (${routeToken.symbol})` : ""} in human-readable format (e.g., "100" for 100 tokens):`,
+      default: "0.07",
       validate: (input) => {
         try {
           const num = parseFloat(input);
@@ -322,6 +323,7 @@ async function buildIntentInteractively(options: any): Promise<{
     {
       type: "input",
       name: "rewardAmountStr",
+      default: "0.1",
       message: `Enter reward amount${rewardToken.symbol ? ` (${rewardToken.symbol})` : ""} in human-readable format (e.g., "10" for 10 tokens):`,
       validate: (input) => {
         try {
@@ -343,14 +345,15 @@ async function buildIntentInteractively(options: any): Promise<{
   // 8. Set fixed deadlines
   const now = Math.floor(Date.now() / 1000);
   const routeDeadline = BigInt(now + 2 * 60 * 60); // 2 hours
-  const rewardDeadline = BigInt(now + 3 * 60 * 60); // 3 hours
+  const rewardDeadline = routeDeadline; // Same as route
+  // const rewardDeadline = BigInt(now + 3 * 60 * 60); // 3 hours
 
   // 9. Build intent
   const builder = new IntentBuilder()
     .setSourceChain(sourceChain.id)
     .setDestinationChain(destChain.id)
     .setPortal(destChain.portalAddress)
-    .setCreator(AddressNormalizer.normalize(creatorAddress, sourceChain.type))
+    .setCreator(creatorAddress)
     .setProver(sourceChain.proverAddress)
     .setRouteDeadline(routeDeadline)
     .setRewardDeadline(rewardDeadline);
@@ -370,7 +373,7 @@ async function buildIntentInteractively(options: any): Promise<{
     encodeFunctionData({
       abi: erc20Abi,
       functionName: "transfer",
-      args: [creatorAddress as Address, routeAmount],
+      args: [AddressNormalizer.denormalizeToEvm(creatorAddress), routeAmount],
     }),
   );
 

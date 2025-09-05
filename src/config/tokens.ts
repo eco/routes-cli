@@ -52,6 +52,14 @@ export const TOKEN_CONFIGS: Record<string, TokenConfig> = {
         "0xdAC17F958D2ee523a2206206994597C13D831ec7",
         ChainType.EVM,
       ), // Ethereum
+      "10": AddressNormalizer.normalize(
+        "0x94b008aA00579c1307B0EF2c499aD98a8ce58e58",
+        ChainType.EVM,
+      ), // Optimism
+      "8453": AddressNormalizer.normalize(
+        "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2",
+        ChainType.EVM,
+      ), // Base
       "728126428": AddressNormalizer.normalize(
         "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
         ChainType.TVM,

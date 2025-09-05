@@ -2,9 +2,9 @@
  * Chain Configuration
  */
 
-import { UniversalAddress, toUniversalAddress } from '../core/types/universal-address';
-import { AddressNormalizer } from '../core/utils/address-normalizer';
-import { ChainType } from '../core/interfaces/intent';
+import { UniversalAddress } from "../core/types/universal-address";
+import { AddressNormalizer } from "../core/utils/address-normalizer";
+import { ChainType } from "../core/interfaces/intent";
 
 export interface ChainConfig {
   id: bigint;
@@ -28,8 +28,9 @@ export const CHAIN_CONFIGS: Record<string, ChainConfig> = {
     name: 'Optimism',
     type: ChainType.EVM,
     rpcUrl: 'https://mainnet.optimism.io',
-    portalAddress: toUniversalAddress('0x' + '0'.repeat(64)), // Placeholder
-    proverAddress: toUniversalAddress('0x' + '0'.repeat(64)), // Placeholder
+    portalAddress: AddressNormalizer.normalizeEvm('0x90F0c8aCC1E083Bcb4F487f84FC349ae8d5e28D7'),
+    // proverAddress: AddressNormalizer.normalizeEvm('0xe6FEbF8C8bf6366eF6fE7337b0b5B394D46d9fc6'), // PolymerProver
+    proverAddress: AddressNormalizer.normalizeEvm('0xde255Aab8e56a6Ae6913Df3a9Bbb6a9f22367f4C'), // HyperProver
     nativeCurrency: {
       name: 'Ether',
       symbol: 'ETH',
@@ -41,67 +42,16 @@ export const CHAIN_CONFIGS: Record<string, ChainConfig> = {
     name: 'Base',
     type: ChainType.EVM,
     rpcUrl: 'https://mainnet.base.org',
-    portalAddress: toUniversalAddress('0x' + '0'.repeat(64)), // Placeholder
-    proverAddress: toUniversalAddress('0x' + '0'.repeat(64)), // Placeholder
+    portalAddress: AddressNormalizer.normalizeEvm('0x90F0c8aCC1E083Bcb4F487f84FC349ae8d5e28D7'),
+    // proverAddress: AddressNormalizer.normalizeEvm('0xe6FEbF8C8bf6366eF6fE7337b0b5B394D46d9fc6'), // Polymer
+    proverAddress: AddressNormalizer.normalizeEvm('0xde255Aab8e56a6Ae6913Df3a9Bbb6a9f22367f4C'), // HyperProver
     nativeCurrency: {
       name: 'Ether',
       symbol: 'ETH',
       decimals: 18,
     },
   },
-  arbitrum: {
-    id: 42161n,
-    name: 'Arbitrum One',
-    type: ChainType.EVM,
-    rpcUrl: 'https://arb1.arbitrum.io/rpc',
-    portalAddress: toUniversalAddress('0x' + '0'.repeat(64)), // Placeholder
-    proverAddress: toUniversalAddress('0x' + '0'.repeat(64)), // Placeholder
-    nativeCurrency: {
-      name: 'Ether',
-      symbol: 'ETH',
-      decimals: 18,
-    },
-  },
-  polygon: {
-    id: 137n,
-    name: 'Polygon',
-    type: ChainType.EVM,
-    rpcUrl: 'https://polygon-rpc.com',
-    portalAddress: toUniversalAddress('0x' + '0'.repeat(64)), // Placeholder
-    proverAddress: toUniversalAddress('0x' + '0'.repeat(64)), // Placeholder
-    nativeCurrency: {
-      name: 'MATIC',
-      symbol: 'MATIC',
-      decimals: 18,
-    },
-  },
-  bsc: {
-    id: 56n,
-    name: 'BNB Smart Chain',
-    type: ChainType.EVM,
-    rpcUrl: 'https://bsc-dataseed.binance.org',
-    portalAddress: toUniversalAddress('0x' + '0'.repeat(64)), // Placeholder
-    proverAddress: toUniversalAddress('0x' + '0'.repeat(64)), // Placeholder
-    nativeCurrency: {
-      name: 'BNB',
-      symbol: 'BNB',
-      decimals: 18,
-    },
-  },
-  avalanche: {
-    id: 43114n,
-    name: 'Avalanche',
-    type: ChainType.EVM,
-    rpcUrl: 'https://api.avax.network/ext/bc/C/rpc',
-    portalAddress: toUniversalAddress('0x' + '0'.repeat(64)), // Placeholder
-    proverAddress: toUniversalAddress('0x' + '0'.repeat(64)), // Placeholder
-    nativeCurrency: {
-      name: 'Avalanche',
-      symbol: 'AVAX',
-      decimals: 18,
-    },
-  },
-  
+
   // Testnet Chains
   'base-sepolia': {
     id: 84532n,
@@ -129,7 +79,7 @@ export const CHAIN_CONFIGS: Record<string, ChainConfig> = {
       decimals: 18,
     },
   },
-  
+
   // TVM Chains
   tron: {
     id: 728126428n,
@@ -137,7 +87,7 @@ export const CHAIN_CONFIGS: Record<string, ChainConfig> = {
     type: ChainType.TVM,
     rpcUrl: 'https://api.trongrid.io',
     portalAddress: AddressNormalizer.normalizeTvm('TQh8ig6rmuMqb5u8efU5LDvoott1oLzoqu'),
-    proverAddress: AddressNormalizer.normalizeTvm('TXBv2UfhyZteqbAvsempfa26Avo8LQz9iG'),
+    proverAddress: AddressNormalizer.normalizeTvm('TSqwDT8qxNgExrkKu6qBo1XLjd5CdSYf2X'),
     nativeCurrency: {
       name: 'Tron',
       symbol: 'TRX',
@@ -150,28 +100,28 @@ export const CHAIN_CONFIGS: Record<string, ChainConfig> = {
     type: ChainType.TVM,
     rpcUrl: 'https://api.shasta.trongrid.io',
     portalAddress: AddressNormalizer.normalizeTvm('TKWwVSTacc9iToWgfef6cbkXPiBAKeSX2t'),
-    proverAddress: AddressNormalizer.normalizeTvm('TAxmRePzN5XiBW99iF3vHQMwYzbXZjUHki'),
+    proverAddress: AddressNormalizer.normalizeTvm('TAxmRePzN5XiBW99iF3vHQMwYzbXZjUHki'), // Dummy prover
     nativeCurrency: {
       name: 'Tron',
       symbol: 'TRX',
       decimals: 6,
     },
   },
-  
+
   // SVM Chains
-  solana: {
-    id: 999999999n,
-    name: 'Solana',
-    type: ChainType.SVM,
-    rpcUrl: 'https://api.mainnet-beta.solana.com',
-    portalAddress: toUniversalAddress('0x' + '0'.repeat(64)), // Placeholder
-    proverAddress: toUniversalAddress('0x' + '0'.repeat(64)), // Placeholder
-    nativeCurrency: {
-      name: 'Solana',
-      symbol: 'SOL',
-      decimals: 9,
-    },
-  },
+  // solana: {
+  //   id: 999999999n,
+  //   name: 'Solana',
+  //   type: ChainType.SVM,
+  //   rpcUrl: 'https://api.mainnet-beta.solana.com',
+  //   portalAddress: toUniversalAddress('0x' + '0'.repeat(64)), // Placeholder
+  //   proverAddress: toUniversalAddress('0x' + '0'.repeat(64)), // Placeholder
+  //   nativeCurrency: {
+  //     name: 'Solana',
+  //     symbol: 'SOL',
+  //     decimals: 9,
+  //   },
+  // },
 };
 
 // Helper function to get chain by ID
@@ -198,16 +148,15 @@ export function updatePortalAddresses(env: Record<string, string | undefined>) {
     'PORTAL_ADDRESS_TRON': 'tron',
     'PORTAL_ADDRESS_SOLANA': 'solana',
   };
-  
+
   for (const [envKey, chainKey] of Object.entries(addressMappings)) {
     const address = env[envKey];
     if (address && CHAIN_CONFIGS[chainKey]) {
       try {
-        const normalizedAddress = AddressNormalizer.normalize(
+        CHAIN_CONFIGS[chainKey].portalAddress = AddressNormalizer.normalize(
           address,
-          CHAIN_CONFIGS[chainKey].type
+          CHAIN_CONFIGS[chainKey].type,
         );
-        CHAIN_CONFIGS[chainKey].portalAddress = normalizedAddress;
       } catch (error) {
         console.warn(`Failed to set portal address for ${chainKey}:`, error);
       }
