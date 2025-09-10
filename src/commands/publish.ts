@@ -2,10 +2,10 @@
  * Publish Command
  */
 
-import chalk from "chalk";
-import { Command } from "commander";
-import inquirer from "inquirer";
-import { logger } from "../utils/logger";
+import chalk from 'chalk';
+import { Command } from 'commander';
+import inquirer from 'inquirer';
+import { logger } from '../utils/logger';
 import {
   Address,
   encodeFunctionData,
@@ -15,51 +15,41 @@ import {
   parseUnits,
   zeroAddress,
   isAddress as isViemAddress,
-} from "viem";
-import { ChainType, Intent } from "../core/interfaces/intent";
-import { BasePublisher } from "../blockchain/base-publisher";
-import { EvmPublisher } from "../blockchain/evm-publisher";
-import { TvmPublisher } from "../blockchain/tvm-publisher";
-import { SvmPublisher } from "../blockchain/svm-publisher";
-import {
-  ChainConfig,
-  getChainById,
-  getChainByName,
-  listChains,
-} from "../config/chains";
-import {
-  getTokenAddress,
-  getTokenBySymbol,
-  listTokens,
-} from "../config/tokens";
-import { loadEnvConfig } from "../config/env";
-import { AddressNormalizer } from "../core/utils/address-normalizer";
-import { IntentBuilder } from "../builders/intent-builder";
-import { privateKeyToAccount } from "viem/accounts";
-import { TronWeb } from "tronweb";
-import { Keypair, PublicKey } from "@solana/web3.js";
-import { serialize } from "../commons/utils/serialize";
-import { UniversalAddress } from "../core/types/universal-address";
-import { getQuote } from "../core/utils/quote";
-import { ChainTypeDetector } from "../core/utils/chain-detector";
+} from 'viem';
+import { ChainType, Intent } from '../core/interfaces/intent';
+import { BasePublisher } from '../blockchain/base-publisher';
+import { EvmPublisher } from '../blockchain/evm-publisher';
+import { TvmPublisher } from '../blockchain/tvm-publisher';
+import { SvmPublisher } from '../blockchain/svm-publisher';
+import { ChainConfig, getChainById, getChainByName, listChains } from '../config/chains';
+import { getTokenAddress, getTokenBySymbol, listTokens } from '../config/tokens';
+import { loadEnvConfig } from '../config/env';
+import { AddressNormalizer } from '../core/utils/address-normalizer';
+import { IntentBuilder } from '../builders/intent-builder';
+import { privateKeyToAccount } from 'viem/accounts';
+import { TronWeb } from 'tronweb';
+import { Keypair, PublicKey } from '@solana/web3.js';
+import { serialize } from '../commons/utils/serialize';
+import { UniversalAddress } from '../core/types/universal-address';
+import { getQuote } from '../core/utils/quote';
+import { ChainTypeDetector } from '../core/utils/chain-detector';
 
 export function createPublishCommand(): Command {
-  const command = new Command("publish");
+  const command = new Command('publish');
 
   command
-    .description("Publish an intent to the blockchain")
-    .option("-s, --source <chain>", "Source chain (name or ID)")
-    .option("-d, --destination <chain>", "Destination chain (name or ID)")
-    .option("-k, --private-key <key>", "Private key (overrides env)")
-    .option("-r, --rpc <url>", "RPC URL (overrides env)")
-    .option("--dry-run", "Validate without publishing")
-    .action(async (options) => {
+    .description('Publish an intent to the blockchain')
+    .option('-s, --source <chain>', 'Source chain (name or ID)')
+    .option('-d, --destination <chain>', 'Destination chain (name or ID)')
+    .option('-k, --private-key <key>', 'Private key (overrides env)')
+    .option('-r, --rpc <url>', 'RPC URL (overrides env)')
+    .option('--dry-run', 'Validate without publishing')
+    .action(async options => {
       try {
         // Interactive mode
-        logger.title("🎨 Interactive Intent Publishing");
+        logger.title('🎨 Interactive Intent Publishing');
 
-        const { intent, sourceChain, destChain } =
-          await buildIntentInteractively(options);
+        const { intent, sourceChain, destChain } = await buildIntentInteractively(options);
 
         // Load configuration
         const env = loadEnvConfig();
@@ -83,9 +73,7 @@ export function createPublishCommand(): Command {
         }
 
         if (!privateKey) {
-          throw new Error(
-            `No private key provided for ${sourceChain.type} chain`,
-          );
+          throw new Error(`No private key provided for ${sourceChain.type} chain`);
         }
 
         // Determine RPC URL
@@ -117,25 +105,25 @@ export function createPublishCommand(): Command {
           case ChainType.TVM:
             const tronAddress = TronWeb.address.fromPrivateKey(privateKey);
             if (!tronAddress) {
-              throw new Error("Invalid Tron private key");
+              throw new Error('Invalid Tron private key');
             }
             senderAddress = tronAddress;
             break;
           case ChainType.SVM:
             // Parse Solana private key (simplified)
             let keypair: Keypair;
-            if (privateKey.startsWith("[")) {
+            if (privateKey.startsWith('[')) {
               const bytes = JSON.parse(privateKey);
               keypair = Keypair.fromSecretKey(new Uint8Array(bytes));
             } else {
-              const bs58 = require("bs58") as any;
+              const bs58 = require('bs58') as any;
               const bytes = bs58.decode(privateKey);
               keypair = Keypair.fromSecretKey(bytes);
             }
             senderAddress = keypair.publicKey.toBase58();
             break;
           default:
-            throw new Error("Unknown chain type");
+            throw new Error('Unknown chain type');
         }
 
         logger.log(`Sender: ${senderAddress}`);
@@ -143,33 +131,28 @@ export function createPublishCommand(): Command {
         logger.log(`Destination: ${destChain.name} (${destChain.id})`);
 
         // Validate
-        const validationSpinner = logger.spinner(
-          "Validating intent configuration...",
-        );
+        const validationSpinner = logger.spinner('Validating intent configuration...');
         const validation = await publisher.validate(intent, senderAddress);
         if (!validation.valid) {
           logger.fail(`Validation failed: ${validation.error}`);
           throw new Error(`Validation failed: ${validation.error}`);
         }
-        logger.succeed("Validation passed");
+        logger.succeed('Validation passed');
 
         if (options.dryRun) {
-          logger.warning("Dry run - not publishing");
+          logger.warning('Dry run - not publishing');
           return;
         }
 
         // Publish
-        const publishSpinner = logger.spinner(
-          "Publishing intent to blockchain...",
-        );
+        const publishSpinner = logger.spinner('Publishing intent to blockchain...');
         const result = await publisher.publish(intent, privateKey);
 
         if (result.success) {
-          logger.succeed("Intent published successfully!");
           logger.displayTransactionResult(result);
         } else {
-          logger.fail("Publishing failed");
-          throw new Error(result.error || "Publishing failed");
+          logger.fail('Publishing failed');
+          throw new Error(result.error || 'Publishing failed');
         }
       } catch (error: any) {
         logger.error(`Error: ${error.message}`);
@@ -197,18 +180,17 @@ async function buildIntentInteractively(options: any): Promise<{
   // 1. Get source chain
   let sourceChain: ChainConfig | undefined;
   if (options.source) {
-    sourceChain =
-      getChainByName(options.source) || getChainById(BigInt(options.source));
+    sourceChain = getChainByName(options.source) || getChainById(BigInt(options.source));
     if (!sourceChain) {
       throw new Error(`Unknown source chain: ${options.source}`);
     }
   } else {
     const { source: sourceId } = await inquirer.prompt([
       {
-        type: "list",
-        name: "source",
-        message: "Select source chain:",
-        choices: chains.map((c) => ({
+        type: 'list',
+        name: 'source',
+        message: 'Select source chain:',
+        choices: chains.map(c => ({
           name: `${c.name} (${c.id})`,
           value: c.id,
         })),
@@ -221,21 +203,19 @@ async function buildIntentInteractively(options: any): Promise<{
   // 2. Get destination chain
   let destChain: ChainConfig | undefined;
   if (options.destination) {
-    destChain =
-      getChainByName(options.destination) ||
-      getChainById(BigInt(options.destination));
+    destChain = getChainByName(options.destination) || getChainById(BigInt(options.destination));
     if (!destChain) {
       throw new Error(`Unknown destination chain: ${options.destination}`);
     }
   } else {
     const { destination: destinationId } = await inquirer.prompt([
       {
-        type: "list",
-        name: "destination",
-        message: "Select destination chain:",
+        type: 'list',
+        name: 'destination',
+        message: 'Select destination chain:',
         choices: chains
-          .filter((c) => c.id !== sourceChain!.id)
-          .map((c) => ({ name: `${c.name} (${c.id})`, value: c.id })),
+          .filter(c => c.id !== sourceChain!.id)
+          .map(c => ({ name: `${c.name} (${c.id})`, value: c.id })),
       },
     ]);
     destChain = getChainById(destinationId)!;
@@ -263,26 +243,24 @@ async function buildIntentInteractively(options: any): Promise<{
     case ChainType.TVM:
       const tronAddress = TronWeb.address.fromPrivateKey(privateKey);
       if (!tronAddress) {
-        throw new Error("Invalid Tron private key");
+        throw new Error('Invalid Tron private key');
       }
       creatorAddress = AddressNormalizer.normalizeTvm(tronAddress);
       break;
     case ChainType.SVM:
       let keypair: Keypair;
-      if (privateKey.startsWith("[")) {
+      if (privateKey.startsWith('[')) {
         const bytes = JSON.parse(privateKey);
         keypair = Keypair.fromSecretKey(new Uint8Array(bytes));
       } else {
-        const bs58 = require("bs58") as any;
+        const bs58 = require('bs58') as any;
         const bytes = bs58.decode(privateKey);
         keypair = Keypair.fromSecretKey(bytes);
       }
-      creatorAddress = AddressNormalizer.normalizeSvm(
-        keypair.publicKey.toBase58(),
-      );
+      creatorAddress = AddressNormalizer.normalizeSvm(keypair.publicKey.toBase58());
       break;
     default:
-      throw new Error("Unknown chain type");
+      throw new Error('Unknown chain type');
   }
 
   // 4. Get prover from chain config
@@ -296,26 +274,26 @@ async function buildIntentInteractively(options: any): Promise<{
   }
 
   // 6. Prompt for reward configuration
-  logger.section("💰 Reward Configuration (Source Chain)");
+  logger.section('💰 Reward Configuration (Source Chain)');
 
-  const rewardToken = await selectToken(sourceChain, "reward");
+  const rewardToken = await selectToken(sourceChain, 'reward');
   let rewardAmount: bigint;
 
   const { rewardAmountStr } = await inquirer.prompt([
     {
-      type: "input",
-      name: "rewardAmountStr",
-      default: "0.1",
-      message: `Enter reward amount${rewardToken.symbol ? ` (${rewardToken.symbol})` : ""} in human-readable format (e.g., "10" for 10 tokens):`,
-      validate: (input) => {
+      type: 'input',
+      name: 'rewardAmountStr',
+      default: '0.1',
+      message: `Enter reward amount${rewardToken.symbol ? ` (${rewardToken.symbol})` : ''} in human-readable format (e.g., "10" for 10 tokens):`,
+      validate: input => {
         try {
           const num = parseFloat(input);
           if (isNaN(num) || num <= 0) {
-            return "Please enter a positive number";
+            return 'Please enter a positive number';
           }
           return true;
         } catch {
-          return "Invalid amount";
+          return 'Invalid amount';
         }
       },
     },
@@ -325,21 +303,21 @@ async function buildIntentInteractively(options: any): Promise<{
   rewardAmount = parseUnits(rewardAmountStr, rewardToken.decimals);
 
   // 7. Prompt for route configuration
-  logger.section("📏 Route Configuration (Destination Chain)");
+  logger.section('📏 Route Configuration (Destination Chain)');
 
-  const routeToken = await selectToken(destChain, "route");
+  const routeToken = await selectToken(destChain, 'route');
 
   // 7. Prompt for recipient address
-  logger.section("👤 Recipient Configuration");
+  logger.section('👤 Recipient Configuration');
 
   const { recipientAddress } = await inquirer.prompt([
     {
-      type: "input",
-      name: "recipientAddress",
+      type: 'input',
+      name: 'recipientAddress',
       message: `Enter recipient address on ${destChain.name} (${destChain.type} chain):`,
-      validate: (input) => {
-        if (!input || input.trim() === "") {
-          return "Recipient address is required";
+      validate: input => {
+        if (!input || input.trim() === '') {
+          return 'Recipient address is required';
         }
 
         try {
@@ -377,15 +355,12 @@ async function buildIntentInteractively(options: any): Promise<{
   ]);
 
   // Normalize the recipient address
-  const normalizedRecipient = AddressNormalizer.normalize(
-    recipientAddress,
-    destChain.type,
-  );
+  const normalizedRecipient = AddressNormalizer.normalize(recipientAddress, destChain.type);
 
   // 8. Get quote
   let routeAmount: bigint;
   try {
-    logger.spinner("Getting quote...");
+    logger.spinner('Getting quote...');
 
     const quote = await getQuote({
       source: sourceChain.id,
@@ -398,25 +373,25 @@ async function buildIntentInteractively(options: any): Promise<{
     });
     routeAmount = BigInt(quote.quoteResponse.destinationAmount);
 
-    logger.succeed("Quote fetched");
+    logger.succeed('Quote fetched');
   } catch (error) {
-    logger.fail("Quote failed. Enter amount manually");
+    logger.fail('Quote failed. Enter amount manually');
 
     const { routeAmountStr } = await inquirer.prompt([
       {
-        type: "input",
-        name: "routeAmountStr",
-        message: `Enter route amount${routeToken.symbol ? ` (${routeToken.symbol})` : ""} in human-readable format (e.g., "100" for 100 tokens):`,
-        default: "0.07",
-        validate: (input) => {
+        type: 'input',
+        name: 'routeAmountStr',
+        message: `Enter route amount${routeToken.symbol ? ` (${routeToken.symbol})` : ''} in human-readable format (e.g., "100" for 100 tokens):`,
+        default: '0.07',
+        validate: input => {
           try {
             const num = parseFloat(input);
             if (isNaN(num) || num <= 0) {
-              return "Please enter a positive number";
+              return 'Please enter a positive number';
             }
             return true;
           } catch {
-            return "Invalid amount";
+            return 'Invalid amount';
           }
         },
       },
@@ -444,24 +419,21 @@ async function buildIntentInteractively(options: any): Promise<{
 
   builder.addRouteToken(
     AddressNormalizer.normalize(routeToken.address, destChain.type),
-    routeAmount,
+    routeAmount
   );
 
   builder.addRewardToken(
     AddressNormalizer.normalize(rewardToken.address, sourceChain.type),
-    rewardAmount,
+    rewardAmount
   );
 
   builder.addCall(
     AddressNormalizer.normalize(routeToken.address, destChain.type),
     encodeFunctionData({
       abi: erc20Abi,
-      functionName: "transfer",
-      args: [
-        AddressNormalizer.denormalizeToEvm(normalizedRecipient),
-        routeAmount,
-      ],
-    }),
+      functionName: 'transfer',
+      args: [AddressNormalizer.denormalizeToEvm(normalizedRecipient), routeAmount],
+    })
   );
 
   // 11. Show summary and confirm
@@ -474,23 +446,23 @@ async function buildIntentInteractively(options: any): Promise<{
     recipient: recipientAddress,
     routeDeadline: new Date(Number(routeDeadline) * 1000).toLocaleString(),
     rewardDeadline: new Date(Number(rewardDeadline) * 1000).toLocaleString(),
-    routeToken: `${routeToken.address}${routeToken.symbol ? ` (${routeToken.symbol})` : ""}`,
+    routeToken: `${routeToken.address}${routeToken.symbol ? ` (${routeToken.symbol})` : ''}`,
     routeAmount: `${formatUnits(routeAmount, routeToken.decimals)} (${routeAmount.toString()} units)`,
-    rewardToken: `${rewardToken.address}${rewardToken.symbol ? ` (${rewardToken.symbol})` : ""}`,
+    rewardToken: `${rewardToken.address}${rewardToken.symbol ? ` (${rewardToken.symbol})` : ''}`,
     rewardAmount: `${rewardAmountStr} (${rewardAmount.toString()} units)`,
   });
 
   const { confirm } = await inquirer.prompt([
     {
-      type: "confirm",
-      name: "confirm",
-      message: "Publish this intent?",
+      type: 'confirm',
+      name: 'confirm',
+      message: 'Publish this intent?',
       default: true,
     },
   ]);
 
   if (!confirm) {
-    throw new Error("Publication cancelled by user");
+    throw new Error('Publication cancelled by user');
   }
 
   return { intent, sourceChain, destChain };
@@ -501,57 +473,57 @@ async function buildIntentInteractively(options: any): Promise<{
  */
 async function selectToken(
   chain: ChainConfig,
-  type: string,
+  type: string
 ): Promise<{ address: string; decimals: number; symbol?: string }> {
   // Get available tokens for this chain
   const allTokens = listTokens();
-  const chainTokens = allTokens.filter((token) => {
+  const chainTokens = allTokens.filter(token => {
     const address = getTokenAddress(token.symbol, chain.id);
     return address !== undefined;
   });
 
   const choices = [
-    ...chainTokens.map((t) => ({
+    ...chainTokens.map(t => ({
       name: `${t.symbol} - ${t.name}`,
       value: t.symbol,
     })),
-    { name: "Custom Token Address", value: "CUSTOM" },
+    { name: 'Custom Token Address', value: 'CUSTOM' },
   ];
 
   const { tokenChoice } = await inquirer.prompt([
     {
-      type: "list",
-      name: "tokenChoice",
+      type: 'list',
+      name: 'tokenChoice',
       message: `Select ${type} token:`,
       choices,
     },
   ]);
 
-  if (tokenChoice === "CUSTOM") {
+  if (tokenChoice === 'CUSTOM') {
     const { address, decimals } = await inquirer.prompt([
       {
-        type: "input",
-        name: "address",
-        message: "Enter token address:",
-        validate: (input) => {
+        type: 'input',
+        name: 'address',
+        message: 'Enter token address:',
+        validate: input => {
           try {
             AddressNormalizer.normalize(input, chain.type);
             return true;
           } catch {
-            return "Invalid address format";
+            return 'Invalid address format';
           }
         },
       },
       {
-        type: "input",
-        name: "decimals",
-        message: "Enter token decimals (e.g., 18 for most ERC20, 6 for USDC):",
-        default: "18",
-        validate: (input) => {
+        type: 'input',
+        name: 'decimals',
+        message: 'Enter token decimals (e.g., 18 for most ERC20, 6 for USDC):',
+        default: '18',
+        validate: input => {
           const num = parseInt(input);
           return !isNaN(num) && num >= 0 && num <= 255
             ? true
-            : "Please enter a valid number between 0 and 255";
+            : 'Please enter a valid number between 0 and 255';
         },
       },
     ]);

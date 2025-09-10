@@ -30,3 +30,5 @@ pnpm-debug.log*
 # Testing
 coverage/
 .nyc_output/
+
+CLAUDE.md

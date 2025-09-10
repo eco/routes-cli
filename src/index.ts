@@ -7,12 +7,22 @@
 
 import { Command } from "commander";
 import chalk from "chalk";
-import { createPublishCommand } from "./commands/publish";
-import { updatePortalAddresses } from "./config/chains";
-import { logger } from "./utils/logger";
+import { createPublishCommand } from "@/commands/publish";
+import { createStatusCommand } from "@/commands/status";
+import { createConfigCommand } from "@/commands/config";
+import { updatePortalAddresses } from "@/config/chains";
+import { logger } from "@/utils/logger";
+import { setupGlobalErrorHandlers, handleCliError } from "@/utils/error-handler";
+
+// Setup global error handling
+setupGlobalErrorHandlers();
 
 // Load environment variables and update configuration
-updatePortalAddresses(process.env);
+try {
+  updatePortalAddresses(process.env);
+} catch (error) {
+  handleCliError(error);
+}
 
 // Create main program
 const program = new Command();
@@ -24,13 +34,15 @@ program
 
 // Add commands
 program.addCommand(createPublishCommand());
+program.addCommand(createStatusCommand());
+program.addCommand(createConfigCommand());
 
 // List chains command
 program
   .command("chains")
   .description("List supported chains")
   .action(() => {
-    const { listChains } = require("./config/chains");
+    const { listChains } = require("@/config/chains");
     const chains = listChains();
 
     logger.title("📋 Supported Chains");
@@ -51,7 +63,7 @@ program
   .command("tokens")
   .description("List configured tokens")
   .action(() => {
-    const { listTokens } = require("./config/tokens");
+    const { listTokens } = require("@/config/tokens");
     const tokens = listTokens();
 
     logger.title("💰 Configured Tokens");
@@ -70,8 +82,12 @@ program
     });
   });
 
-// Parse arguments
-program.parse(process.argv);
+// Parse arguments with error handling
+try {
+  program.parse(process.argv);
+} catch (error) {
+  handleCliError(error);
+}
 
 // Show help if no command provided
 if (!process.argv.slice(2).length) {

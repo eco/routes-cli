@@ -2,9 +2,9 @@
  * Chain Configuration
  */
 
-import { UniversalAddress } from "../core/types/universal-address";
-import { AddressNormalizer } from "../core/utils/address-normalizer";
-import { ChainType } from "../core/interfaces/intent";
+import { UniversalAddress } from '../core/types/universal-address';
+import { AddressNormalizer } from '../core/utils/address-normalizer';
+import { ChainType } from '../core/interfaces/intent';
 
 export interface ChainConfig {
   id: bigint;
@@ -58,8 +58,14 @@ export const CHAIN_CONFIGS: Record<string, ChainConfig> = {
     name: 'Base Sepolia',
     type: ChainType.EVM,
     rpcUrl: 'https://sepolia.base.org',
-    portalAddress: AddressNormalizer.normalize('0xBcdc2cfADcD6E026d4Da81D01D82BFa20bcf2CaC', ChainType.EVM),
-    proverAddress: AddressNormalizer.normalize('0xdc9D0C27B0E76F3D7472aC7e10413667B12768Cc', ChainType.EVM),
+    portalAddress: AddressNormalizer.normalize(
+      '0xBcdc2cfADcD6E026d4Da81D01D82BFa20bcf2CaC',
+      ChainType.EVM
+    ),
+    proverAddress: AddressNormalizer.normalize(
+      '0xdc9D0C27B0E76F3D7472aC7e10413667B12768Cc',
+      ChainType.EVM
+    ),
     nativeCurrency: {
       name: 'Ether',
       symbol: 'ETH',
@@ -71,8 +77,14 @@ export const CHAIN_CONFIGS: Record<string, ChainConfig> = {
     name: 'Optimism Sepolia',
     type: ChainType.EVM,
     rpcUrl: 'https://sepolia.optimism.io',
-    portalAddress: AddressNormalizer.normalize('0xBcdc2cfADcD6E026d4Da81D01D82BFa20bcf2CaC', ChainType.EVM),
-    proverAddress: AddressNormalizer.normalize('0xdc9D0C27B0E76F3D7472aC7e10413667B12768Cc', ChainType.EVM),
+    portalAddress: AddressNormalizer.normalize(
+      '0xBcdc2cfADcD6E026d4Da81D01D82BFa20bcf2CaC',
+      ChainType.EVM
+    ),
+    proverAddress: AddressNormalizer.normalize(
+      '0xdc9D0C27B0E76F3D7472aC7e10413667B12768Cc',
+      ChainType.EVM
+    ),
     nativeCurrency: {
       name: 'Ether',
       symbol: 'ETH',
@@ -126,7 +138,7 @@ export const CHAIN_CONFIGS: Record<string, ChainConfig> = {
 
 // Helper function to get chain by ID
 export function getChainById(chainId: bigint): ChainConfig | undefined {
-  return Object.values(CHAIN_CONFIGS).find(chain => chain.id === chainId);
+  return Object.values(CHAIN_CONFIGS).find(chain => chain.id.toString() === chainId.toString());
 }
 
 // Helper function to get chain by name
@@ -142,11 +154,11 @@ export function listChains(): ChainConfig[] {
 // Update Portal address from environment if available
 export function updatePortalAddresses(env: Record<string, string | undefined>) {
   const addressMappings: Record<string, string> = {
-    'PORTAL_ADDRESS_ETH': 'ethereum',
-    'PORTAL_ADDRESS_OPTIMISM': 'optimism',
-    'PORTAL_ADDRESS_BASE': 'base',
-    'PORTAL_ADDRESS_TRON': 'tron',
-    'PORTAL_ADDRESS_SOLANA': 'solana',
+    PORTAL_ADDRESS_ETH: 'ethereum',
+    PORTAL_ADDRESS_OPTIMISM: 'optimism',
+    PORTAL_ADDRESS_BASE: 'base',
+    PORTAL_ADDRESS_TRON: 'tron',
+    PORTAL_ADDRESS_SOLANA: 'solana',
   };
 
   for (const [envKey, chainKey] of Object.entries(addressMappings)) {
@@ -155,7 +167,7 @@ export function updatePortalAddresses(env: Record<string, string | undefined>) {
       try {
         CHAIN_CONFIGS[chainKey].portalAddress = AddressNormalizer.normalize(
           address,
-          CHAIN_CONFIGS[chainKey].type,
+          CHAIN_CONFIGS[chainKey].type
         );
       } catch (error) {
         console.warn(`Failed to set portal address for ${chainKey}:`, error);

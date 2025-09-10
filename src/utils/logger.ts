@@ -19,7 +19,7 @@ export class Logger {
     }
     this.activeSpinner = ora({
       text,
-      spinner: 'dots'
+      spinner: 'dots',
     }).start();
     return this.activeSpinner;
   }
@@ -137,14 +137,16 @@ export class Logger {
    * Create a table for displaying data
    */
   table(options?: any): Table.Table {
-    return new Table(options || {
-      head: [],
-      colWidths: [],
-      style: {
-        head: ['cyan'],
-        border: ['gray']
+    return new Table(
+      options || {
+        head: [],
+        colWidths: [],
+        style: {
+          head: ['cyan'],
+          border: ['gray'],
+        },
       }
-    });
+    );
   }
 
   /**
@@ -157,14 +159,11 @@ export class Logger {
 
     const table = this.table({
       colWidths: [25, 70],
-      wordWrap: false
+      wordWrap: false,
     });
 
     Object.entries(data).forEach(([key, value]) => {
-      table.push([
-        chalk.yellow(key),
-        chalk.white(String(value))
-      ]);
+      table.push([chalk.yellow(key), chalk.white(String(value))]);
     });
 
     console.log(table.toString());
@@ -176,7 +175,7 @@ export class Logger {
   displayTable(headers: string[], rows: any[][], options?: any): void {
     const table = this.table({
       head: headers.map(h => chalk.cyan(h)),
-      ...options
+      ...options,
     });
 
     rows.forEach(row => {
@@ -198,12 +197,12 @@ export class Logger {
   }): void {
     if (result.success) {
       this.success('Intent published successfully!');
-      
+
       const data: Record<string, any> = {};
       if (result.transactionHash) data['Transaction Hash'] = result.transactionHash;
       if (result.intentHash) data['Intent Hash'] = result.intentHash;
       if (result.vaultAddress) data['Vault Address'] = result.vaultAddress;
-      
+
       if (Object.keys(data).length > 0) {
         this.displayKeyValue(data, '📋 Transaction Details');
       }
@@ -219,6 +218,7 @@ export class Logger {
     source: string;
     destination: string;
     creator: string;
+    recipient: string;
     routeDeadline: string;
     rewardDeadline: string;
     routeToken: string;
@@ -227,10 +227,10 @@ export class Logger {
     rewardAmount: string;
   }): void {
     this.section('📋 Intent Summary');
-    
+
     const table = this.table({
       colWidths: [25, 55],
-      wordWrap: true
+      wordWrap: true,
     });
 
     table.push(
@@ -240,11 +240,12 @@ export class Logger {
       [chalk.yellow('Route Deadline'), summary.routeDeadline],
       [chalk.yellow('Reward Deadline'), summary.rewardDeadline],
       ['', ''],
+      [chalk.green('Reward Token'), summary.rewardToken],
+      [chalk.green('Reward Amount'), summary.rewardAmount],
+      ['', ''],
       [chalk.cyan('Route Token'), summary.routeToken],
       [chalk.cyan('Route Amount'), summary.routeAmount],
-      ['', ''],
-      [chalk.green('Reward Token'), summary.rewardToken],
-      [chalk.green('Reward Amount'), summary.rewardAmount]
+      [chalk.cyan('Recipient'), summary.recipient]
     );
 
     console.log(table.toString());
@@ -260,7 +261,7 @@ export class Logger {
   } {
     let currentStep = 0;
     const totalSteps = steps.length;
-    
+
     const updateProgress = () => {
       const progress = `[${currentStep}/${totalSteps}]`;
       const currentStepName = steps[currentStep - 1];
@@ -287,10 +288,11 @@ export class Logger {
       },
       fail: (error: string) => {
         this.fail(`Failed at step ${currentStep}: ${error}`);
-      }
+      },
     };
   }
 }
 
-// Export singleton instance
+// Export singleton instance and chalk
 export const logger = new Logger();
+export { chalk };
