@@ -5,6 +5,7 @@
 import { UniversalAddress } from '../core/types/universal-address';
 import { AddressNormalizer } from '../core/utils/address-normalizer';
 import { ChainType } from '../core/interfaces/intent';
+import { SystemProgram } from '@solana/web3.js';
 
 export interface ChainConfig {
   id: bigint;
@@ -121,19 +122,33 @@ export const CHAIN_CONFIGS: Record<string, ChainConfig> = {
   },
 
   // SVM Chains
-  // solana: {
-  //   id: 999999999n,
-  //   name: 'Solana',
-  //   type: ChainType.SVM,
-  //   rpcUrl: 'https://api.mainnet-beta.solana.com',
-  //   portalAddress: toUniversalAddress('0x' + '0'.repeat(64)), // Placeholder
-  //   proverAddress: toUniversalAddress('0x' + '0'.repeat(64)), // Placeholder
-  //   nativeCurrency: {
-  //     name: 'Solana',
-  //     symbol: 'SOL',
-  //     decimals: 9,
-  //   },
-  // },
+  solana: {
+    id: 1399811149n, // Solana mainnet chain ID
+    name: 'Solana',
+    type: ChainType.SVM,
+    rpcUrl: 'https://api.mainnet-beta.solana.com',
+    portalAddress: AddressNormalizer.normalizeSvm('5nCJDkRg8mhj9XHkjuFoR6Mcs6VcDZVsCbZ7pTJhRFEF'), // Portal program ID
+    proverAddress: AddressNormalizer.normalizeSvm(SystemProgram.programId.toString()), // System program as placeholder
+    nativeCurrency: {
+      name: 'Solana',
+      symbol: 'SOL',
+      decimals: 9,
+    },
+  },
+
+  'solana-devnet': {
+    id: 1399811150n, // Solana devnet chain ID
+    name: 'Solana Devnet',
+    type: ChainType.SVM,
+    rpcUrl: 'https://api.devnet.solana.com',
+    portalAddress: AddressNormalizer.normalizeSvm('5nCJDkRg8mhj9XHkjuFoR6Mcs6VcDZVsCbZ7pTJhRFEF'), // Portal program ID
+    proverAddress: AddressNormalizer.normalizeSvm(SystemProgram.programId.toString()), // System program as placeholder
+    nativeCurrency: {
+      name: 'Solana',
+      symbol: 'SOL',
+      decimals: 9,
+    },
+  },
 };
 
 // Helper function to get chain by ID

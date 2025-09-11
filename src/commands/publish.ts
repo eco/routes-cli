@@ -43,6 +43,7 @@ export function createPublishCommand(): Command {
     .option('-d, --destination <chain>', 'Destination chain (name or ID)')
     .option('-k, --private-key <key>', 'Private key (overrides env)')
     .option('-r, --rpc <url>', 'RPC URL (overrides env)')
+    .option('--recipient <address>', 'Recipient address on destination chain')
     .option('--dry-run', 'Validate without publishing')
     .action(async options => {
       try {
@@ -315,6 +316,8 @@ async function buildIntentInteractively(options: any): Promise<{
       type: 'input',
       name: 'recipientAddress',
       message: `Enter recipient address on ${destChain.name} (${destChain.type} chain):`,
+      default: options.recipient,
+      when: () => !options.recipient,
       validate: input => {
         if (!input || input.trim() === '') {
           return 'Recipient address is required';
@@ -353,9 +356,8 @@ async function buildIntentInteractively(options: any): Promise<{
       },
     },
   ]);
-
-  // Normalize the recipient address
-  const normalizedRecipient = AddressNormalizer.normalize(recipientAddress, destChain.type);
+  const finalRecipientAddress = options.recipient || recipientAddress;
+  const normalizedRecipient = AddressNormalizer.normalize(options.recipient || recipientAddress, destChain.type);
 
   // 8. Get quote
   let routeAmount: bigint;
@@ -366,7 +368,7 @@ async function buildIntentInteractively(options: any): Promise<{
       source: sourceChain.id,
       destination: destChain.id,
       funder: AddressNormalizer.denormalize(creatorAddress, sourceChain.type),
-      recipient: recipientAddress,
+      recipient: finalRecipientAddress,
       amount: rewardAmount,
       routeToken: routeToken.address,
       rewardToken: rewardToken.address,
@@ -443,7 +445,7 @@ async function buildIntentInteractively(options: any): Promise<{
     source: `${sourceChain.name} (${sourceChain.id})`,
     destination: `${destChain.name} (${destChain.id})`,
     creator: AddressNormalizer.denormalize(creatorAddress, sourceChain.type),
-    recipient: recipientAddress,
+    recipient: finalRecipientAddress,
     routeDeadline: new Date(Number(routeDeadline) * 1000).toLocaleString(),
     rewardDeadline: new Date(Number(rewardDeadline) * 1000).toLocaleString(),
     routeToken: `${routeToken.address}${routeToken.symbol ? ` (${routeToken.symbol})` : ''}`,

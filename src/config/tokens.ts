@@ -40,6 +40,14 @@ export const TOKEN_CONFIGS: Record<string, TokenConfig> = {
         "0x5fd84259d66Cd46123540766Be93DFE6D43130D7",
         ChainType.EVM,
       ), // Optimism Sepolia
+      "1399811149": AddressNormalizer.normalize(
+        "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+        ChainType.SVM,
+      ), // Solana
+      "1399811150": AddressNormalizer.normalize(
+        "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
+        ChainType.SVM,
+      ), // Solana Devnet
       // Add more as needed
     },
   },
