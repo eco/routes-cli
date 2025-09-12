@@ -23,7 +23,8 @@ import { AddressNormalizer } from '../core/utils/address-normalizer';
 import { PortalEncoder } from '../core/utils/portal-encoder';
 import { getChainById } from '../config/chains';
 import { logger } from '../utils/logger';
-import { portalIdl } from '../commons/idls/portal.idl';
+import { getPortalIdl, Network } from '../commons/idls/portal.idl';
+import { ChainTypeDetector } from '../core/utils/chain-detector';
 import { Hex, keccak256 } from 'viem';
 
 export class SvmPublisher extends BasePublisher {
@@ -103,7 +104,6 @@ export class SvmPublisher extends BasePublisher {
 
     return PortalEncoder.encode(intent.route, destChain.type);
   }
-  
   async publish(intent: Intent, privateKey: string): Promise<PublishResult> {
     try {
       const keypair = this.parsePrivateKey(privateKey);
@@ -129,7 +129,9 @@ export class SvmPublisher extends BasePublisher {
       });
 
       logger.info('Setting up Anchor program...');
-      let program: Program = new Program(portalIdl, provider);
+      const network = ChainTypeDetector.getNetworkFromChainConfig(intent.sourceChainId);
+      const idl = getPortalIdl(network);
+      let program: Program = new Program(idl, provider);
       
 
       const routeHex = this.encodeRouteForDestination(intent);
@@ -231,7 +233,9 @@ export class SvmPublisher extends BasePublisher {
         maxRetries: 3,
       });
 
-      const program = new Program(portalIdl, provider);
+      const network = ChainTypeDetector.getNetworkFromChainConfig(intent.sourceChainId);
+      const idl = getPortalIdl(network);
+      const program = new Program(idl, provider);
       console.log("ARGS: ", portalProgramId, intentHash);
 
       // Calculate vault PDA from intent hash
@@ -295,7 +299,7 @@ export class SvmPublisher extends BasePublisher {
       console.log("MADDEN: Route hash bytes: ", Buffer.from(routeHash.slice(2), 'hex'))
       const fundArgs = {
         destination: new BN(intent.destination),
-        route_hash: Array.from(Buffer.from(routeHash.slice(2), 'hex')), // Convert to array for Borsh
+        route_hash: Array.from(Buffer.from(routeHash.slice(2), 'hex')),
         reward: portalReward,
         allow_partial: false,
       };

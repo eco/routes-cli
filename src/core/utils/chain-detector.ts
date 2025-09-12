@@ -6,6 +6,8 @@
  */
 
 import { ChainType } from '@/core/interfaces/intent';
+import { Network } from '@/commons/idls/portal.idl';
+import { getChainById } from '@/config/chains';
 
 /**
  * Chain ID ranges and specific identifiers for different blockchain types
@@ -121,5 +123,21 @@ export class ChainTypeDetector {
       chainId < 4_294_967_296 &&
       !CHAIN_TYPE_MAPPINGS.TVM_CHAIN_IDS.includes(chainId)
     );
+  }
+
+  /**
+   * Determines the network (mainnet/devnet) from chain configuration
+   *
+   * @param chainId - Chain ID to look up
+   * @returns Network enum value
+   * @throws Error if chain is not found
+   */
+  static getNetworkFromChainConfig(chainId: bigint): Network {
+    const chainConfig = getChainById(chainId);
+    if (!chainConfig) {
+      throw new Error(`Unknown chain: ${chainId}`);
+    }
+    
+    return chainConfig.env === 'production' ? Network.MAINNET : Network.DEVNET;
   }
 }
