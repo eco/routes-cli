@@ -2,8 +2,8 @@
  * Tests for ChainTypeDetector utility
  */
 
-import { ChainTypeDetector } from '@/core/utils/chain-detector';
 import { ChainType } from '@/core/interfaces/intent';
+import { ChainTypeDetector } from '@/core/utils/chain-detector';
 
 describe('ChainTypeDetector', () => {
   describe('detectFromAddress', () => {

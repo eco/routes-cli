@@ -3,24 +3,27 @@
  */
 
 import {
+  Address,
   createPublicClient,
   createWalletClient,
   encodeFunctionData,
+  erc20Abi,
   Hex,
   http,
-  parseEventLogs,
-  erc20Abi,
   maxUint256,
+  parseEventLogs,
 } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import * as chains from 'viem/chains';
+
+import { portalAbi } from '@/commons/abis/portal.abi';
+import { getChainById } from '@/config/chains';
+import { Intent } from '@/core/interfaces/intent';
+import { AddressNormalizer } from '@/core/utils/address-normalizer';
+import { PortalEncoder } from '@/core/utils/portal-encoder';
+import { logger } from '@/utils/logger';
+
 import { BasePublisher, PublishResult } from './base-publisher';
-import { ChainType, Intent } from '../core/interfaces/intent';
-import { AddressNormalizer } from '../core/utils/address-normalizer';
-import { PortalEncoder } from '../core/utils/portal-encoder';
-import { getChainById } from '../config/chains';
-import { portalAbi } from '../commons/abis/portal.abi';
-import { logger } from '../utils/logger';
 
 export class EvmPublisher extends BasePublisher {
   async publish(intent: Intent, privateKey: string): Promise<PublishResult> {
@@ -40,16 +43,22 @@ export class EvmPublisher extends BasePublisher {
       });
 
       // Get Portal address
-      const chainConfig = getChainById(intent.sourceChainId);
-      if (!chainConfig?.portalAddress) {
+      const sourceChainConfig = getChainById(intent.sourceChainId);
+      const destinationChainConfig = getChainById(intent.destination);
+
+      if (!sourceChainConfig?.portalAddress) {
         throw new Error(`No Portal address configured for chain ${intent.sourceChainId}`);
       }
 
-      const portalAddress = AddressNormalizer.denormalize(chainConfig.portalAddress, ChainType.EVM);
+      if (!destinationChainConfig) {
+        throw new Error(`Destination chain is not configured ${intent.destination}`);
+      }
+
+      const portalAddress = AddressNormalizer.denormalizeToEvm(sourceChainConfig.portalAddress);
 
       // Check native balance if required
       if (intent.reward.nativeAmount > 0n) {
-        const balanceSpinner = logger.spinner('Checking native balance...');
+        logger.spinner('Checking native balance...');
         const balance = await publicClient.getBalance({
           address: account.address,
         });
@@ -72,10 +81,10 @@ export class EvmPublisher extends BasePublisher {
 
       for (let i = 0; i < intent.reward.tokens.length; i++) {
         const token = intent.reward.tokens[i];
-        const tokenAddress = AddressNormalizer.denormalize(token.token, ChainType.EVM) as Hex;
+        const tokenAddress = AddressNormalizer.denormalizeToEvm(token.token);
 
         // Check token balance first
-        const tokenSpinner = logger.spinner(
+        logger.spinner(
           `Checking balance for token ${i + 1}/${intent.reward.tokens.length}: ${tokenAddress}`
         );
 
@@ -100,18 +109,18 @@ export class EvmPublisher extends BasePublisher {
           address: tokenAddress,
           abi: erc20Abi,
           functionName: 'allowance',
-          args: [account.address, portalAddress as Hex],
+          args: [account.address, portalAddress],
         });
 
         if (allowance < token.amount) {
-          const approveSpinner = logger.spinner(`Approving token ${tokenAddress}...`);
+          logger.spinner(`Approving token ${tokenAddress}...`);
 
           // Approve max amount to avoid future approvals
           const approveTx = await walletClient.writeContract({
             address: tokenAddress,
             abi: erc20Abi,
             functionName: 'approve',
-            args: [portalAddress as Hex, maxUint256],
+            args: [portalAddress, maxUint256],
           });
 
           // Wait for approval confirmation
@@ -133,20 +142,16 @@ export class EvmPublisher extends BasePublisher {
       }
 
       // Encode route for destination chain type
-      const destChainType = chainConfig.type;
-      const routeEncoded = PortalEncoder.encodeRoute(intent.route, destChainType);
+      const routeEncoded = PortalEncoder.encode(intent.route, destinationChainConfig.type);
 
       // Prepare reward struct
       const reward = {
         deadline: intent.reward.deadline,
-        creator: AddressNormalizer.denormalize(
-          intent.reward.creator,
-          ChainType.EVM
-        ) as `0x${string}`,
-        prover: AddressNormalizer.denormalize(intent.reward.prover, ChainType.EVM) as `0x${string}`,
         nativeAmount: intent.reward.nativeAmount,
+        creator: AddressNormalizer.denormalizeToEvm(intent.reward.creator),
+        prover: AddressNormalizer.denormalizeToEvm(intent.reward.prover),
         tokens: intent.reward.tokens.map(t => ({
-          token: AddressNormalizer.denormalize(t.token, ChainType.EVM) as `0x${string}`,
+          token: AddressNormalizer.denormalizeToEvm(t.token),
           amount: t.amount,
         })),
       };
@@ -155,13 +160,13 @@ export class EvmPublisher extends BasePublisher {
       const data = encodeFunctionData({
         abi: portalAbi,
         functionName: 'publishAndFund',
-        args: [intent.destination, ('0x' + routeEncoded.toString('hex')) as Hex, reward, false],
+        args: [intent.destination, routeEncoded, reward, false],
       });
 
       // Send transaction with native value if required
-      const publishSpinner = logger.spinner('Publishing intent to Portal contract...');
+      logger.spinner('Publishing intent to Portal contract...');
       const hash = await walletClient.sendTransaction({
-        to: portalAddress as Hex,
+        to: portalAddress,
         data,
         value: intent.reward.nativeAmount,
       });
@@ -209,9 +214,7 @@ export class EvmPublisher extends BasePublisher {
       transport: http(this.rpcUrl),
     });
 
-    return await publicClient.getBalance({
-      address: address as Hex,
-    });
+    return await publicClient.getBalance({ address: address as Address });
   }
 
   async validate(
@@ -239,13 +242,13 @@ export class EvmPublisher extends BasePublisher {
 
       // Check token balances
       for (const token of intent.reward.tokens) {
-        const tokenAddress = AddressNormalizer.denormalize(token.token, ChainType.EVM) as Hex;
+        const tokenAddress = AddressNormalizer.denormalizeToEvm(token.token);
 
         const tokenBalance = await publicClient.readContract({
           address: tokenAddress,
           abi: erc20Abi,
           functionName: 'balanceOf',
-          args: [senderAddress as Hex],
+          args: [senderAddress as Address],
         });
 
         if (tokenBalance < token.amount) {

@@ -2,9 +2,9 @@
  * Tests for AddressNormalizer utility
  */
 
-import { AddressNormalizer } from '@/core/utils/address-normalizer';
 import { ChainType } from '@/core/interfaces/intent';
 import { UniversalAddress } from '@/core/types/universal-address';
+import { AddressNormalizer } from '@/core/utils/address-normalizer';
 
 describe('AddressNormalizer', () => {
   describe('normalize', () => {

@@ -3,14 +3,16 @@
  */
 
 import { TronWeb } from 'tronweb';
-import { BasePublisher, PublishResult } from './base-publisher';
-import { Intent, ChainType } from '../core/interfaces/intent';
-import { AddressNormalizer } from '../core/utils/address-normalizer';
-import { PortalEncoder } from '../core/utils/portal-encoder';
-import { getChainById } from '../config/chains';
-import { portalAbi } from '../commons/abis/portal.abi';
 import { erc20Abi } from 'viem';
-import { logger } from '../utils/logger';
+
+import { portalAbi } from '@/commons/abis/portal.abi';
+import { getChainById } from '@/config/chains';
+import { ChainType, Intent } from '@/core/interfaces/intent';
+import { AddressNormalizer } from '@/core/utils/address-normalizer';
+import { PortalEncoder } from '@/core/utils/portal-encoder';
+import { logger } from '@/utils/logger';
+
+import { BasePublisher, PublishResult } from './base-publisher';
 
 export class TvmPublisher extends BasePublisher {
   private tronWeb: TronWeb;
@@ -42,7 +44,7 @@ export class TvmPublisher extends BasePublisher {
         throw new Error(`Unknown destination chain: ${intent.destination}`);
       }
       const destChainType = destChainConfig.type;
-      const routeEncoded = PortalEncoder.encodeRoute(intent.route, destChainType);
+      const routeHash = PortalEncoder.encode(intent.route, destChainType);
 
       // Get Portal contract with ABI
       const sourceToken = intent.reward.tokens[0];
@@ -72,7 +74,6 @@ export class TvmPublisher extends BasePublisher {
 
       // Prepare parameters - TronWeb expects strings for numbers
       const destination = intent.destination;
-      const routeHash = '0x' + routeEncoded.toString('hex');
       const reward: Parameters<typeof portalContract.publishAndFund>[0][2] = [
         intent.reward.deadline,
         AddressNormalizer.denormalize(intent.reward.creator, ChainType.TVM),

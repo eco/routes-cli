@@ -1,167 +1,281 @@
 /**
  * Portal Encoder Utility
- * Simplified version from the solver for CLI usage
+ *
+ * Provides chain-specific encoding and decoding for Portal contract data structures.
+ * Each blockchain type (EVM, TVM, SVM) has its own encoding format:
+ * - EVM: ABI encoding (hex)
+ * - TVM: ABI encoding (hex)
+ * - SVM: Borsh serialization
  */
 
-import { encodeAbiParameters, getAbiItem, Hex, parseAbiParameters } from 'viem';
-import { ChainType, Intent } from '../interfaces/intent';
-import { AddressNormalizer } from './address-normalizer';
-import { portalAbi } from '@/commons/abis/portal.abi';
-import { toRouteEVMIntent } from './intent-converter';
-import { PublicKey } from '@solana/web3.js';
-import { BN, BorshCoder } from '@coral-xyz/anchor';
-import { portalIdl } from '@/commons/idls/portal.idl';
+import { decodeAbiParameters, encodeAbiParameters, Hex } from 'viem';
 
-const svmCoder = new BorshCoder(portalIdl);
+import { EVMRewardAbiItem, EVMRouteAbiItem } from '@/commons/abis/portal.abi';
+import { RewardInstruction, RouteInstruction } from '@/commons/types/portal-idl-coder.type';
+import { bufferToBytes, bytes32ToAddress } from '@/commons/utils/converter';
+import { toSvmRewardForCoder, toSvmRouteForCoder } from '@/commons/utils/instruments';
+import { portalBorshCoder } from '@/commons/utils/portal-borsh-coder';
+import { TvmUtils } from '@/commons/utils/tvm-utils';
+import { AddressNormalizer } from '@/core/utils/address-normalizer';
+
+import { ChainType, Intent } from '../interfaces/intent';
+
+// Helper to serialize objects with BigInt
+const serializeWithBigInt = (obj: any) =>
+  JSON.stringify(obj, (_, value) => (typeof value === 'bigint' ? value.toString() : value));
 
 export class PortalEncoder {
   /**
-   * Encodes Intent route data for a specific chain type
+   * Encodes Intent data for a specific chain type
+   *
+   * @param data - Data to encode (Route or Reward from Intent)
+   * @param chainType - Target chain type
+   * @returns Encoded data as Buffer
    */
-  static encodeRoute(route: Intent['route'], chainType: ChainType): Buffer {
+  static encode(data: Intent['route'] | Intent['reward'], chainType: ChainType): Hex {
     switch (chainType) {
       case ChainType.EVM:
       case ChainType.TVM:
-        return this.encodeEvmRoute(route);
+        return this.encodeEvm(data);
       case ChainType.SVM:
-        return this.encodeSvmRoute(route);
+        return this.encodeSvm(data);
       default:
         throw new Error(`Unsupported chain type: ${chainType}`);
     }
   }
 
   /**
-   * Encodes Intent reward data for a specific chain type
+   * Decodes data from a specific chain type to Intent format
+   *
+   * @param data - Encoded data as Buffer or string
+   * @param chainType - Source chain type
+   * @param dataType - Type of data ('route' or 'reward')
+   * @returns Decoded Route or Reward object in Intent format
    */
-  static encodeReward(reward: Intent['reward'], chainType: ChainType): Buffer {
+  static decode<Type extends 'route' | 'reward'>(
+    data: Buffer | string,
+    chainType: ChainType,
+    dataType: Type
+  ): Type extends 'route' ? Intent['route'] : Intent['reward'] {
     switch (chainType) {
       case ChainType.EVM:
-        return this.encodeEvmReward(reward);
+        return this.decodeEvm(data, dataType);
       case ChainType.TVM:
-        return this.encodeTvmReward(reward);
+        return this.decodeTvm(data, dataType);
       case ChainType.SVM:
-        return this.encodeSvmReward(reward);
+        return this.decodeSvm(data, dataType);
       default:
         throw new Error(`Unsupported chain type: ${chainType}`);
     }
   }
 
   /**
-   * EVM route encoding using ABI parameters
+   * Type guard to determine if data is a Route
    */
-  private static encodeEvmRoute(route: Intent['route']): Buffer {
-    const EVMRouteAbiItem = getAbiItem({
-      abi: portalAbi,
-      name: 'isIntentFunded',
-    }).inputs[0].components[1];
-
-    const encoded = encodeAbiParameters([EVMRouteAbiItem], [toRouteEVMIntent(route)]);
-    return Buffer.from(encoded.slice(2), 'hex'); // Remove 0x prefix
+  static isRoute(data: Intent['route'] | Intent['reward']): data is Intent['route'] {
+    return 'salt' in data && 'portal' in data && 'calls' in data;
   }
 
   /**
-   * EVM reward encoding using ABI parameters
+   * EVM encoding using ABI parameters
    */
-  private static encodeEvmReward(reward: Intent['reward']): Buffer {
-    const encoded = encodeAbiParameters(
-      parseAbiParameters('(uint64,address,address,uint256,(address,uint256)[])'),
-      [
+  private static encodeEvm(data: Intent['route'] | Intent['reward']): Hex {
+    if (this.isRoute(data)) {
+      return encodeAbiParameters(
+        [EVMRouteAbiItem],
         [
-          reward.deadline,
-          AddressNormalizer.denormalize(reward.creator, ChainType.EVM) as `0x${string}`,
-          AddressNormalizer.denormalize(reward.prover, ChainType.EVM) as `0x${string}`,
-          reward.nativeAmount,
-          reward.tokens.map(
-            t =>
-              [
-                AddressNormalizer.denormalize(t.token, ChainType.EVM) as `0x${string}`,
-                t.amount,
-              ] as const
-          ),
-        ],
-      ]
-    );
-    return Buffer.from(encoded.slice(2), 'hex'); // Remove 0x prefix
+          {
+            salt: data.salt,
+            deadline: data.deadline,
+            nativeAmount: data.nativeAmount,
+            portal: AddressNormalizer.denormalizeToEvm(data.portal),
+            tokens: data.tokens.map(t => ({
+              token: AddressNormalizer.denormalizeToEvm(t.token),
+              amount: t.amount,
+            })),
+            calls: data.calls.map(c => ({
+              target: AddressNormalizer.denormalizeToEvm(c.target),
+              data: c.data,
+              value: c.value,
+            })),
+          },
+        ]
+      );
+    } else {
+      return encodeAbiParameters(
+        [EVMRewardAbiItem],
+        [
+          {
+            deadline: data.deadline,
+            creator: AddressNormalizer.denormalizeToEvm(data.creator),
+            prover: AddressNormalizer.denormalizeToEvm(data.prover),
+            nativeAmount: data.nativeAmount,
+            tokens: data.tokens.map(t => ({
+              token: AddressNormalizer.denormalizeToEvm(t.token),
+              amount: t.amount,
+            })),
+          },
+        ]
+      );
+    }
   }
 
   /**
-   * TVM route encoding using JSON with Base58 addresses
+   * SVM encoding using proper Borsh serialization
    */
-  private static encodeTvmRoute(route: Intent['route']): Buffer {
-    const tvmData = {
-      salt: route.salt,
-      deadline: route.deadline.toString(),
-      portal: AddressNormalizer.denormalize(route.portal, ChainType.TVM),
-      tokens: route.tokens.map(t => ({
-        token: AddressNormalizer.denormalize(t.token, ChainType.TVM),
-        amount: t.amount.toString(),
+  private static encodeSvm(data: Intent['route'] | Intent['reward']): Hex {
+    if (PortalEncoder.isRoute(data)) {
+      return bufferToBytes(
+        portalBorshCoder.types.encode<RouteInstruction>('Route', toSvmRouteForCoder(data))
+      );
+    } else {
+      return bufferToBytes(
+        portalBorshCoder.types.encode<RewardInstruction>('Reward', toSvmRewardForCoder(data))
+      );
+    }
+  }
+
+  /**
+   * EVM decoding to Intent format
+   */
+  private static decodeEvm<Type extends 'route' | 'reward'>(
+    data: Buffer | string,
+    dataType: Type
+  ): Type extends 'route' ? Intent['route'] : Intent['reward'] {
+    const dataString = typeof data === 'string' ? data : '0x' + data.toString('hex');
+
+    if (dataType === 'reward') {
+      const decoded = decodeAbiParameters([EVMRewardAbiItem], dataString as Hex)[0];
+
+      return {
+        deadline: decoded.deadline,
+        creator: AddressNormalizer.normalize(decoded.creator, ChainType.EVM),
+        prover: AddressNormalizer.normalize(decoded.prover, ChainType.EVM),
+        nativeAmount: decoded.nativeAmount,
+        tokens: decoded.tokens.map(t => ({
+          token: AddressNormalizer.normalize(t.token, ChainType.EVM),
+          amount: t.amount,
+        })),
+      } as Intent['reward'] as Type extends 'route' ? Intent['route'] : Intent['reward'];
+    }
+
+    const decoded = decodeAbiParameters([EVMRouteAbiItem], dataString as Hex)[0];
+    return {
+      salt: decoded.salt,
+      deadline: decoded.deadline,
+      portal: AddressNormalizer.normalize(decoded.portal, ChainType.EVM),
+      nativeAmount: decoded.nativeAmount || 0n,
+      tokens: decoded.tokens.map(t => ({
+        token: AddressNormalizer.normalize(t.token, ChainType.EVM),
+        amount: t.amount,
       })),
-      calls: route.calls.map(c => ({
-        target: AddressNormalizer.denormalize(c.target, ChainType.TVM),
+      calls: decoded.calls.map(c => ({
+        target: AddressNormalizer.normalize(c.target, ChainType.EVM),
         data: c.data,
-        value: c.value.toString(),
+        value: c.value,
       })),
-    };
-    return Buffer.from(JSON.stringify(tvmData), 'utf8');
+    } as Intent['route'] as Type extends 'route' ? Intent['route'] : Intent['reward'];
   }
 
   /**
-   * TVM reward encoding using JSON
+   * EVM decoding to Intent format
    */
-  private static encodeTvmReward(reward: Intent['reward']): Buffer {
-    const tvmData = {
-      deadline: reward.deadline.toString(),
-      creator: AddressNormalizer.denormalize(reward.creator, ChainType.TVM),
-      prover: AddressNormalizer.denormalize(reward.prover, ChainType.TVM),
-      nativeAmount: reward.nativeAmount.toString(),
-      tokens: reward.tokens.map(t => ({
-        token: AddressNormalizer.denormalize(t.token, ChainType.TVM),
-        amount: t.amount.toString(),
+  private static decodeTvm<Type extends 'route' | 'reward'>(
+    data: Buffer | string,
+    dataType: Type
+  ): Type extends 'route' ? Intent['route'] : Intent['reward'] {
+    const dataString = typeof data === 'string' ? data : '0x' + data.toString('hex');
+
+    if (dataType === 'reward') {
+      const decoded = decodeAbiParameters([EVMRewardAbiItem], dataString as Hex)[0];
+
+      return {
+        deadline: decoded.deadline,
+        creator: AddressNormalizer.normalize(TvmUtils.fromEvm(decoded.creator), ChainType.TVM),
+        prover: AddressNormalizer.normalize(TvmUtils.fromEvm(decoded.prover), ChainType.TVM),
+        nativeAmount: decoded.nativeAmount,
+        tokens: decoded.tokens.map(t => ({
+          token: AddressNormalizer.normalize(TvmUtils.fromEvm(t.token), ChainType.TVM),
+          amount: t.amount,
+        })),
+      } as Intent['reward'] as Type extends 'route' ? Intent['route'] : Intent['reward'];
+    }
+
+    const decoded = decodeAbiParameters([EVMRouteAbiItem], dataString as Hex)[0];
+    return {
+      salt: decoded.salt,
+      deadline: decoded.deadline,
+      portal: AddressNormalizer.normalize(TvmUtils.fromEvm(decoded.portal), ChainType.TVM),
+      nativeAmount: decoded.nativeAmount || 0n,
+      tokens: decoded.tokens.map(t => ({
+        token: AddressNormalizer.normalize(TvmUtils.fromEvm(t.token), ChainType.TVM),
+        amount: t.amount,
       })),
-    };
-    return Buffer.from(JSON.stringify(tvmData), 'utf8');
+      calls: decoded.calls.map(c => ({
+        target: AddressNormalizer.normalize(TvmUtils.fromEvm(c.target), ChainType.TVM),
+        data: c.data,
+        value: c.value,
+      })),
+    } as Intent['route'] as Type extends 'route' ? Intent['route'] : Intent['reward'];
   }
 
   /**
-   * SVM route encoding using simplified JSON
+   * SVM decoding from Borsh to Intent format
    */
-  private static encodeSvmRoute(route: Intent['route']): Buffer {
-    // Use Anchor's BorshCoder for proper Solana serialization
-    const { salt, deadline, portal, tokens, calls } = route;
+  private static decodeSvm<Type extends 'route' | 'reward'>(
+    data: Buffer | string,
+    dataType: Type
+  ): Type extends 'route' ? Intent['route'] : Intent['reward'] {
+    const buffer =
+      typeof data === 'string'
+        ? Buffer.from(data.startsWith('0x') ? data.substring(2) : data, 'hex')
+        : data;
 
-    const saltBytes = Buffer.from(salt.slice(2), 'hex');
-    const portalBytes = new PublicKey(portal).toBytes();
+    if (dataType === 'route') {
+      // Decode route using Borsh
+      const decoded = portalBorshCoder.types.decode<RouteInstruction>('Route', buffer);
 
-    return svmCoder.types.encode('Route', {
-      salt: { 0: Array.from(saltBytes) }, // Bytes32 struct format
-      deadline: new BN(deadline.toString()), // Convert BigInt to BN for u64
-      portal: { 0: Array.from(portalBytes) }, // Bytes32 struct format
-      tokens: tokens.map(({ token, amount }) => ({
-        token: new PublicKey(token),
-        amount: new BN(amount.toString()), // Convert BigInt to BN for u64
-      })),
-      calls: calls.map(({ target, data, value }) => ({
-        target: { 0: Array.from(new PublicKey(target).toBytes()) }, // Bytes32 struct format
-        data: Buffer.from(data.slice(2), 'hex'), // Keep as Buffer for bytes type
-        value: new BN(value.toString()), // Convert BigInt to BN for u64
-      })),
-    });
-  }
+      if (decoded === null) {
+        throw new Error('Unable to decode SVM route');
+      }
 
-  /**
-   * SVM reward encoding using JSON
-   */
-  private static encodeSvmReward(reward: Intent['reward']): Buffer {
-    const svmData = {
-      deadline: reward.deadline.toString(),
-      creator: AddressNormalizer.denormalize(reward.creator, ChainType.SVM),
-      prover: AddressNormalizer.denormalize(reward.prover, ChainType.SVM),
-      nativeAmount: reward.nativeAmount.toString(),
-      tokens: reward.tokens.map(t => ({
-        token: AddressNormalizer.denormalize(t.token, ChainType.SVM),
-        amount: t.amount.toString(),
+      const route: Intent['route'] = {
+        salt: bufferToBytes(decoded.salt[0]),
+        deadline: BigInt(decoded.deadline.toString()),
+        portal: AddressNormalizer.normalizeSvm(bytes32ToAddress(decoded.portal[0])),
+        nativeAmount: BigInt(decoded.native_amount.toString()), // Route doesn't have nativeAmount in the schema
+        tokens: decoded.tokens.map(t => ({
+          token: AddressNormalizer.normalizeSvm(t.token),
+          amount: BigInt(t.amount.toString()),
+        })),
+        calls: decoded.calls.map(c => ({
+          target: AddressNormalizer.normalizeSvm(bytes32ToAddress(c.target[0])),
+          data: bufferToBytes(c.data),
+          value: 0n, // Value is not part of the Call struct
+        })),
+      };
+
+      return route as Type extends 'route' ? Intent['route'] : Intent['reward'];
+    }
+
+    // Decode reward using Borsh
+    const decoded = portalBorshCoder.types.decode<RewardInstruction>('Reward', buffer);
+
+    if (decoded === null) {
+      throw new Error('Unable to decode SVM reward');
+    }
+
+    const reward: Intent['reward'] = {
+      deadline: BigInt(decoded.deadline.toString()),
+      creator: AddressNormalizer.normalizeSvm(decoded.creator),
+      prover: AddressNormalizer.normalizeSvm(decoded.prover),
+      nativeAmount: BigInt(decoded.native_amount.toString()),
+      tokens: decoded.tokens.map(t => ({
+        token: AddressNormalizer.normalizeSvm(t.token),
+        amount: BigInt(t.amount.toString()),
       })),
     };
-    return Buffer.from(JSON.stringify(svmData), 'utf8');
+
+    return reward as Type extends 'route' ? Intent['route'] : Intent['reward'];
   }
 }

@@ -1,4 +1,5 @@
 import { Intent } from '../interfaces/intent';
+
 import { AddressNormalizer } from './address-normalizer';
 
 /**

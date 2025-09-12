@@ -2,13 +2,15 @@
  * Config Command
  */
 
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
+
 import { Command } from 'commander';
 import inquirer from 'inquirer';
-import * as fs from 'fs';
-import * as path from 'path';
-import * as os from 'os';
-import { logger } from '@/utils/logger';
+
 import { ChainType } from '@/core/interfaces/intent';
+import { logger } from '@/utils/logger';
 
 interface ConfigSettings {
   defaultSourceChain?: string;

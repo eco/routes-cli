@@ -1,9 +1,14 @@
+import { getAbiItem } from 'viem';
+
+/**
+ * Portal Contract ABI Definition
+ *
+ * The Portal contract unifies source and destination functionality,
+ * supporting multiple blockchain types (EVM, SVM, TVM) through
+ * chain-specific encoding mechanisms.
+ */
 export const portalAbi = [
-  {
-    inputs: [],
-    stateMutability: 'nonpayable',
-    type: 'constructor',
-  },
+  { inputs: [], stateMutability: 'nonpayable', type: 'constructor' },
   {
     inputs: [{ internalType: 'address', name: 'target', type: 'address' }],
     name: 'AddressEmptyCode',
@@ -16,25 +21,13 @@ export const portalAbi = [
   },
   { inputs: [], name: 'ArrayLengthMismatch', type: 'error' },
   {
-    inputs: [
-      {
-        internalType: 'uint256',
-        name: 'chainId',
-        type: 'uint256',
-      },
-    ],
+    inputs: [{ internalType: 'uint256', name: 'chainId', type: 'uint256' }],
     name: 'ChainIdTooLarge',
     type: 'error',
   },
   { inputs: [], name: 'ECDSAInvalidSignature', type: 'error' },
   {
-    inputs: [
-      {
-        internalType: 'uint256',
-        name: 'length',
-        type: 'uint256',
-      },
-    ],
+    inputs: [{ internalType: 'uint256', name: 'length', type: 'uint256' }],
     name: 'ECDSAInvalidSignatureLength',
     type: 'error',
   },
@@ -45,37 +38,21 @@ export const portalAbi = [
   },
   { inputs: [], name: 'FailedInnerCall', type: 'error' },
   {
-    inputs: [
-      {
-        internalType: 'bytes32',
-        name: 'intentHash',
-        type: 'bytes32',
-      },
-    ],
+    inputs: [{ internalType: 'bytes32', name: 'intentHash', type: 'bytes32' }],
     name: 'InsufficientFunds',
     type: 'error',
   },
   {
     inputs: [
       { internalType: 'uint256', name: 'sent', type: 'uint256' },
-      {
-        internalType: 'uint256',
-        name: 'required',
-        type: 'uint256',
-      },
+      { internalType: 'uint256', name: 'required', type: 'uint256' },
     ],
     name: 'InsufficientNativeAmount',
     type: 'error',
   },
   { inputs: [], name: 'InsufficientNativeRewardAmount', type: 'error' },
   {
-    inputs: [
-      {
-        internalType: 'bytes32',
-        name: 'intentHash',
-        type: 'bytes32',
-      },
-    ],
+    inputs: [{ internalType: 'bytes32', name: 'intentHash', type: 'bytes32' }],
     name: 'IntentAlreadyExists',
     type: 'error',
   },
@@ -86,13 +63,7 @@ export const portalAbi = [
   },
   { inputs: [], name: 'IntentExpired', type: 'error' },
   {
-    inputs: [
-      {
-        internalType: 'bytes32',
-        name: 'intentHash',
-        type: 'bytes32',
-      },
-    ],
+    inputs: [{ internalType: 'bytes32', name: 'intentHash', type: 'bytes32' }],
     name: 'IntentNotClaimed',
     type: 'error',
   },
@@ -103,24 +74,14 @@ export const portalAbi = [
   },
   { inputs: [], name: 'InvalidClaimant', type: 'error' },
   {
-    inputs: [
-      {
-        internalType: 'bytes32',
-        name: 'expectedHash',
-        type: 'bytes32',
-      },
-    ],
+    inputs: [{ internalType: 'bytes32', name: 'expectedHash', type: 'bytes32' }],
     name: 'InvalidHash',
     type: 'error',
   },
   {
     inputs: [
       { internalType: 'uint256', name: 'expected', type: 'uint256' },
-      {
-        internalType: 'uint256',
-        name: 'actual',
-        type: 'uint256',
-      },
+      { internalType: 'uint256', name: 'actual', type: 'uint256' },
     ],
     name: 'InvalidOriginChainId',
     type: 'error',
@@ -128,11 +89,7 @@ export const portalAbi = [
   {
     inputs: [
       { internalType: 'address', name: 'expected', type: 'address' },
-      {
-        internalType: 'address',
-        name: 'actual',
-        type: 'address',
-      },
+      { internalType: 'address', name: 'actual', type: 'address' },
     ],
     name: 'InvalidOriginSettler',
     type: 'error',
@@ -148,59 +105,29 @@ export const portalAbi = [
     type: 'error',
   },
   { inputs: [], name: 'InvalidShortString', type: 'error' },
+  { inputs: [], name: 'InvalidSignature', type: 'error' },
   {
-    inputs: [],
-    name: 'InvalidSignature',
-    type: 'error',
-  },
-  {
-    inputs: [
-      {
-        internalType: 'enum IIntentSource.Status',
-        name: 'status',
-        type: 'uint8',
-      },
-    ],
+    inputs: [{ internalType: 'enum IIntentSource.Status', name: 'status', type: 'uint8' }],
     name: 'InvalidStatusForFunding',
     type: 'error',
   },
   {
     inputs: [
-      {
-        internalType: 'enum IIntentSource.Status',
-        name: 'status',
-        type: 'uint8',
-      },
+      { internalType: 'enum IIntentSource.Status', name: 'status', type: 'uint8' },
       { internalType: 'uint256', name: 'currentTime', type: 'uint256' },
-      {
-        internalType: 'uint256',
-        name: 'deadline',
-        type: 'uint256',
-      },
+      { internalType: 'uint256', name: 'deadline', type: 'uint256' },
     ],
     name: 'InvalidStatusForRefund',
     type: 'error',
   },
   {
-    inputs: [
-      {
-        internalType: 'enum IIntentSource.Status',
-        name: 'status',
-        type: 'uint8',
-      },
-    ],
+    inputs: [{ internalType: 'enum IIntentSource.Status', name: 'status', type: 'uint8' }],
     name: 'InvalidStatusForWithdrawal',
     type: 'error',
   },
   { inputs: [], name: 'OpenDeadlinePassed', type: 'error' },
   {
-    inputs: [
-      {
-        internalType: 'address',
-        name: 'token',
-        type: 'address',
-      },
-    ],
+    inputs: [{ internalType: 'address', name: 'token', type: 'address' }],
     name: 'SafeERC20FailedOperation',
     type: 'error',
   },
@@ -210,27 +137,13 @@ export const portalAbi = [
     type: 'error',
   },
   { inputs: [], name: 'TypeSignatureMismatch', type: 'error' },
-  {
-    inputs: [],
-    name: 'ZeroClaimant',
-    type: 'error',
-  },
+  { inputs: [], name: 'ZeroClaimant', type: 'error' },
   { anonymous: false, inputs: [], name: 'EIP712DomainChanged', type: 'event' },
   {
     anonymous: false,
     inputs: [
-      {
-        indexed: true,
-        internalType: 'bytes32',
-        name: 'intentHash',
-        type: 'bytes32',
-      },
-      {
-        indexed: true,
-        internalType: 'bytes32',
-        name: 'claimant',
-        type: 'bytes32',
-      },
+      { indexed: true, internalType: 'bytes32', name: 'intentHash', type: 'bytes32' },
+      { indexed: true, internalType: 'bytes32', name: 'claimant', type: 'bytes32' },
     ],
     name: 'IntentFulfilled',
     type: 'event',
@@ -238,24 +151,9 @@ export const portalAbi = [
   {
     anonymous: false,
     inputs: [
-      {
-        indexed: false,
-        internalType: 'bytes32',
-        name: 'intentHash',
-        type: 'bytes32',
-      },
-      {
-        indexed: false,
-        internalType: 'address',
-        name: 'funder',
-        type: 'address',
-      },
-      {
-        indexed: false,
-        internalType: 'bool',
-        name: 'complete',
-        type: 'bool',
-      },
+      { indexed: false, internalType: 'bytes32', name: 'intentHash', type: 'bytes32' },
+      { indexed: false, internalType: 'address', name: 'funder', type: 'address' },
+      { indexed: false, internalType: 'bool', name: 'complete', type: 'bool' },
     ],
     name: 'IntentFunded',
     type: 'event',
@@ -263,18 +161,8 @@ export const portalAbi = [
   {
     anonymous: false,
     inputs: [
-      {
-        indexed: true,
-        internalType: 'bytes32',
-        name: 'intentHash',
-        type: 'bytes32',
-      },
-      {
-        indexed: true,
-        internalType: 'bytes32',
-        name: 'claimant',
-        type: 'bytes32',
-      },
+      { indexed: true, internalType: 'bytes32', name: 'intentHash', type: 'bytes32' },
+      { indexed: true, internalType: 'bytes32', name: 'claimant', type: 'bytes32' },
     ],
     name: 'IntentProven',
     type: 'event',
@@ -282,51 +170,17 @@ export const portalAbi = [
   {
     anonymous: false,
     inputs: [
-      {
-        indexed: true,
-        internalType: 'bytes32',
-        name: 'intentHash',
-        type: 'bytes32',
-      },
-      {
-        indexed: false,
-        internalType: 'uint64',
-        name: 'destination',
-        type: 'uint64',
-      },
+      { indexed: true, internalType: 'bytes32', name: 'intentHash', type: 'bytes32' },
+      { indexed: false, internalType: 'uint64', name: 'destination', type: 'uint64' },
       { indexed: false, internalType: 'bytes', name: 'route', type: 'bytes' },
-      {
-        indexed: true,
-        internalType: 'address',
-        name: 'creator',
-        type: 'address',
-      },
-      {
-        indexed: true,
-        internalType: 'address',
-        name: 'prover',
-        type: 'address',
-      },
-      {
-        indexed: false,
-        internalType: 'uint64',
-        name: 'rewardDeadline',
-        type: 'uint64',
-      },
-      {
-        indexed: false,
-        internalType: 'uint256',
-        name: 'rewardNativeAmount',
-        type: 'uint256',
-      },
+      { indexed: true, internalType: 'address', name: 'creator', type: 'address' },
+      { indexed: true, internalType: 'address', name: 'prover', type: 'address' },
+      { indexed: false, internalType: 'uint64', name: 'rewardDeadline', type: 'uint64' },
+      { indexed: false, internalType: 'uint256', name: 'rewardNativeAmount', type: 'uint256' },
       {
         components: [
           { internalType: 'address', name: 'token', type: 'address' },
-          {
-            internalType: 'uint256',
-            name: 'amount',
-            type: 'uint256',
-          },
+          { internalType: 'uint256', name: 'amount', type: 'uint256' },
         ],
         indexed: false,
         internalType: 'struct TokenAmount[]',
@@ -340,18 +194,8 @@ export const portalAbi = [
   {
     anonymous: false,
     inputs: [
-      {
-        indexed: false,
-        internalType: 'bytes32',
-        name: 'intentHash',
-        type: 'bytes32',
-      },
-      {
-        indexed: true,
-        internalType: 'address',
-        name: 'refundee',
-        type: 'address',
-      },
+      { indexed: false, internalType: 'bytes32', name: 'intentHash', type: 'bytes32' },
+      { indexed: true, internalType: 'address', name: 'refundee', type: 'address' },
     ],
     name: 'IntentRefunded',
     type: 'event',
@@ -359,24 +203,9 @@ export const portalAbi = [
   {
     anonymous: false,
     inputs: [
-      {
-        indexed: false,
-        internalType: 'bytes32',
-        name: 'intentHash',
-        type: 'bytes32',
-      },
-      {
-        indexed: true,
-        internalType: 'address',
-        name: 'refundee',
-        type: 'address',
-      },
-      {
-        indexed: true,
-        internalType: 'address',
-        name: 'token',
-        type: 'address',
-      },
+      { indexed: false, internalType: 'bytes32', name: 'intentHash', type: 'bytes32' },
+      { indexed: true, internalType: 'address', name: 'refundee', type: 'address' },
+      { indexed: true, internalType: 'address', name: 'token', type: 'address' },
     ],
     name: 'IntentTokenRecovered',
     type: 'event',
@@ -384,18 +213,8 @@ export const portalAbi = [
   {
     anonymous: false,
     inputs: [
-      {
-        indexed: false,
-        internalType: 'bytes32',
-        name: 'intentHash',
-        type: 'bytes32',
-      },
-      {
-        indexed: true,
-        internalType: 'address',
-        name: 'claimant',
-        type: 'address',
-      },
+      { indexed: false, internalType: 'bytes32', name: 'intentHash', type: 'bytes32' },
+      { indexed: true, internalType: 'address', name: 'claimant', type: 'address' },
     ],
     name: 'IntentWithdrawn',
     type: 'event',
@@ -403,45 +222,20 @@ export const portalAbi = [
   {
     anonymous: false,
     inputs: [
-      {
-        indexed: true,
-        internalType: 'bytes32',
-        name: 'orderId',
-        type: 'bytes32',
-      },
+      { indexed: true, internalType: 'bytes32', name: 'orderId', type: 'bytes32' },
       {
         components: [
           { internalType: 'address', name: 'user', type: 'address' },
-          {
-            internalType: 'uint256',
-            name: 'originChainId',
-            type: 'uint256',
-          },
+          { internalType: 'uint256', name: 'originChainId', type: 'uint256' },
           { internalType: 'uint32', name: 'openDeadline', type: 'uint32' },
-          {
-            internalType: 'uint32',
-            name: 'fillDeadline',
-            type: 'uint32',
-          },
-          {
-            internalType: 'bytes32',
-            name: 'orderId',
-            type: 'bytes32',
-          },
+          { internalType: 'uint32', name: 'fillDeadline', type: 'uint32' },
+          { internalType: 'bytes32', name: 'orderId', type: 'bytes32' },
           {
             components: [
               { internalType: 'bytes32', name: 'token', type: 'bytes32' },
-              {
-                internalType: 'uint256',
-                name: 'amount',
-                type: 'uint256',
-              },
+              { internalType: 'uint256', name: 'amount', type: 'uint256' },
               { internalType: 'bytes32', name: 'recipient', type: 'bytes32' },
-              {
-                internalType: 'uint256',
-                name: 'chainId',
-                type: 'uint256',
-              },
+              { internalType: 'uint256', name: 'chainId', type: 'uint256' },
             ],
             internalType: 'struct Output[]',
             name: 'maxSpent',
@@ -450,17 +244,9 @@ export const portalAbi = [
           {
             components: [
               { internalType: 'bytes32', name: 'token', type: 'bytes32' },
-              {
-                internalType: 'uint256',
-                name: 'amount',
-                type: 'uint256',
-              },
+              { internalType: 'uint256', name: 'amount', type: 'uint256' },
               { internalType: 'bytes32', name: 'recipient', type: 'bytes32' },
-              {
-                internalType: 'uint256',
-                name: 'chainId',
-                type: 'uint256',
-              },
+              { internalType: 'uint256', name: 'chainId', type: 'uint256' },
             ],
             internalType: 'struct Output[]',
             name: 'minReceived',
@@ -468,21 +254,9 @@ export const portalAbi = [
           },
           {
             components: [
-              {
-                internalType: 'uint256',
-                name: 'destinationChainId',
-                type: 'uint256',
-              },
-              {
-                internalType: 'bytes32',
-                name: 'destinationSettler',
-                type: 'bytes32',
-              },
-              {
-                internalType: 'bytes',
-                name: 'originData',
-                type: 'bytes',
-              },
+              { internalType: 'uint256', name: 'destinationChainId', type: 'uint256' },
+              { internalType: 'bytes32', name: 'destinationSettler', type: 'bytes32' },
+              { internalType: 'bytes', name: 'originData', type: 'bytes' },
             ],
             internalType: 'struct FillInstruction[]',
             name: 'fillInstructions',
@@ -501,18 +275,8 @@ export const portalAbi = [
   {
     anonymous: false,
     inputs: [
-      {
-        indexed: false,
-        internalType: 'bytes32',
-        name: 'orderId',
-        type: 'bytes32',
-      },
-      {
-        indexed: false,
-        internalType: 'address',
-        name: 'solver',
-        type: 'address',
-      },
+      { indexed: false, internalType: 'bytes32', name: 'orderId', type: 'bytes32' },
+      { indexed: false, internalType: 'address', name: 'solver', type: 'address' },
     ],
     name: 'OrderFilled',
     type: 'event',
@@ -530,32 +294,16 @@ export const portalAbi = [
       {
         components: [
           { internalType: 'uint64', name: 'destination', type: 'uint64' },
-          {
-            internalType: 'bytes',
-            name: 'route',
-            type: 'bytes',
-          },
+          { internalType: 'bytes', name: 'route', type: 'bytes' },
           {
             components: [
               { internalType: 'uint64', name: 'deadline', type: 'uint64' },
-              {
-                internalType: 'address',
-                name: 'creator',
-                type: 'address',
-              },
+              { internalType: 'address', name: 'creator', type: 'address' },
               { internalType: 'address', name: 'prover', type: 'address' },
-              {
-                internalType: 'uint256',
-                name: 'nativeAmount',
-                type: 'uint256',
-              },
+              { internalType: 'uint256', name: 'nativeAmount', type: 'uint256' },
               {
                 components: [
-                  {
-                    internalType: 'address',
-                    name: 'token',
-                    type: 'address',
-                  },
+                  { internalType: 'address', name: 'token', type: 'address' },
                   { internalType: 'uint256', name: 'amount', type: 'uint256' },
                 ],
                 internalType: 'struct TokenAmount[]',
@@ -568,25 +316,13 @@ export const portalAbi = [
             type: 'tuple',
           },
           { internalType: 'bytes32', name: 'routePortal', type: 'bytes32' },
-          {
-            internalType: 'uint64',
-            name: 'routeDeadline',
-            type: 'uint64',
-          },
+          { internalType: 'uint64', name: 'routeDeadline', type: 'uint64' },
           {
             components: [
               { internalType: 'bytes32', name: 'token', type: 'bytes32' },
-              {
-                internalType: 'uint256',
-                name: 'amount',
-                type: 'uint256',
-              },
+              { internalType: 'uint256', name: 'amount', type: 'uint256' },
               { internalType: 'bytes32', name: 'recipient', type: 'bytes32' },
-              {
-                internalType: 'uint256',
-                name: 'chainId',
-                type: 'uint256',
-              },
+              { internalType: 'uint256', name: 'chainId', type: 'uint256' },
             ],
             internalType: 'struct Output[]',
             name: 'maxSpent',
@@ -603,36 +339,16 @@ export const portalAbi = [
       {
         components: [
           { internalType: 'address', name: 'user', type: 'address' },
-          {
-            internalType: 'uint256',
-            name: 'originChainId',
-            type: 'uint256',
-          },
+          { internalType: 'uint256', name: 'originChainId', type: 'uint256' },
           { internalType: 'uint32', name: 'openDeadline', type: 'uint32' },
-          {
-            internalType: 'uint32',
-            name: 'fillDeadline',
-            type: 'uint32',
-          },
-          {
-            internalType: 'bytes32',
-            name: 'orderId',
-            type: 'bytes32',
-          },
+          { internalType: 'uint32', name: 'fillDeadline', type: 'uint32' },
+          { internalType: 'bytes32', name: 'orderId', type: 'bytes32' },
           {
             components: [
               { internalType: 'bytes32', name: 'token', type: 'bytes32' },
-              {
-                internalType: 'uint256',
-                name: 'amount',
-                type: 'uint256',
-              },
+              { internalType: 'uint256', name: 'amount', type: 'uint256' },
               { internalType: 'bytes32', name: 'recipient', type: 'bytes32' },
-              {
-                internalType: 'uint256',
-                name: 'chainId',
-                type: 'uint256',
-              },
+              { internalType: 'uint256', name: 'chainId', type: 'uint256' },
             ],
             internalType: 'struct Output[]',
             name: 'maxSpent',
@@ -641,17 +357,9 @@ export const portalAbi = [
           {
             components: [
               { internalType: 'bytes32', name: 'token', type: 'bytes32' },
-              {
-                internalType: 'uint256',
-                name: 'amount',
-                type: 'uint256',
-              },
+              { internalType: 'uint256', name: 'amount', type: 'uint256' },
               { internalType: 'bytes32', name: 'recipient', type: 'bytes32' },
-              {
-                internalType: 'uint256',
-                name: 'chainId',
-                type: 'uint256',
-              },
+              { internalType: 'uint256', name: 'chainId', type: 'uint256' },
             ],
             internalType: 'struct Output[]',
             name: 'minReceived',
@@ -659,21 +367,9 @@ export const portalAbi = [
           },
           {
             components: [
-              {
-                internalType: 'uint256',
-                name: 'destinationChainId',
-                type: 'uint256',
-              },
-              {
-                internalType: 'bytes32',
-                name: 'destinationSettler',
-                type: 'bytes32',
-              },
-              {
-                internalType: 'bytes',
-                name: 'originData',
-                type: 'bytes',
-              },
+              { internalType: 'uint256', name: 'destinationChainId', type: 'uint256' },
+              { internalType: 'bytes32', name: 'destinationSettler', type: 'bytes32' },
+              { internalType: 'bytes', name: 'originData', type: 'bytes' },
             ],
             internalType: 'struct FillInstruction[]',
             name: 'fillInstructions',
@@ -691,33 +387,17 @@ export const portalAbi = [
   {
     inputs: [
       { internalType: 'uint64[]', name: 'destinations', type: 'uint64[]' },
-      {
-        internalType: 'bytes32[]',
-        name: 'routeHashes',
-        type: 'bytes32[]',
-      },
+      { internalType: 'bytes32[]', name: 'routeHashes', type: 'bytes32[]' },
       {
         components: [
           { internalType: 'uint64', name: 'deadline', type: 'uint64' },
-          {
-            internalType: 'address',
-            name: 'creator',
-            type: 'address',
-          },
+          { internalType: 'address', name: 'creator', type: 'address' },
           { internalType: 'address', name: 'prover', type: 'address' },
-          {
-            internalType: 'uint256',
-            name: 'nativeAmount',
-            type: 'uint256',
-          },
+          { internalType: 'uint256', name: 'nativeAmount', type: 'uint256' },
           {
             components: [
               { internalType: 'address', name: 'token', type: 'address' },
-              {
-                internalType: 'uint256',
-                name: 'amount',
-                type: 'uint256',
-              },
+              { internalType: 'uint256', name: 'amount', type: 'uint256' },
             ],
             internalType: 'struct TokenAmount[]',
             name: 'tokens',
@@ -753,23 +433,11 @@ export const portalAbi = [
     name: 'eip712Domain',
     outputs: [
       { internalType: 'bytes1', name: 'fields', type: 'bytes1' },
-      {
-        internalType: 'string',
-        name: 'name',
-        type: 'string',
-      },
+      { internalType: 'string', name: 'name', type: 'string' },
       { internalType: 'string', name: 'version', type: 'string' },
-      {
-        internalType: 'uint256',
-        name: 'chainId',
-        type: 'uint256',
-      },
+      { internalType: 'uint256', name: 'chainId', type: 'uint256' },
       { internalType: 'address', name: 'verifyingContract', type: 'address' },
-      {
-        internalType: 'bytes32',
-        name: 'salt',
-        type: 'bytes32',
-      },
+      { internalType: 'bytes32', name: 'salt', type: 'bytes32' },
       { internalType: 'uint256[]', name: 'extensions', type: 'uint256[]' },
     ],
     stateMutability: 'view',
@@ -785,11 +453,7 @@ export const portalAbi = [
   {
     inputs: [
       { internalType: 'bytes32', name: 'orderId', type: 'bytes32' },
-      {
-        internalType: 'bytes',
-        name: 'originData',
-        type: 'bytes',
-      },
+      { internalType: 'bytes', name: 'originData', type: 'bytes' },
       { internalType: 'bytes', name: 'fillerData', type: 'bytes' },
     ],
     name: 'fill',
@@ -799,33 +463,17 @@ export const portalAbi = [
   },
   {
     inputs: [
-      {
-        internalType: 'bytes32',
-        name: 'intentHash',
-        type: 'bytes32',
-      },
+      { internalType: 'bytes32', name: 'intentHash', type: 'bytes32' },
       {
         components: [
           { internalType: 'bytes32', name: 'salt', type: 'bytes32' },
-          {
-            internalType: 'uint64',
-            name: 'deadline',
-            type: 'uint64',
-          },
+          { internalType: 'uint64', name: 'deadline', type: 'uint64' },
           { internalType: 'address', name: 'portal', type: 'address' },
-          {
-            internalType: 'uint256',
-            name: 'nativeAmount',
-            type: 'uint256',
-          },
+          { internalType: 'uint256', name: 'nativeAmount', type: 'uint256' },
           {
             components: [
               { internalType: 'address', name: 'token', type: 'address' },
-              {
-                internalType: 'uint256',
-                name: 'amount',
-                type: 'uint256',
-              },
+              { internalType: 'uint256', name: 'amount', type: 'uint256' },
             ],
             internalType: 'struct TokenAmount[]',
             name: 'tokens',
@@ -834,11 +482,7 @@ export const portalAbi = [
           {
             components: [
               { internalType: 'address', name: 'target', type: 'address' },
-              {
-                internalType: 'bytes',
-                name: 'data',
-                type: 'bytes',
-              },
+              { internalType: 'bytes', name: 'data', type: 'bytes' },
               { internalType: 'uint256', name: 'value', type: 'uint256' },
             ],
             internalType: 'struct Call[]',
@@ -851,11 +495,7 @@ export const portalAbi = [
         type: 'tuple',
       },
       { internalType: 'bytes32', name: 'rewardHash', type: 'bytes32' },
-      {
-        internalType: 'bytes32',
-        name: 'claimant',
-        type: 'bytes32',
-      },
+      { internalType: 'bytes32', name: 'claimant', type: 'bytes32' },
     ],
     name: 'fulfill',
     outputs: [{ internalType: 'bytes[]', name: '', type: 'bytes[]' }],
@@ -864,33 +504,17 @@ export const portalAbi = [
   },
   {
     inputs: [
-      {
-        internalType: 'bytes32',
-        name: 'intentHash',
-        type: 'bytes32',
-      },
+      { internalType: 'bytes32', name: 'intentHash', type: 'bytes32' },
       {
         components: [
           { internalType: 'bytes32', name: 'salt', type: 'bytes32' },
-          {
-            internalType: 'uint64',
-            name: 'deadline',
-            type: 'uint64',
-          },
+          { internalType: 'uint64', name: 'deadline', type: 'uint64' },
           { internalType: 'address', name: 'portal', type: 'address' },
-          {
-            internalType: 'uint256',
-            name: 'nativeAmount',
-            type: 'uint256',
-          },
+          { internalType: 'uint256', name: 'nativeAmount', type: 'uint256' },
           {
             components: [
               { internalType: 'address', name: 'token', type: 'address' },
-              {
-                internalType: 'uint256',
-                name: 'amount',
-                type: 'uint256',
-              },
+              { internalType: 'uint256', name: 'amount', type: 'uint256' },
             ],
             internalType: 'struct TokenAmount[]',
             name: 'tokens',
@@ -899,11 +523,7 @@ export const portalAbi = [
           {
             components: [
               { internalType: 'address', name: 'target', type: 'address' },
-              {
-                internalType: 'bytes',
-                name: 'data',
-                type: 'bytes',
-              },
+              { internalType: 'bytes', name: 'data', type: 'bytes' },
               { internalType: 'uint256', name: 'value', type: 'uint256' },
             ],
             internalType: 'struct Call[]',
@@ -916,17 +536,9 @@ export const portalAbi = [
         type: 'tuple',
       },
       { internalType: 'bytes32', name: 'rewardHash', type: 'bytes32' },
-      {
-        internalType: 'bytes32',
-        name: 'claimant',
-        type: 'bytes32',
-      },
+      { internalType: 'bytes32', name: 'claimant', type: 'bytes32' },
       { internalType: 'address', name: 'prover', type: 'address' },
-      {
-        internalType: 'uint64',
-        name: 'sourceChainDomainID',
-        type: 'uint64',
-      },
+      { internalType: 'uint64', name: 'sourceChainDomainID', type: 'uint64' },
       { internalType: 'bytes', name: 'data', type: 'bytes' },
     ],
     name: 'fulfillAndProve',
@@ -937,33 +549,17 @@ export const portalAbi = [
   {
     inputs: [
       { internalType: 'uint64', name: 'destination', type: 'uint64' },
-      {
-        internalType: 'bytes32',
-        name: 'routeHash',
-        type: 'bytes32',
-      },
+      { internalType: 'bytes32', name: 'routeHash', type: 'bytes32' },
       {
         components: [
           { internalType: 'uint64', name: 'deadline', type: 'uint64' },
-          {
-            internalType: 'address',
-            name: 'creator',
-            type: 'address',
-          },
+          { internalType: 'address', name: 'creator', type: 'address' },
           { internalType: 'address', name: 'prover', type: 'address' },
-          {
-            internalType: 'uint256',
-            name: 'nativeAmount',
-            type: 'uint256',
-          },
+          { internalType: 'uint256', name: 'nativeAmount', type: 'uint256' },
           {
             components: [
               { internalType: 'address', name: 'token', type: 'address' },
-              {
-                internalType: 'uint256',
-                name: 'amount',
-                type: 'uint256',
-              },
+              { internalType: 'uint256', name: 'amount', type: 'uint256' },
             ],
             internalType: 'struct TokenAmount[]',
             name: 'tokens',
@@ -984,33 +580,17 @@ export const portalAbi = [
   {
     inputs: [
       { internalType: 'uint64', name: 'destination', type: 'uint64' },
-      {
-        internalType: 'bytes32',
-        name: 'routeHash',
-        type: 'bytes32',
-      },
+      { internalType: 'bytes32', name: 'routeHash', type: 'bytes32' },
       {
         components: [
           { internalType: 'uint64', name: 'deadline', type: 'uint64' },
-          {
-            internalType: 'address',
-            name: 'creator',
-            type: 'address',
-          },
+          { internalType: 'address', name: 'creator', type: 'address' },
           { internalType: 'address', name: 'prover', type: 'address' },
-          {
-            internalType: 'uint256',
-            name: 'nativeAmount',
-            type: 'uint256',
-          },
+          { internalType: 'uint256', name: 'nativeAmount', type: 'uint256' },
           {
             components: [
               { internalType: 'address', name: 'token', type: 'address' },
-              {
-                internalType: 'uint256',
-                name: 'amount',
-                type: 'uint256',
-              },
+              { internalType: 'uint256', name: 'amount', type: 'uint256' },
             ],
             internalType: 'struct TokenAmount[]',
             name: 'tokens',
@@ -1022,11 +602,7 @@ export const portalAbi = [
         type: 'tuple',
       },
       { internalType: 'bool', name: 'allowPartial', type: 'bool' },
-      {
-        internalType: 'address',
-        name: 'funder',
-        type: 'address',
-      },
+      { internalType: 'address', name: 'funder', type: 'address' },
       { internalType: 'address', name: 'permitContract', type: 'address' },
     ],
     name: 'fundFor',
@@ -1037,33 +613,17 @@ export const portalAbi = [
   {
     inputs: [
       { internalType: 'uint64', name: 'destination', type: 'uint64' },
-      {
-        internalType: 'bytes32',
-        name: '_routeHash',
-        type: 'bytes32',
-      },
+      { internalType: 'bytes32', name: '_routeHash', type: 'bytes32' },
       {
         components: [
           { internalType: 'uint64', name: 'deadline', type: 'uint64' },
-          {
-            internalType: 'address',
-            name: 'creator',
-            type: 'address',
-          },
+          { internalType: 'address', name: 'creator', type: 'address' },
           { internalType: 'address', name: 'prover', type: 'address' },
-          {
-            internalType: 'uint256',
-            name: 'nativeAmount',
-            type: 'uint256',
-          },
+          { internalType: 'uint256', name: 'nativeAmount', type: 'uint256' },
           {
             components: [
               { internalType: 'address', name: 'token', type: 'address' },
-              {
-                internalType: 'uint256',
-                name: 'amount',
-                type: 'uint256',
-              },
+              { internalType: 'uint256', name: 'amount', type: 'uint256' },
             ],
             internalType: 'struct TokenAmount[]',
             name: 'tokens',
@@ -1078,11 +638,7 @@ export const portalAbi = [
     name: 'getIntentHash',
     outputs: [
       { internalType: 'bytes32', name: 'intentHash', type: 'bytes32' },
-      {
-        internalType: 'bytes32',
-        name: 'routeHash',
-        type: 'bytes32',
-      },
+      { internalType: 'bytes32', name: 'routeHash', type: 'bytes32' },
       { internalType: 'bytes32', name: 'rewardHash', type: 'bytes32' },
     ],
     stateMutability: 'pure',
@@ -1091,33 +647,17 @@ export const portalAbi = [
   {
     inputs: [
       { internalType: 'uint64', name: 'destination', type: 'uint64' },
-      {
-        internalType: 'bytes',
-        name: 'route',
-        type: 'bytes',
-      },
+      { internalType: 'bytes', name: 'route', type: 'bytes' },
       {
         components: [
           { internalType: 'uint64', name: 'deadline', type: 'uint64' },
-          {
-            internalType: 'address',
-            name: 'creator',
-            type: 'address',
-          },
+          { internalType: 'address', name: 'creator', type: 'address' },
           { internalType: 'address', name: 'prover', type: 'address' },
-          {
-            internalType: 'uint256',
-            name: 'nativeAmount',
-            type: 'uint256',
-          },
+          { internalType: 'uint256', name: 'nativeAmount', type: 'uint256' },
           {
             components: [
               { internalType: 'address', name: 'token', type: 'address' },
-              {
-                internalType: 'uint256',
-                name: 'amount',
-                type: 'uint256',
-              },
+              { internalType: 'uint256', name: 'amount', type: 'uint256' },
             ],
             internalType: 'struct TokenAmount[]',
             name: 'tokens',
@@ -1132,11 +672,7 @@ export const portalAbi = [
     name: 'getIntentHash',
     outputs: [
       { internalType: 'bytes32', name: 'intentHash', type: 'bytes32' },
-      {
-        internalType: 'bytes32',
-        name: 'routeHash',
-        type: 'bytes32',
-      },
+      { internalType: 'bytes32', name: 'routeHash', type: 'bytes32' },
       { internalType: 'bytes32', name: 'rewardHash', type: 'bytes32' },
     ],
     stateMutability: 'pure',
@@ -1146,32 +682,16 @@ export const portalAbi = [
     inputs: [
       {
         components: [
-          {
-            internalType: 'uint64',
-            name: 'destination',
-            type: 'uint64',
-          },
+          { internalType: 'uint64', name: 'destination', type: 'uint64' },
           {
             components: [
               { internalType: 'bytes32', name: 'salt', type: 'bytes32' },
-              {
-                internalType: 'uint64',
-                name: 'deadline',
-                type: 'uint64',
-              },
+              { internalType: 'uint64', name: 'deadline', type: 'uint64' },
               { internalType: 'address', name: 'portal', type: 'address' },
-              {
-                internalType: 'uint256',
-                name: 'nativeAmount',
-                type: 'uint256',
-              },
+              { internalType: 'uint256', name: 'nativeAmount', type: 'uint256' },
               {
                 components: [
-                  {
-                    internalType: 'address',
-                    name: 'token',
-                    type: 'address',
-                  },
+                  { internalType: 'address', name: 'token', type: 'address' },
                   { internalType: 'uint256', name: 'amount', type: 'uint256' },
                 ],
                 internalType: 'struct TokenAmount[]',
@@ -1180,17 +700,9 @@ export const portalAbi = [
               },
               {
                 components: [
-                  {
-                    internalType: 'address',
-                    name: 'target',
-                    type: 'address',
-                  },
+                  { internalType: 'address', name: 'target', type: 'address' },
                   { internalType: 'bytes', name: 'data', type: 'bytes' },
-                  {
-                    internalType: 'uint256',
-                    name: 'value',
-                    type: 'uint256',
-                  },
+                  { internalType: 'uint256', name: 'value', type: 'uint256' },
                 ],
                 internalType: 'struct Call[]',
                 name: 'calls',
@@ -1204,24 +716,12 @@ export const portalAbi = [
           {
             components: [
               { internalType: 'uint64', name: 'deadline', type: 'uint64' },
-              {
-                internalType: 'address',
-                name: 'creator',
-                type: 'address',
-              },
+              { internalType: 'address', name: 'creator', type: 'address' },
               { internalType: 'address', name: 'prover', type: 'address' },
-              {
-                internalType: 'uint256',
-                name: 'nativeAmount',
-                type: 'uint256',
-              },
+              { internalType: 'uint256', name: 'nativeAmount', type: 'uint256' },
               {
                 components: [
-                  {
-                    internalType: 'address',
-                    name: 'token',
-                    type: 'address',
-                  },
+                  { internalType: 'address', name: 'token', type: 'address' },
                   { internalType: 'uint256', name: 'amount', type: 'uint256' },
                 ],
                 internalType: 'struct TokenAmount[]',
@@ -1242,11 +742,7 @@ export const portalAbi = [
     name: 'getIntentHash',
     outputs: [
       { internalType: 'bytes32', name: 'intentHash', type: 'bytes32' },
-      {
-        internalType: 'bytes32',
-        name: 'routeHash',
-        type: 'bytes32',
-      },
+      { internalType: 'bytes32', name: 'routeHash', type: 'bytes32' },
       { internalType: 'bytes32', name: 'rewardHash', type: 'bytes32' },
     ],
     stateMutability: 'pure',
@@ -1255,46 +751,24 @@ export const portalAbi = [
   {
     inputs: [{ internalType: 'bytes32', name: 'intentHash', type: 'bytes32' }],
     name: 'getRewardStatus',
-    outputs: [
-      {
-        internalType: 'enum IIntentSource.Status',
-        name: 'status',
-        type: 'uint8',
-      },
-    ],
+    outputs: [{ internalType: 'enum IIntentSource.Status', name: 'status', type: 'uint8' }],
     stateMutability: 'view',
     type: 'function',
   },
   {
     inputs: [
       { internalType: 'uint64', name: 'destination', type: 'uint64' },
-      {
-        internalType: 'bytes',
-        name: 'route',
-        type: 'bytes',
-      },
+      { internalType: 'bytes', name: 'route', type: 'bytes' },
       {
         components: [
           { internalType: 'uint64', name: 'deadline', type: 'uint64' },
-          {
-            internalType: 'address',
-            name: 'creator',
-            type: 'address',
-          },
+          { internalType: 'address', name: 'creator', type: 'address' },
           { internalType: 'address', name: 'prover', type: 'address' },
-          {
-            internalType: 'uint256',
-            name: 'nativeAmount',
-            type: 'uint256',
-          },
+          { internalType: 'uint256', name: 'nativeAmount', type: 'uint256' },
           {
             components: [
               { internalType: 'address', name: 'token', type: 'address' },
-              {
-                internalType: 'uint256',
-                name: 'amount',
-                type: 'uint256',
-              },
+              { internalType: 'uint256', name: 'amount', type: 'uint256' },
             ],
             internalType: 'struct TokenAmount[]',
             name: 'tokens',
@@ -1315,32 +789,16 @@ export const portalAbi = [
     inputs: [
       {
         components: [
-          {
-            internalType: 'uint64',
-            name: 'destination',
-            type: 'uint64',
-          },
+          { internalType: 'uint64', name: 'destination', type: 'uint64' },
           {
             components: [
               { internalType: 'bytes32', name: 'salt', type: 'bytes32' },
-              {
-                internalType: 'uint64',
-                name: 'deadline',
-                type: 'uint64',
-              },
+              { internalType: 'uint64', name: 'deadline', type: 'uint64' },
               { internalType: 'address', name: 'portal', type: 'address' },
-              {
-                internalType: 'uint256',
-                name: 'nativeAmount',
-                type: 'uint256',
-              },
+              { internalType: 'uint256', name: 'nativeAmount', type: 'uint256' },
               {
                 components: [
-                  {
-                    internalType: 'address',
-                    name: 'token',
-                    type: 'address',
-                  },
+                  { internalType: 'address', name: 'token', type: 'address' },
                   { internalType: 'uint256', name: 'amount', type: 'uint256' },
                 ],
                 internalType: 'struct TokenAmount[]',
@@ -1349,17 +807,9 @@ export const portalAbi = [
               },
               {
                 components: [
-                  {
-                    internalType: 'address',
-                    name: 'target',
-                    type: 'address',
-                  },
+                  { internalType: 'address', name: 'target', type: 'address' },
                   { internalType: 'bytes', name: 'data', type: 'bytes' },
-                  {
-                    internalType: 'uint256',
-                    name: 'value',
-                    type: 'uint256',
-                  },
+                  { internalType: 'uint256', name: 'value', type: 'uint256' },
                 ],
                 internalType: 'struct Call[]',
                 name: 'calls',
@@ -1373,24 +823,12 @@ export const portalAbi = [
           {
             components: [
               { internalType: 'uint64', name: 'deadline', type: 'uint64' },
-              {
-                internalType: 'address',
-                name: 'creator',
-                type: 'address',
-              },
+              { internalType: 'address', name: 'creator', type: 'address' },
               { internalType: 'address', name: 'prover', type: 'address' },
-              {
-                internalType: 'uint256',
-                name: 'nativeAmount',
-                type: 'uint256',
-              },
+              { internalType: 'uint256', name: 'nativeAmount', type: 'uint256' },
               {
                 components: [
-                  {
-                    internalType: 'address',
-                    name: 'token',
-                    type: 'address',
-                  },
+                  { internalType: 'address', name: 'token', type: 'address' },
                   { internalType: 'uint256', name: 'amount', type: 'uint256' },
                 ],
                 internalType: 'struct TokenAmount[]',
@@ -1415,34 +853,48 @@ export const portalAbi = [
   },
   {
     inputs: [
+      { internalType: 'uint64', name: 'destination', type: 'uint64' },
+      { internalType: 'bytes', name: 'route', type: 'bytes' },
       {
         components: [
+          { internalType: 'uint64', name: 'deadline', type: 'uint64' },
+          { internalType: 'address', name: 'creator', type: 'address' },
+          { internalType: 'address', name: 'prover', type: 'address' },
+          { internalType: 'uint256', name: 'nativeAmount', type: 'uint256' },
           {
-            internalType: 'uint64',
-            name: 'destination',
-            type: 'uint64',
+            components: [
+              { internalType: 'address', name: 'token', type: 'address' },
+              { internalType: 'uint256', name: 'amount', type: 'uint256' },
+            ],
+            internalType: 'struct TokenAmount[]',
+            name: 'tokens',
+            type: 'tuple[]',
           },
+        ],
+        internalType: 'struct Reward',
+        name: 'reward',
+        type: 'tuple',
+      },
+    ],
+    name: 'isIntentFunded',
+    outputs: [{ internalType: 'bool', name: '', type: 'bool' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [
+      {
+        components: [
+          { internalType: 'uint64', name: 'destination', type: 'uint64' },
           {
             components: [
               { internalType: 'bytes32', name: 'salt', type: 'bytes32' },
-              {
-                internalType: 'uint64',
-                name: 'deadline',
-                type: 'uint64',
-              },
+              { internalType: 'uint64', name: 'deadline', type: 'uint64' },
               { internalType: 'address', name: 'portal', type: 'address' },
-              {
-                internalType: 'uint256',
-                name: 'nativeAmount',
-                type: 'uint256',
-              },
+              { internalType: 'uint256', name: 'nativeAmount', type: 'uint256' },
               {
                 components: [
-                  {
-                    internalType: 'address',
-                    name: 'token',
-                    type: 'address',
-                  },
+                  { internalType: 'address', name: 'token', type: 'address' },
                   { internalType: 'uint256', name: 'amount', type: 'uint256' },
                 ],
                 internalType: 'struct TokenAmount[]',
@@ -1451,17 +903,9 @@ export const portalAbi = [
               },
               {
                 components: [
-                  {
-                    internalType: 'address',
-                    name: 'target',
-                    type: 'address',
-                  },
+                  { internalType: 'address', name: 'target', type: 'address' },
                   { internalType: 'bytes', name: 'data', type: 'bytes' },
-                  {
-                    internalType: 'uint256',
-                    name: 'value',
-                    type: 'uint256',
-                  },
+                  { internalType: 'uint256', name: 'value', type: 'uint256' },
                 ],
                 internalType: 'struct Call[]',
                 name: 'calls',
@@ -1475,24 +919,12 @@ export const portalAbi = [
           {
             components: [
               { internalType: 'uint64', name: 'deadline', type: 'uint64' },
-              {
-                internalType: 'address',
-                name: 'creator',
-                type: 'address',
-              },
+              { internalType: 'address', name: 'creator', type: 'address' },
               { internalType: 'address', name: 'prover', type: 'address' },
-              {
-                internalType: 'uint256',
-                name: 'nativeAmount',
-                type: 'uint256',
-              },
+              { internalType: 'uint256', name: 'nativeAmount', type: 'uint256' },
               {
                 components: [
-                  {
-                    internalType: 'address',
-                    name: 'token',
-                    type: 'address',
-                  },
+                  { internalType: 'address', name: 'token', type: 'address' },
                   { internalType: 'uint256', name: 'amount', type: 'uint256' },
                 ],
                 internalType: 'struct TokenAmount[]',
@@ -1519,17 +951,9 @@ export const portalAbi = [
     inputs: [
       {
         components: [
-          {
-            internalType: 'uint32',
-            name: 'fillDeadline',
-            type: 'uint32',
-          },
+          { internalType: 'uint32', name: 'fillDeadline', type: 'uint32' },
           { internalType: 'bytes32', name: 'orderDataType', type: 'bytes32' },
-          {
-            internalType: 'bytes',
-            name: 'orderData',
-            type: 'bytes',
-          },
+          { internalType: 'bytes', name: 'orderData', type: 'bytes' },
         ],
         internalType: 'struct OnchainCrossChainOrder',
         name: 'order',
@@ -1545,29 +969,13 @@ export const portalAbi = [
     inputs: [
       {
         components: [
-          {
-            internalType: 'address',
-            name: 'originSettler',
-            type: 'address',
-          },
+          { internalType: 'address', name: 'originSettler', type: 'address' },
           { internalType: 'address', name: 'user', type: 'address' },
-          {
-            internalType: 'uint256',
-            name: 'nonce',
-            type: 'uint256',
-          },
+          { internalType: 'uint256', name: 'nonce', type: 'uint256' },
           { internalType: 'uint256', name: 'originChainId', type: 'uint256' },
-          {
-            internalType: 'uint32',
-            name: 'openDeadline',
-            type: 'uint32',
-          },
+          { internalType: 'uint32', name: 'openDeadline', type: 'uint32' },
           { internalType: 'uint32', name: 'fillDeadline', type: 'uint32' },
-          {
-            internalType: 'bytes32',
-            name: 'orderDataType',
-            type: 'bytes32',
-          },
+          { internalType: 'bytes32', name: 'orderDataType', type: 'bytes32' },
           { internalType: 'bytes', name: 'orderData', type: 'bytes' },
         ],
         internalType: 'struct GaslessCrossChainOrder',
@@ -1575,11 +983,7 @@ export const portalAbi = [
         type: 'tuple',
       },
       { internalType: 'bytes', name: 'signature', type: 'bytes' },
-      {
-        internalType: 'bytes',
-        name: '',
-        type: 'bytes',
-      },
+      { internalType: 'bytes', name: '', type: 'bytes' },
     ],
     name: 'openFor',
     outputs: [],
@@ -1589,17 +993,9 @@ export const portalAbi = [
   {
     inputs: [
       { internalType: 'address', name: 'prover', type: 'address' },
-      {
-        internalType: 'uint64',
-        name: 'sourceChainDomainID',
-        type: 'uint64',
-      },
+      { internalType: 'uint64', name: 'sourceChainDomainID', type: 'uint64' },
       { internalType: 'bytes32[]', name: 'intentHashes', type: 'bytes32[]' },
-      {
-        internalType: 'bytes',
-        name: 'data',
-        type: 'bytes',
-      },
+      { internalType: 'bytes', name: 'data', type: 'bytes' },
     ],
     name: 'prove',
     outputs: [],
@@ -1608,143 +1004,18 @@ export const portalAbi = [
   },
   {
     inputs: [
-      {
-        components: [
-          {
-            internalType: 'uint64',
-            name: 'destination',
-            type: 'uint64',
-          },
-          {
-            components: [
-              { internalType: 'bytes32', name: 'salt', type: 'bytes32' },
-              {
-                internalType: 'uint64',
-                name: 'deadline',
-                type: 'uint64',
-              },
-              { internalType: 'address', name: 'portal', type: 'address' },
-              {
-                internalType: 'uint256',
-                name: 'nativeAmount',
-                type: 'uint256',
-              },
-              {
-                components: [
-                  {
-                    internalType: 'address',
-                    name: 'token',
-                    type: 'address',
-                  },
-                  { internalType: 'uint256', name: 'amount', type: 'uint256' },
-                ],
-                internalType: 'struct TokenAmount[]',
-                name: 'tokens',
-                type: 'tuple[]',
-              },
-              {
-                components: [
-                  {
-                    internalType: 'address',
-                    name: 'target',
-                    type: 'address',
-                  },
-                  { internalType: 'bytes', name: 'data', type: 'bytes' },
-                  {
-                    internalType: 'uint256',
-                    name: 'value',
-                    type: 'uint256',
-                  },
-                ],
-                internalType: 'struct Call[]',
-                name: 'calls',
-                type: 'tuple[]',
-              },
-            ],
-            internalType: 'struct Route',
-            name: 'route',
-            type: 'tuple',
-          },
-          {
-            components: [
-              { internalType: 'uint64', name: 'deadline', type: 'uint64' },
-              {
-                internalType: 'address',
-                name: 'creator',
-                type: 'address',
-              },
-              { internalType: 'address', name: 'prover', type: 'address' },
-              {
-                internalType: 'uint256',
-                name: 'nativeAmount',
-                type: 'uint256',
-              },
-              {
-                components: [
-                  {
-                    internalType: 'address',
-                    name: 'token',
-                    type: 'address',
-                  },
-                  { internalType: 'uint256', name: 'amount', type: 'uint256' },
-                ],
-                internalType: 'struct TokenAmount[]',
-                name: 'tokens',
-                type: 'tuple[]',
-              },
-            ],
-            internalType: 'struct Reward',
-            name: 'reward',
-            type: 'tuple',
-          },
-        ],
-        internalType: 'struct Intent',
-        name: 'intent',
-        type: 'tuple',
-      },
-    ],
-    name: 'publish',
-    outputs: [
-      { internalType: 'bytes32', name: 'intentHash', type: 'bytes32' },
-      {
-        internalType: 'address',
-        name: 'vault',
-        type: 'address',
-      },
-    ],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [
       { internalType: 'uint64', name: 'destination', type: 'uint64' },
-      {
-        internalType: 'bytes',
-        name: 'route',
-        type: 'bytes',
-      },
+      { internalType: 'bytes', name: 'route', type: 'bytes' },
       {
         components: [
           { internalType: 'uint64', name: 'deadline', type: 'uint64' },
-          {
-            internalType: 'address',
-            name: 'creator',
-            type: 'address',
-          },
+          { internalType: 'address', name: 'creator', type: 'address' },
           { internalType: 'address', name: 'prover', type: 'address' },
-          {
-            internalType: 'uint256',
-            name: 'nativeAmount',
-            type: 'uint256',
-          },
+          { internalType: 'uint256', name: 'nativeAmount', type: 'uint256' },
           {
             components: [
               { internalType: 'address', name: 'token', type: 'address' },
-              {
-                internalType: 'uint256',
-                name: 'amount',
-                type: 'uint256',
-              },
+              { internalType: 'uint256', name: 'amount', type: 'uint256' },
             ],
             internalType: 'struct TokenAmount[]',
             name: 'tokens',
@@ -1759,11 +1030,7 @@ export const portalAbi = [
     name: 'publish',
     outputs: [
       { internalType: 'bytes32', name: 'intentHash', type: 'bytes32' },
-      {
-        internalType: 'address',
-        name: 'vault',
-        type: 'address',
-      },
+      { internalType: 'address', name: 'vault', type: 'address' },
     ],
     stateMutability: 'nonpayable',
     type: 'function',
@@ -1771,33 +1038,17 @@ export const portalAbi = [
   {
     inputs: [
       { internalType: 'uint64', name: 'destination', type: 'uint64' },
-      {
-        internalType: 'bytes',
-        name: 'route',
-        type: 'bytes',
-      },
+      { internalType: 'bytes', name: 'route', type: 'bytes' },
       {
         components: [
           { internalType: 'uint64', name: 'deadline', type: 'uint64' },
-          {
-            internalType: 'address',
-            name: 'creator',
-            type: 'address',
-          },
+          { internalType: 'address', name: 'creator', type: 'address' },
           { internalType: 'address', name: 'prover', type: 'address' },
-          {
-            internalType: 'uint256',
-            name: 'nativeAmount',
-            type: 'uint256',
-          },
+          { internalType: 'uint256', name: 'nativeAmount', type: 'uint256' },
           {
             components: [
               { internalType: 'address', name: 'token', type: 'address' },
-              {
-                internalType: 'uint256',
-                name: 'amount',
-                type: 'uint256',
-              },
+              { internalType: 'uint256', name: 'amount', type: 'uint256' },
             ],
             internalType: 'struct TokenAmount[]',
             name: 'tokens',
@@ -1813,11 +1064,7 @@ export const portalAbi = [
     name: 'publishAndFund',
     outputs: [
       { internalType: 'bytes32', name: 'intentHash', type: 'bytes32' },
-      {
-        internalType: 'address',
-        name: 'vault',
-        type: 'address',
-      },
+      { internalType: 'address', name: 'vault', type: 'address' },
     ],
     stateMutability: 'payable',
     type: 'function',
@@ -1826,32 +1073,16 @@ export const portalAbi = [
     inputs: [
       {
         components: [
-          {
-            internalType: 'uint64',
-            name: 'destination',
-            type: 'uint64',
-          },
+          { internalType: 'uint64', name: 'destination', type: 'uint64' },
           {
             components: [
               { internalType: 'bytes32', name: 'salt', type: 'bytes32' },
-              {
-                internalType: 'uint64',
-                name: 'deadline',
-                type: 'uint64',
-              },
+              { internalType: 'uint64', name: 'deadline', type: 'uint64' },
               { internalType: 'address', name: 'portal', type: 'address' },
-              {
-                internalType: 'uint256',
-                name: 'nativeAmount',
-                type: 'uint256',
-              },
+              { internalType: 'uint256', name: 'nativeAmount', type: 'uint256' },
               {
                 components: [
-                  {
-                    internalType: 'address',
-                    name: 'token',
-                    type: 'address',
-                  },
+                  { internalType: 'address', name: 'token', type: 'address' },
                   { internalType: 'uint256', name: 'amount', type: 'uint256' },
                 ],
                 internalType: 'struct TokenAmount[]',
@@ -1860,17 +1091,9 @@ export const portalAbi = [
               },
               {
                 components: [
-                  {
-                    internalType: 'address',
-                    name: 'target',
-                    type: 'address',
-                  },
+                  { internalType: 'address', name: 'target', type: 'address' },
                   { internalType: 'bytes', name: 'data', type: 'bytes' },
-                  {
-                    internalType: 'uint256',
-                    name: 'value',
-                    type: 'uint256',
-                  },
+                  { internalType: 'uint256', name: 'value', type: 'uint256' },
                 ],
                 internalType: 'struct Call[]',
                 name: 'calls',
@@ -1884,24 +1107,12 @@ export const portalAbi = [
           {
             components: [
               { internalType: 'uint64', name: 'deadline', type: 'uint64' },
-              {
-                internalType: 'address',
-                name: 'creator',
-                type: 'address',
-              },
+              { internalType: 'address', name: 'creator', type: 'address' },
               { internalType: 'address', name: 'prover', type: 'address' },
-              {
-                internalType: 'uint256',
-                name: 'nativeAmount',
-                type: 'uint256',
-              },
+              { internalType: 'uint256', name: 'nativeAmount', type: 'uint256' },
               {
                 components: [
-                  {
-                    internalType: 'address',
-                    name: 'token',
-                    type: 'address',
-                  },
+                  { internalType: 'address', name: 'token', type: 'address' },
                   { internalType: 'uint256', name: 'amount', type: 'uint256' },
                 ],
                 internalType: 'struct TokenAmount[]',
@@ -1923,11 +1134,7 @@ export const portalAbi = [
     name: 'publishAndFund',
     outputs: [
       { internalType: 'bytes32', name: 'intentHash', type: 'bytes32' },
-      {
-        internalType: 'address',
-        name: 'vault',
-        type: 'address',
-      },
+      { internalType: 'address', name: 'vault', type: 'address' },
     ],
     stateMutability: 'payable',
     type: 'function',
@@ -1935,33 +1142,17 @@ export const portalAbi = [
   {
     inputs: [
       { internalType: 'uint64', name: 'destination', type: 'uint64' },
-      {
-        internalType: 'bytes',
-        name: 'route',
-        type: 'bytes',
-      },
+      { internalType: 'bytes', name: 'route', type: 'bytes' },
       {
         components: [
           { internalType: 'uint64', name: 'deadline', type: 'uint64' },
-          {
-            internalType: 'address',
-            name: 'creator',
-            type: 'address',
-          },
+          { internalType: 'address', name: 'creator', type: 'address' },
           { internalType: 'address', name: 'prover', type: 'address' },
-          {
-            internalType: 'uint256',
-            name: 'nativeAmount',
-            type: 'uint256',
-          },
+          { internalType: 'uint256', name: 'nativeAmount', type: 'uint256' },
           {
             components: [
               { internalType: 'address', name: 'token', type: 'address' },
-              {
-                internalType: 'uint256',
-                name: 'amount',
-                type: 'uint256',
-              },
+              { internalType: 'uint256', name: 'amount', type: 'uint256' },
             ],
             internalType: 'struct TokenAmount[]',
             name: 'tokens',
@@ -1973,21 +1164,13 @@ export const portalAbi = [
         type: 'tuple',
       },
       { internalType: 'bool', name: 'allowPartial', type: 'bool' },
-      {
-        internalType: 'address',
-        name: 'funder',
-        type: 'address',
-      },
+      { internalType: 'address', name: 'funder', type: 'address' },
       { internalType: 'address', name: 'permitContract', type: 'address' },
     ],
     name: 'publishAndFundFor',
     outputs: [
       { internalType: 'bytes32', name: 'intentHash', type: 'bytes32' },
-      {
-        internalType: 'address',
-        name: 'vault',
-        type: 'address',
-      },
+      { internalType: 'address', name: 'vault', type: 'address' },
     ],
     stateMutability: 'payable',
     type: 'function',
@@ -1996,32 +1179,16 @@ export const portalAbi = [
     inputs: [
       {
         components: [
-          {
-            internalType: 'uint64',
-            name: 'destination',
-            type: 'uint64',
-          },
+          { internalType: 'uint64', name: 'destination', type: 'uint64' },
           {
             components: [
               { internalType: 'bytes32', name: 'salt', type: 'bytes32' },
-              {
-                internalType: 'uint64',
-                name: 'deadline',
-                type: 'uint64',
-              },
+              { internalType: 'uint64', name: 'deadline', type: 'uint64' },
               { internalType: 'address', name: 'portal', type: 'address' },
-              {
-                internalType: 'uint256',
-                name: 'nativeAmount',
-                type: 'uint256',
-              },
+              { internalType: 'uint256', name: 'nativeAmount', type: 'uint256' },
               {
                 components: [
-                  {
-                    internalType: 'address',
-                    name: 'token',
-                    type: 'address',
-                  },
+                  { internalType: 'address', name: 'token', type: 'address' },
                   { internalType: 'uint256', name: 'amount', type: 'uint256' },
                 ],
                 internalType: 'struct TokenAmount[]',
@@ -2030,17 +1197,9 @@ export const portalAbi = [
               },
               {
                 components: [
-                  {
-                    internalType: 'address',
-                    name: 'target',
-                    type: 'address',
-                  },
+                  { internalType: 'address', name: 'target', type: 'address' },
                   { internalType: 'bytes', name: 'data', type: 'bytes' },
-                  {
-                    internalType: 'uint256',
-                    name: 'value',
-                    type: 'uint256',
-                  },
+                  { internalType: 'uint256', name: 'value', type: 'uint256' },
                 ],
                 internalType: 'struct Call[]',
                 name: 'calls',
@@ -2054,24 +1213,12 @@ export const portalAbi = [
           {
             components: [
               { internalType: 'uint64', name: 'deadline', type: 'uint64' },
-              {
-                internalType: 'address',
-                name: 'creator',
-                type: 'address',
-              },
+              { internalType: 'address', name: 'creator', type: 'address' },
               { internalType: 'address', name: 'prover', type: 'address' },
-              {
-                internalType: 'uint256',
-                name: 'nativeAmount',
-                type: 'uint256',
-              },
+              { internalType: 'uint256', name: 'nativeAmount', type: 'uint256' },
               {
                 components: [
-                  {
-                    internalType: 'address',
-                    name: 'token',
-                    type: 'address',
-                  },
+                  { internalType: 'address', name: 'token', type: 'address' },
                   { internalType: 'uint256', name: 'amount', type: 'uint256' },
                 ],
                 internalType: 'struct TokenAmount[]',
@@ -2089,21 +1236,13 @@ export const portalAbi = [
         type: 'tuple',
       },
       { internalType: 'bool', name: 'allowPartial', type: 'bool' },
-      {
-        internalType: 'address',
-        name: 'funder',
-        type: 'address',
-      },
+      { internalType: 'address', name: 'funder', type: 'address' },
       { internalType: 'address', name: 'permitContract', type: 'address' },
     ],
     name: 'publishAndFundFor',
     outputs: [
       { internalType: 'bytes32', name: 'intentHash', type: 'bytes32' },
-      {
-        internalType: 'address',
-        name: 'vault',
-        type: 'address',
-      },
+      { internalType: 'address', name: 'vault', type: 'address' },
     ],
     stateMutability: 'payable',
     type: 'function',
@@ -2111,33 +1250,17 @@ export const portalAbi = [
   {
     inputs: [
       { internalType: 'uint64', name: 'destination', type: 'uint64' },
-      {
-        internalType: 'bytes32',
-        name: 'routeHash',
-        type: 'bytes32',
-      },
+      { internalType: 'bytes32', name: 'routeHash', type: 'bytes32' },
       {
         components: [
           { internalType: 'uint64', name: 'deadline', type: 'uint64' },
-          {
-            internalType: 'address',
-            name: 'creator',
-            type: 'address',
-          },
+          { internalType: 'address', name: 'creator', type: 'address' },
           { internalType: 'address', name: 'prover', type: 'address' },
-          {
-            internalType: 'uint256',
-            name: 'nativeAmount',
-            type: 'uint256',
-          },
+          { internalType: 'uint256', name: 'nativeAmount', type: 'uint256' },
           {
             components: [
               { internalType: 'address', name: 'token', type: 'address' },
-              {
-                internalType: 'uint256',
-                name: 'amount',
-                type: 'uint256',
-              },
+              { internalType: 'uint256', name: 'amount', type: 'uint256' },
             ],
             internalType: 'struct TokenAmount[]',
             name: 'tokens',
@@ -2158,33 +1281,17 @@ export const portalAbi = [
   {
     inputs: [
       { internalType: 'uint64', name: 'destination', type: 'uint64' },
-      {
-        internalType: 'bytes32',
-        name: 'routeHash',
-        type: 'bytes32',
-      },
+      { internalType: 'bytes32', name: 'routeHash', type: 'bytes32' },
       {
         components: [
           { internalType: 'uint64', name: 'deadline', type: 'uint64' },
-          {
-            internalType: 'address',
-            name: 'creator',
-            type: 'address',
-          },
+          { internalType: 'address', name: 'creator', type: 'address' },
           { internalType: 'address', name: 'prover', type: 'address' },
-          {
-            internalType: 'uint256',
-            name: 'nativeAmount',
-            type: 'uint256',
-          },
+          { internalType: 'uint256', name: 'nativeAmount', type: 'uint256' },
           {
             components: [
               { internalType: 'address', name: 'token', type: 'address' },
-              {
-                internalType: 'uint256',
-                name: 'amount',
-                type: 'uint256',
-              },
+              { internalType: 'uint256', name: 'amount', type: 'uint256' },
             ],
             internalType: 'struct TokenAmount[]',
             name: 'tokens',
@@ -2205,17 +1312,9 @@ export const portalAbi = [
     inputs: [
       {
         components: [
-          {
-            internalType: 'uint32',
-            name: 'fillDeadline',
-            type: 'uint32',
-          },
+          { internalType: 'uint32', name: 'fillDeadline', type: 'uint32' },
           { internalType: 'bytes32', name: 'orderDataType', type: 'bytes32' },
-          {
-            internalType: 'bytes',
-            name: 'orderData',
-            type: 'bytes',
-          },
+          { internalType: 'bytes', name: 'orderData', type: 'bytes' },
         ],
         internalType: 'struct OnchainCrossChainOrder',
         name: 'order',
@@ -2227,36 +1326,16 @@ export const portalAbi = [
       {
         components: [
           { internalType: 'address', name: 'user', type: 'address' },
-          {
-            internalType: 'uint256',
-            name: 'originChainId',
-            type: 'uint256',
-          },
+          { internalType: 'uint256', name: 'originChainId', type: 'uint256' },
           { internalType: 'uint32', name: 'openDeadline', type: 'uint32' },
-          {
-            internalType: 'uint32',
-            name: 'fillDeadline',
-            type: 'uint32',
-          },
-          {
-            internalType: 'bytes32',
-            name: 'orderId',
-            type: 'bytes32',
-          },
+          { internalType: 'uint32', name: 'fillDeadline', type: 'uint32' },
+          { internalType: 'bytes32', name: 'orderId', type: 'bytes32' },
           {
             components: [
               { internalType: 'bytes32', name: 'token', type: 'bytes32' },
-              {
-                internalType: 'uint256',
-                name: 'amount',
-                type: 'uint256',
-              },
+              { internalType: 'uint256', name: 'amount', type: 'uint256' },
               { internalType: 'bytes32', name: 'recipient', type: 'bytes32' },
-              {
-                internalType: 'uint256',
-                name: 'chainId',
-                type: 'uint256',
-              },
+              { internalType: 'uint256', name: 'chainId', type: 'uint256' },
             ],
             internalType: 'struct Output[]',
             name: 'maxSpent',
@@ -2265,17 +1344,9 @@ export const portalAbi = [
           {
             components: [
               { internalType: 'bytes32', name: 'token', type: 'bytes32' },
-              {
-                internalType: 'uint256',
-                name: 'amount',
-                type: 'uint256',
-              },
+              { internalType: 'uint256', name: 'amount', type: 'uint256' },
               { internalType: 'bytes32', name: 'recipient', type: 'bytes32' },
-              {
-                internalType: 'uint256',
-                name: 'chainId',
-                type: 'uint256',
-              },
+              { internalType: 'uint256', name: 'chainId', type: 'uint256' },
             ],
             internalType: 'struct Output[]',
             name: 'minReceived',
@@ -2283,21 +1354,9 @@ export const portalAbi = [
           },
           {
             components: [
-              {
-                internalType: 'uint256',
-                name: 'destinationChainId',
-                type: 'uint256',
-              },
-              {
-                internalType: 'bytes32',
-                name: 'destinationSettler',
-                type: 'bytes32',
-              },
-              {
-                internalType: 'bytes',
-                name: 'originData',
-                type: 'bytes',
-              },
+              { internalType: 'uint256', name: 'destinationChainId', type: 'uint256' },
+              { internalType: 'bytes32', name: 'destinationSettler', type: 'bytes32' },
+              { internalType: 'bytes', name: 'originData', type: 'bytes' },
             ],
             internalType: 'struct FillInstruction[]',
             name: 'fillInstructions',
@@ -2316,29 +1375,13 @@ export const portalAbi = [
     inputs: [
       {
         components: [
-          {
-            internalType: 'address',
-            name: 'originSettler',
-            type: 'address',
-          },
+          { internalType: 'address', name: 'originSettler', type: 'address' },
           { internalType: 'address', name: 'user', type: 'address' },
-          {
-            internalType: 'uint256',
-            name: 'nonce',
-            type: 'uint256',
-          },
+          { internalType: 'uint256', name: 'nonce', type: 'uint256' },
           { internalType: 'uint256', name: 'originChainId', type: 'uint256' },
-          {
-            internalType: 'uint32',
-            name: 'openDeadline',
-            type: 'uint32',
-          },
+          { internalType: 'uint32', name: 'openDeadline', type: 'uint32' },
           { internalType: 'uint32', name: 'fillDeadline', type: 'uint32' },
-          {
-            internalType: 'bytes32',
-            name: 'orderDataType',
-            type: 'bytes32',
-          },
+          { internalType: 'bytes32', name: 'orderDataType', type: 'bytes32' },
           { internalType: 'bytes', name: 'orderData', type: 'bytes' },
         ],
         internalType: 'struct GaslessCrossChainOrder',
@@ -2352,36 +1395,16 @@ export const portalAbi = [
       {
         components: [
           { internalType: 'address', name: 'user', type: 'address' },
-          {
-            internalType: 'uint256',
-            name: 'originChainId',
-            type: 'uint256',
-          },
+          { internalType: 'uint256', name: 'originChainId', type: 'uint256' },
           { internalType: 'uint32', name: 'openDeadline', type: 'uint32' },
-          {
-            internalType: 'uint32',
-            name: 'fillDeadline',
-            type: 'uint32',
-          },
-          {
-            internalType: 'bytes32',
-            name: 'orderId',
-            type: 'bytes32',
-          },
+          { internalType: 'uint32', name: 'fillDeadline', type: 'uint32' },
+          { internalType: 'bytes32', name: 'orderId', type: 'bytes32' },
           {
             components: [
               { internalType: 'bytes32', name: 'token', type: 'bytes32' },
-              {
-                internalType: 'uint256',
-                name: 'amount',
-                type: 'uint256',
-              },
+              { internalType: 'uint256', name: 'amount', type: 'uint256' },
               { internalType: 'bytes32', name: 'recipient', type: 'bytes32' },
-              {
-                internalType: 'uint256',
-                name: 'chainId',
-                type: 'uint256',
-              },
+              { internalType: 'uint256', name: 'chainId', type: 'uint256' },
             ],
             internalType: 'struct Output[]',
             name: 'maxSpent',
@@ -2390,17 +1413,9 @@ export const portalAbi = [
           {
             components: [
               { internalType: 'bytes32', name: 'token', type: 'bytes32' },
-              {
-                internalType: 'uint256',
-                name: 'amount',
-                type: 'uint256',
-              },
+              { internalType: 'uint256', name: 'amount', type: 'uint256' },
               { internalType: 'bytes32', name: 'recipient', type: 'bytes32' },
-              {
-                internalType: 'uint256',
-                name: 'chainId',
-                type: 'uint256',
-              },
+              { internalType: 'uint256', name: 'chainId', type: 'uint256' },
             ],
             internalType: 'struct Output[]',
             name: 'minReceived',
@@ -2408,21 +1423,9 @@ export const portalAbi = [
           },
           {
             components: [
-              {
-                internalType: 'uint256',
-                name: 'destinationChainId',
-                type: 'uint256',
-              },
-              {
-                internalType: 'bytes32',
-                name: 'destinationSettler',
-                type: 'bytes32',
-              },
-              {
-                internalType: 'bytes',
-                name: 'originData',
-                type: 'bytes',
-              },
+              { internalType: 'uint256', name: 'destinationChainId', type: 'uint256' },
+              { internalType: 'bytes32', name: 'destinationSettler', type: 'bytes32' },
+              { internalType: 'bytes', name: 'originData', type: 'bytes' },
             ],
             internalType: 'struct FillInstruction[]',
             name: 'fillInstructions',
@@ -2447,33 +1450,17 @@ export const portalAbi = [
   {
     inputs: [
       { internalType: 'uint64', name: 'destination', type: 'uint64' },
-      {
-        internalType: 'bytes32',
-        name: 'routeHash',
-        type: 'bytes32',
-      },
+      { internalType: 'bytes32', name: 'routeHash', type: 'bytes32' },
       {
         components: [
           { internalType: 'uint64', name: 'deadline', type: 'uint64' },
-          {
-            internalType: 'address',
-            name: 'creator',
-            type: 'address',
-          },
+          { internalType: 'address', name: 'creator', type: 'address' },
           { internalType: 'address', name: 'prover', type: 'address' },
-          {
-            internalType: 'uint256',
-            name: 'nativeAmount',
-            type: 'uint256',
-          },
+          { internalType: 'uint256', name: 'nativeAmount', type: 'uint256' },
           {
             components: [
               { internalType: 'address', name: 'token', type: 'address' },
-              {
-                internalType: 'uint256',
-                name: 'amount',
-                type: 'uint256',
-              },
+              { internalType: 'uint256', name: 'amount', type: 'uint256' },
             ],
             internalType: 'struct TokenAmount[]',
             name: 'tokens',
@@ -2491,3 +1478,18 @@ export const portalAbi = [
     type: 'function',
   },
 ] as const;
+
+/**
+ * Portal ABI Item exports for type extraction
+ * The actual type definitions are in intent.interface.ts and blockchain-intents.ts
+ */
+
+export const EVMRewardAbiItem = getAbiItem({
+  abi: portalAbi,
+  name: 'publish',
+}).inputs[2];
+
+export const EVMRouteAbiItem = getAbiItem({
+  abi: portalAbi,
+  name: 'fulfill',
+}).inputs[1];

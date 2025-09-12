@@ -2,9 +2,10 @@
  * Publish Command
  */
 
+import { Keypair, PublicKey } from '@solana/web3.js';
 import { Command } from 'commander';
 import inquirer from 'inquirer';
-import { logger } from '@/utils/logger';
+import { TronWeb } from 'tronweb';
 import {
   encodeFunctionData,
   erc20Abi,
@@ -13,20 +14,22 @@ import {
   isAddress as isViemAddress,
   parseUnits,
 } from 'viem';
-import { ChainType, Intent } from '@/core/interfaces/intent';
+import { privateKeyToAccount } from 'viem/accounts';
+
 import { BasePublisher } from '@/blockchain/base-publisher';
 import { EvmPublisher } from '@/blockchain/evm-publisher';
-import { TvmPublisher } from '@/blockchain/tvm-publisher';
 import { SvmPublisher } from '@/blockchain/svm-publisher';
-import { ChainConfig, getChainById, getChainByName, listChains } from '@/config/chains';
-import { getTokenAddress, getTokenBySymbol, listTokens } from '@/config/tokens';
-import { loadEnvConfig } from '@/config/env';
-import { AddressNormalizer } from '@/core/utils/address-normalizer';
+import { TvmPublisher } from '@/blockchain/tvm-publisher';
 import { IntentBuilder } from '@/builders/intent-builder';
-import { privateKeyToAccount } from 'viem/accounts';
-import { TronWeb } from 'tronweb';
-import { Keypair, PublicKey } from '@solana/web3.js';
+import { ChainConfig, getChainById, getChainByName, listChains } from '@/config/chains';
+import { loadEnvConfig } from '@/config/env';
+import { getTokenAddress, getTokenBySymbol, listTokens } from '@/config/tokens';
+import { ChainType, Intent } from '@/core/interfaces/intent';
+import { AddressNormalizer } from '@/core/utils/address-normalizer';
 import { getQuote } from '@/core/utils/quote';
+import { logger } from '@/utils/logger';
+import { BlockchainAddress, SvmAddress, TronAddress } from '@/core/types/blockchain-addresses';
+import { serialize } from '@/commons/utils/serialize';
 
 export function createPublishCommand(): Command {
   const command = new Command('publish');
@@ -44,6 +47,7 @@ export function createPublishCommand(): Command {
         logger.title('🎨 Interactive Intent Publishing');
 
         const { intent, sourceChain, destChain } = await buildIntentInteractively(options);
+        console.log('Intent: ', serialize(intent));
 
         const privateKey = getPrivateKey(sourceChain);
 
@@ -67,42 +71,14 @@ export function createPublishCommand(): Command {
         }
 
         // Get sender address
-        let senderAddress: string;
-        switch (sourceChain.type) {
-          case ChainType.EVM:
-            const account = privateKeyToAccount(privateKey as any);
-            senderAddress = account.address;
-            break;
-          case ChainType.TVM:
-            const tronAddress = TronWeb.address.fromPrivateKey(privateKey);
-            if (!tronAddress) {
-              throw new Error('Invalid Tron private key');
-            }
-            senderAddress = tronAddress;
-            break;
-          case ChainType.SVM:
-            // Parse Solana private key (simplified)
-            let keypair: Keypair;
-            if (privateKey.startsWith('[')) {
-              const bytes = JSON.parse(privateKey);
-              keypair = Keypair.fromSecretKey(new Uint8Array(bytes));
-            } else {
-              const bs58 = require('bs58') as any;
-              const bytes = bs58.decode(privateKey);
-              keypair = Keypair.fromSecretKey(bytes);
-            }
-            senderAddress = keypair.publicKey.toBase58();
-            break;
-          default:
-            throw new Error('Unknown chain type');
-        }
+        const senderAddress = getWalletAddr(sourceChain, options);
 
         logger.log(`Sender: ${senderAddress}`);
         logger.log(`Source: ${sourceChain.name} (${sourceChain.id})`);
         logger.log(`Destination: ${destChain.name} (${destChain.id})`);
 
         // Validate
-        const validationSpinner = logger.spinner('Validating intent configuration...');
+        logger.spinner('Validating intent configuration...');
         const validation = await publisher.validate(intent, senderAddress);
         if (!validation.valid) {
           logger.fail(`Validation failed: ${validation.error}`);
@@ -116,7 +92,7 @@ export function createPublishCommand(): Command {
         }
 
         // Publish
-        const publishSpinner = logger.spinner('Publishing intent to blockchain...');
+        logger.spinner('Publishing intent to blockchain...');
         const result = await publisher.publish(intent, privateKey);
 
         if (result.success) {
@@ -210,7 +186,7 @@ async function buildIntentInteractively(options: any): Promise<{
     {
       type: 'input',
       name: 'rewardAmountStr',
-      default: '0.1',
+      default: '0.01',
       message: `Enter reward amount${rewardToken.symbol ? ` (${rewardToken.symbol})` : ''} in human-readable format (e.g., "10" for 10 tokens):`,
       validate: input => {
         try {
@@ -323,7 +299,7 @@ async function buildIntentInteractively(options: any): Promise<{
         type: 'input',
         name: 'routeAmountStr',
         message: `Enter route amount${routeToken.symbol ? ` (${routeToken.symbol})` : ''} in human-readable format (e.g., "100" for 100 tokens):`,
-        default: '0.07',
+        default: '0.007',
         validate: input => {
           try {
             const num = parseFloat(input);
@@ -349,7 +325,7 @@ async function buildIntentInteractively(options: any): Promise<{
   // const rewardDeadline = BigInt(now + 3 * 60 * 60); // 3 hours
 
   // 10. Build intent
-  const builder = new IntentBuilder()
+  const builder = new IntentBuilder(sourceChain, destChain)
     .setSourceChain(sourceChain.id)
     .setDestinationChain(destChain.id)
     .setPortal(destChain.portalAddress)
@@ -368,17 +344,10 @@ async function buildIntentInteractively(options: any): Promise<{
     rewardAmount
   );
 
-  builder.addCall(
-    AddressNormalizer.normalize(routeToken.address, destChain.type),
-    encodeFunctionData({
-      abi: erc20Abi,
-      functionName: 'transfer',
-      args: [AddressNormalizer.denormalizeToEvm(normalizedRecipient), routeAmount],
-    })
-  );
+  builder.setRecipient(normalizedRecipient);
 
   // 11. Show summary and confirm
-  const intent = builder.build();
+  const intent = await builder.build();
 
   logger.displayIntentSummary({
     source: `${sourceChain.name} (${sourceChain.id})`,
@@ -415,7 +384,7 @@ async function buildIntentInteractively(options: any): Promise<{
 async function selectToken(
   chain: ChainConfig,
   type: string
-): Promise<{ address: string; decimals: number; symbol?: string }> {
+): Promise<{ address: BlockchainAddress; decimals: number; symbol?: string }> {
   // Get available tokens for this chain
   const allTokens = listTokens();
   const chainTokens = allTokens.filter(token => {
@@ -490,7 +459,7 @@ async function selectToken(
   };
 }
 
-export function getWalletAddr(chain: ChainConfig, options: any) {
+export function getWalletAddr(chain: ChainConfig, options: any): BlockchainAddress {
   const privateKey = getPrivateKey(chain, options?.privateKey);
 
   if (!privateKey) {
@@ -506,7 +475,7 @@ export function getWalletAddr(chain: ChainConfig, options: any) {
       if (!tronAddress) {
         throw new Error('Invalid Tron private key');
       }
-      return tronAddress;
+      return tronAddress as TronAddress;
     case ChainType.SVM:
       let keypair: Keypair;
       if (privateKey.startsWith('[')) {
@@ -517,7 +486,7 @@ export function getWalletAddr(chain: ChainConfig, options: any) {
         const bytes = bs58.decode(privateKey);
         keypair = Keypair.fromSecretKey(bytes);
       }
-      return keypair.publicKey.toBase58();
+      return keypair.publicKey.toBase58() as SvmAddress;
     default:
       throw new Error('Unknown chain type');
   }

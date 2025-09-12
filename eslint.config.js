@@ -1,42 +1,97 @@
-import typescriptEslint from '@typescript-eslint/eslint-plugin';
-import typescriptParser from '@typescript-eslint/parser';
-import prettier from 'eslint-config-prettier';
+const { defineConfig, globalIgnores } = require('eslint/config');
 
-export default [
+const tsParser = require('@typescript-eslint/parser');
+const typescriptEslintEslintPlugin = require('@typescript-eslint/eslint-plugin');
+const simpleImportSort = require('eslint-plugin-simple-import-sort');
+const globals = require('globals');
+const js = require('@eslint/js');
+
+const { FlatCompat } = require('@eslint/eslintrc');
+
+const compat = new FlatCompat({
+  baseDirectory: __dirname,
+  recommendedConfig: js.configs.recommended,
+  allConfig: js.configs.all,
+});
+
+module.exports = defineConfig([
   {
-    files: ['src/**/*.ts', 'tests/**/*.ts'],
-    ignores: ['dist/**/*', 'node_modules/**/*', 'coverage/**/*'],
     languageOptions: {
-      parser: typescriptParser,
+      parser: tsParser,
+      sourceType: 'module',
+
       parserOptions: {
-        ecmaVersion: 2020,
-        sourceType: 'module',
-        project: './tsconfig.json',
+        project: 'tsconfig.json',
+        tsconfigRootDir: __dirname,
+      },
+
+      globals: {
+        ...globals.node,
+        ...globals.jest,
       },
     },
+
     plugins: {
-      '@typescript-eslint': typescriptEslint,
+      '@typescript-eslint': typescriptEslintEslintPlugin,
+      'simple-import-sort': simpleImportSort,
     },
+
+    extends: compat.extends('plugin:@typescript-eslint/recommended', 'plugin:prettier/recommended'),
+
     rules: {
-      // TypeScript recommended rules
-      ...typescriptEslint.configs.recommended.rules,
-      
-      // Additional rules
-      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+      '@typescript-eslint/interface-name-prefix': 'off',
       '@typescript-eslint/explicit-function-return-type': 'off',
       '@typescript-eslint/explicit-module-boundary-types': 'off',
-      '@typescript-eslint/no-explicit-any': 'warn',
-      '@typescript-eslint/no-non-null-assertion': 'warn',
-      '@typescript-eslint/prefer-const': 'error',
-      '@typescript-eslint/no-var-requires': 'off', // Allow require() for dynamic imports
-      
-      // General rules
-      'no-console': 'off', // CLI tool needs console output
-      'prefer-const': 'error',
-      'no-var': 'error',
-      'object-shorthand': 'error',
-      'prefer-arrow-callback': 'error',
+      '@typescript-eslint/no-explicit-any': 'off',
+
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+        },
+      ],
+
+      'sort-imports': [
+        'error',
+        {
+          ignoreCase: false,
+          ignoreDeclarationSort: true,
+          ignoreMemberSort: false,
+          memberSyntaxSortOrder: ['none', 'all', 'multiple', 'single'],
+          allowSeparatedGroups: true,
+        },
+      ],
+
+      '@typescript-eslint/member-ordering': 'off',
     },
   },
-  prettier, // Must be last to override other configs
-];
+  globalIgnores(['**/.eslintrc.js']),
+  {
+    files: ['**/*.ts', '**/*.tsx'],
+
+    rules: {
+      'simple-import-sort/imports': [
+        'error',
+        {
+          groups: [
+            [
+              '^node:',
+              '^(assert|buffer|child_process|cluster|console|constants|crypto|dgram|dns|domain|events|fs|http|https|module|net|os|path|punycode|querystring|readline|repl|stream|string_decoder|sys|timers|tls|tty|url|util|vm|zlib)(/.*)?$',
+            ],
+            ['^@nestjs'],
+            ['^@?\\w'],
+            ['^@/'],
+            ['^\\u0000'],
+            ['^\\.\\.(?!/?$)', '^\\.\\./?$'],
+            ['^\\./(?=.*/)(?!/?$)', '^\\.(?!/?$)', '^\\./?$'],
+          ],
+        },
+      ],
+
+      'simple-import-sort/exports': 'error',
+      'sort-imports': 'off',
+      'import/order': 'off',
+    },
+  },
+]);

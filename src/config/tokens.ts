@@ -2,9 +2,10 @@
  * Token Configuration
  */
 
-import { UniversalAddress } from '../core/types/universal-address';
-import { AddressNormalizer } from '../core/utils/address-normalizer';
-import { ChainType } from '../core/interfaces/intent';
+import { ChainType } from '@/core/interfaces/intent';
+import { UniversalAddress } from '@/core/types/universal-address';
+import { AddressNormalizer } from '@/core/utils/address-normalizer';
+import { SvmAddress } from '@/core/types/blockchain-addresses';
 
 export interface TokenConfig {
   symbol: string;
@@ -36,7 +37,13 @@ export const TOKEN_CONFIGS: Record<string, TokenConfig> = {
       '11155420': AddressNormalizer.normalize(
         '0x5fd84259d66Cd46123540766Be93DFE6D43130D7',
         ChainType.EVM
-      ), // Optimism Sepolia
+      ),
+      '1399811149': AddressNormalizer.normalizeSvm(
+        'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v' as SvmAddress
+      ),
+      '1399811150': AddressNormalizer.normalizeSvm(
+        '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU' as SvmAddress
+      ),
       // Add more as needed
     },
   },

@@ -4,6 +4,7 @@
  */
 
 import { Hex } from 'viem';
+
 import { UniversalAddress } from '../types/universal-address';
 
 export interface Intent {

@@ -5,14 +5,15 @@
  * Main entry point
  */
 
-import { Command } from 'commander';
 import chalk from 'chalk';
+import { Command } from 'commander';
+
+import { createConfigCommand } from '@/commands/config';
 import { createPublishCommand } from '@/commands/publish';
 import { createStatusCommand } from '@/commands/status';
-import { createConfigCommand } from '@/commands/config';
 import { updatePortalAddresses } from '@/config/chains';
+import { handleCliError, setupGlobalErrorHandlers } from '@/utils/error-handler';
 import { logger } from '@/utils/logger';
-import { setupGlobalErrorHandlers, handleCliError } from '@/utils/error-handler';
 
 // Setup global error handling
 setupGlobalErrorHandlers();

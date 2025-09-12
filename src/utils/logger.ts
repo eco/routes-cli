@@ -4,8 +4,8 @@
  */
 
 import chalk from 'chalk';
-import ora, { Ora } from 'ora';
 import Table from 'cli-table3';
+import ora, { Ora } from 'ora';
 
 export class Logger {
   private activeSpinner: Ora | null = null;

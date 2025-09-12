@@ -1,3 +1,7 @@
+import * as console from 'node:console';
+import { randomBytes } from 'node:crypto';
+
+import * as dotenv from 'dotenv';
 import {
   Address,
   ContractFunctionArgs,
@@ -13,9 +17,6 @@ import {
 } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { base, optimism } from 'viem/chains';
-import * as dotenv from 'dotenv';
-import { randomBytes } from 'node:crypto';
-import * as console from 'node:console';
 
 dotenv.config();
 
