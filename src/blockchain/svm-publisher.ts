@@ -25,6 +25,7 @@ import { PortalEncoder } from '../core/utils/portal-encoder';
 import { getChainById } from '../config/chains';
 import { logger } from '../utils/logger';
 import { portalIdl } from '../commons/idls/portal.idl';
+import { Hex, keccak256 } from 'viem';
 
 export class SvmPublisher extends BasePublisher {
   private connection: Connection;
@@ -134,6 +135,8 @@ export class SvmPublisher extends BasePublisher {
       
 
       const routeBytes = this.encodeRouteForDestination(intent);
+      const routeHash = keccak256(routeBytes);
+      console.log("MADDEN: Route hash: ", routeHash)
 
       const portalReward = {
         deadline: new BN(intent.reward.deadline),
@@ -171,8 +174,8 @@ export class SvmPublisher extends BasePublisher {
       logger.succeed('Transaction confirmed');
 
       // add funding
-      // const fundingResult = await this.fundIntent(intent, privateKey, intent.intentHash!, false);
-      // if (fundingResult.success) logger.info(`Funding successful: ${fundingResult.transactionHash}`);
+      const fundingResult = await this.fundIntent(intent, privateKey, intent.intentHash!, routeHash);
+      if (fundingResult.success) logger.info(`Funding successful: ${fundingResult.transactionHash}`);
       
       return {
         success: true,
@@ -200,7 +203,7 @@ export class SvmPublisher extends BasePublisher {
     intent: Intent, 
     privateKey: string,
     intentHash: string,
-    allowPartial: boolean = false
+    routeHash: Hex,
   ): Promise<PublishResult> {
     try {
       const keypair = this.parsePrivateKey(privateKey);
@@ -273,9 +276,6 @@ export class SvmPublisher extends BasePublisher {
         logger.info(`Created funder token account: ${createAccountSig}`);
         await this.confirmTransactionPolling(createAccountSig, 'confirmed');
       }
-
-      // Prepare funding arguments
-      const routeHashBytes = new Uint8Array(32); // This should be calculated from the route
       
       const portalReward = {
         deadline: new BN(intent.reward.deadline),
@@ -288,11 +288,12 @@ export class SvmPublisher extends BasePublisher {
         })),
       };
 
+      console.log("MADDEN: Route hash bytes: ", Buffer.from(routeHash.slice(2), 'hex'))
       const fundArgs = {
         destination: new BN(intent.destination),
-        route_hash: Array.from(routeHashBytes), // Convert to array for Borsh
+        route_hash: Array.from(Buffer.from(routeHash.slice(2), 'hex')), // Convert to array for Borsh
         reward: portalReward,
-        allow_partial: allowPartial,
+        allow_partial: false,
       };
 
       // Prepare token transfer accounts
@@ -319,9 +320,15 @@ export class SvmPublisher extends BasePublisher {
         .remainingAccounts(tokenTransferAccounts)
         .transaction();
 
-      const fundSpinner = logger.spinner('Funding intent on Solana network...');
+      logger.spinner('Funding intent on Solana network...');
+
+      const instructionData = Buffer.from(fundingTransaction.instructions[0].data)
+      Buffer.from(routeHash.slice(2), 'hex').copy(instructionData, 16)
+      fundingTransaction.instructions[0].data = instructionData
+
 
       // Send the funding transaction
+      logger.info('Sending funding transaction...');
       const fundingSignature = await this.connection.sendTransaction(fundingTransaction, [keypair], {
         skipPreflight: false,
         preflightCommitment: 'confirmed',

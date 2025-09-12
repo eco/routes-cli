@@ -5,7 +5,6 @@
 import { UniversalAddress } from '../core/types/universal-address';
 import { AddressNormalizer } from '../core/utils/address-normalizer';
 import { ChainType } from '../core/interfaces/intent';
-import { SystemProgram } from '@solana/web3.js';
 
 export interface ChainConfig {
   id: bigint;
@@ -127,8 +126,8 @@ export const CHAIN_CONFIGS: Record<string, ChainConfig> = {
     name: 'Solana',
     type: ChainType.SVM,
     rpcUrl: 'https://api.mainnet-beta.solana.com',
-    portalAddress: AddressNormalizer.normalizeSvm('5nCJDkRg8mhj9XHkjuFoR6Mcs6VcDZVsCbZ7pTJhRFEF'), // Portal program ID
-    proverAddress: AddressNormalizer.normalizeSvm(SystemProgram.programId.toString()), // System program as placeholder
+    portalAddress: AddressNormalizer.normalizeSvm('7rNRf9CW4jwzS52kXUDtf1pG1rUPfho7tFxgjy2J6cLe'), // Portal program ID
+    proverAddress: AddressNormalizer.normalizeSvm('DuZmeMYwc3tagKxQu2ZbRY7xoSsosFfjx5TNmWafCrkU'), // hyper prover
     nativeCurrency: {
       name: 'Solana',
       symbol: 'SOL',
@@ -142,7 +141,7 @@ export const CHAIN_CONFIGS: Record<string, ChainConfig> = {
     type: ChainType.SVM,
     rpcUrl: 'https://api.devnet.solana.com',
     portalAddress: AddressNormalizer.normalizeSvm('5nCJDkRg8mhj9XHkjuFoR6Mcs6VcDZVsCbZ7pTJhRFEF'), // Portal program ID
-    proverAddress: AddressNormalizer.normalizeSvm(SystemProgram.programId.toString()), // System program as placeholder
+    proverAddress: AddressNormalizer.normalizeSvm('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'), // dummy prover
     nativeCurrency: {
       name: 'Solana',
       symbol: 'SOL',
