@@ -5,14 +5,14 @@
  * Main entry point
  */
 
-import { Command } from "commander";
-import chalk from "chalk";
-import { createPublishCommand } from "@/commands/publish";
-import { createStatusCommand } from "@/commands/status";
-import { createConfigCommand } from "@/commands/config";
-import { updatePortalAddresses } from "@/config/chains";
-import { logger } from "@/utils/logger";
-import { setupGlobalErrorHandlers, handleCliError } from "@/utils/error-handler";
+import { Command } from 'commander';
+import chalk from 'chalk';
+import { createPublishCommand } from '@/commands/publish';
+import { createStatusCommand } from '@/commands/status';
+import { createConfigCommand } from '@/commands/config';
+import { updatePortalAddresses } from '@/config/chains';
+import { logger } from '@/utils/logger';
+import { setupGlobalErrorHandlers, handleCliError } from '@/utils/error-handler';
 
 // Setup global error handling
 setupGlobalErrorHandlers();
@@ -28,9 +28,9 @@ try {
 const program = new Command();
 
 program
-  .name("intent-cli")
-  .description("CLI tool for publishing intents to EVM, TVM, and SVM chains")
-  .version("1.0.0");
+  .name('intent-cli')
+  .description('CLI tool for publishing intents to EVM, TVM, and SVM chains')
+  .version('1.0.0');
 
 // Add commands
 program.addCommand(createPublishCommand());
@@ -39,20 +39,20 @@ program.addCommand(createConfigCommand());
 
 // List chains command
 program
-  .command("chains")
-  .description("List supported chains")
+  .command('chains')
+  .description('List supported chains')
   .action(() => {
-    const { listChains } = require("@/config/chains");
+    const { listChains } = require('@/config/chains');
     const chains = listChains();
 
-    logger.title("📋 Supported Chains");
+    logger.title('📋 Supported Chains');
 
-    const headers = ["Name", "ID", "Type", "Native Currency"];
+    const headers = ['Name', 'ID', 'Type', 'Native Currency'];
     const rows = chains.map((chain: any) => [
       chalk.yellow(chain.name),
       chain.id,
       chain.type,
-      chain.nativeCurrency.symbol
+      chain.nativeCurrency.symbol,
     ]);
 
     logger.displayTable(headers, rows);
@@ -60,25 +60,25 @@ program
 
 // List tokens command
 program
-  .command("tokens")
-  .description("List configured tokens")
+  .command('tokens')
+  .description('List configured tokens')
   .action(() => {
-    const { listTokens } = require("@/config/tokens");
+    const { listTokens } = require('@/config/tokens');
     const tokens = listTokens();
 
-    logger.title("💰 Configured Tokens");
+    logger.title('💰 Configured Tokens');
 
-    const headers = ["Symbol", "Name", "Decimals", "Available Chains"];
+    const headers = ['Symbol', 'Name', 'Decimals', 'Available Chains'];
     const rows = tokens.map((token: any) => [
       chalk.yellow(token.symbol),
       token.name,
       token.decimals,
-      Object.keys(token.addresses).join(", ")
+      Object.keys(token.addresses).join(', '),
     ]);
 
     logger.displayTable(headers, rows, {
       colWidths: [10, 25, 10, 35],
-      wordWrap: true
+      wordWrap: true,
     });
   });
 

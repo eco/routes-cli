@@ -40,5 +40,5 @@ export interface Intent {
 export enum ChainType {
   EVM = 'EVM',
   TVM = 'TVM',
-  SVM = 'SVM'
+  SVM = 'SVM',
 }

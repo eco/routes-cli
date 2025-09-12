@@ -3,11 +3,11 @@
  * Builder pattern for creating intents
  */
 
-import { Hex, keccak256, encodePacked } from "viem";
-import { Intent } from "../core/interfaces/intent";
-import { UniversalAddress } from "../core/types/universal-address";
-import { AddressNormalizer } from "../core/utils/address-normalizer";
-import { ChainTypeDetector } from "../core/utils/chain-detector";
+import { Hex, keccak256, encodePacked } from 'viem';
+import { Intent } from '../core/interfaces/intent';
+import { UniversalAddress } from '../core/types/universal-address';
+import { AddressNormalizer } from '../core/utils/address-normalizer';
+import { ChainTypeDetector } from '../core/utils/chain-detector';
 
 export class IntentBuilder {
   private intent: Partial<Intent> = {};
@@ -17,7 +17,7 @@ export class IntentBuilder {
     this.intent.route = {
       salt: this.generateSalt(),
       deadline: BigInt(Math.floor(Date.now() / 1000) + 3600), // 1 hour from now
-      portal: ("0x" + "0".repeat(64)) as UniversalAddress,
+      portal: ('0x' + '0'.repeat(64)) as UniversalAddress,
       nativeAmount: 0n,
       tokens: [],
       calls: [],
@@ -25,8 +25,8 @@ export class IntentBuilder {
 
     this.intent.reward = {
       deadline: BigInt(Math.floor(Date.now() / 1000) + 3600), // 1 hour from now
-      creator: ("0x" + "0".repeat(64)) as UniversalAddress,
-      prover: ("0x" + "0".repeat(64)) as UniversalAddress,
+      creator: ('0x' + '0'.repeat(64)) as UniversalAddress,
+      prover: ('0x' + '0'.repeat(64)) as UniversalAddress,
       nativeAmount: 0n,
       tokens: [],
     };
@@ -34,9 +34,9 @@ export class IntentBuilder {
 
   private generateSalt(): Hex {
     const randomBytes = new Uint8Array(32);
-    const crypto = require("crypto");
+    const crypto = require('crypto');
     crypto.randomFillSync(randomBytes);
-    return ("0x" + Buffer.from(randomBytes).toString("hex")) as Hex;
+    return ('0x' + Buffer.from(randomBytes).toString('hex')) as Hex;
   }
 
   setSourceChain(chainId: bigint): IntentBuilder {
@@ -112,11 +112,7 @@ export class IntentBuilder {
     return this;
   }
 
-  addCall(
-    target: UniversalAddress,
-    data: Hex,
-    value: bigint = 0n,
-  ): IntentBuilder {
+  addCall(target: UniversalAddress, data: Hex, value: bigint = 0n): IntentBuilder {
     if (this.intent.route) {
       this.intent.route.calls.push({ target, data, value });
     }
@@ -125,21 +121,21 @@ export class IntentBuilder {
 
   generateIntentHash(): Hex {
     if (!this.isValid()) {
-      throw new Error("Intent is not complete");
+      throw new Error('Intent is not complete');
     }
 
     const intent = this.intent as Intent;
 
     // Generate hash based on key intent properties
     const hashInput = encodePacked(
-      ["bytes32", "uint256", "uint256", "address", "address"],
+      ['bytes32', 'uint256', 'uint256', 'address', 'address'],
       [
         intent.route.salt,
         intent.sourceChainId,
         intent.destination,
         AddressNormalizer.denormalizeToEvm(intent.route.portal),
         AddressNormalizer.denormalizeToEvm(intent.reward.creator),
-      ],
+      ]
     );
 
     return keccak256(hashInput);
@@ -147,7 +143,7 @@ export class IntentBuilder {
 
   build(): Intent {
     if (!this.isValid()) {
-      throw new Error("Intent is not complete. Missing required fields.");
+      throw new Error('Intent is not complete. Missing required fields.');
     }
 
     const intent = this.intent as Intent;

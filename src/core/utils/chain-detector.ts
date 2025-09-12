@@ -2,7 +2,7 @@
  * Chain Type Detection Utility
  */
 
-import { ChainType } from "../interfaces/intent";
+import { ChainType } from '../interfaces/intent';
 
 export class ChainTypeDetector {
   /**
