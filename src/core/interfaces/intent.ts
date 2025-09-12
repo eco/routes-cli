@@ -4,6 +4,7 @@
  */
 
 import { Hex } from 'viem';
+
 import { UniversalAddress } from '../types/universal-address';
 
 export interface Intent {
@@ -40,5 +41,5 @@ export interface Intent {
 export enum ChainType {
   EVM = 'EVM',
   TVM = 'TVM',
-  SVM = 'SVM'
+  SVM = 'SVM',
 }

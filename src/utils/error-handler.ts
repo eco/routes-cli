@@ -2,7 +2,7 @@
  * Global error handling utilities
  */
 
-import { logger } from "@/utils/logger";
+import { logger } from '@/utils/logger';
 
 export interface ErrorWithCode extends Error {
   code?: string;
@@ -73,7 +73,7 @@ export function setupGlobalErrorHandlers(): void {
   process.on('uncaughtException', (error: Error) => {
     logger.error('Uncaught Exception:');
     logger.error(error.stack || error.message);
-    
+
     // Attempt to cleanup and exit gracefully
     setTimeout(() => {
       process.exit(1);
@@ -84,7 +84,7 @@ export function setupGlobalErrorHandlers(): void {
   process.on('unhandledRejection', (reason: any, promise: Promise<any>) => {
     logger.error('Unhandled Rejection at Promise');
     logger.error(`Reason: ${String(reason)}`);
-    
+
     // Exit gracefully
     process.exit(1);
   });
@@ -108,12 +108,12 @@ export function handleCliError(error: any): never {
   if (error instanceof CliError) {
     // Our custom CLI errors
     logger.error(error.message);
-    
+
     if (process.env.NODE_ENV === 'development' && error.stack) {
       logger.error('Stack trace:');
       logger.error(error.stack);
     }
-    
+
     process.exit(error.statusCode);
   } else if (error?.code === 'ENOENT') {
     // File not found errors
@@ -137,12 +137,12 @@ export function handleCliError(error: any): never {
     // Generic errors
     logger.error('An unexpected error occurred:');
     logger.error(error?.message || String(error));
-    
+
     if (process.env.NODE_ENV === 'development' && error?.stack) {
       logger.error('Stack trace:');
       logger.error(error.stack);
     }
-    
+
     process.exit(1);
   }
 }
@@ -172,17 +172,17 @@ export function withRetry<T extends any[], R>(
 ): (...args: T) => Promise<R> {
   return async (...args: T): Promise<R> => {
     let lastError: any;
-    
+
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         return await fn(...args);
       } catch (error) {
         lastError = error;
-        
+
         if (attempt === maxRetries) {
           break;
         }
-        
+
         // Only retry on network errors or temporary failures
         const errorWithCode = error as ErrorWithCode;
         if (
@@ -200,7 +200,7 @@ export function withRetry<T extends any[], R>(
         }
       }
     }
-    
+
     throw lastError;
   };
 }
@@ -210,11 +210,11 @@ export function withRetry<T extends any[], R>(
  */
 export function validateEnvironment(requiredVars: string[]): void {
   const missing = requiredVars.filter(varName => !process.env[varName]);
-  
+
   if (missing.length > 0) {
     throw new ConfigurationError(
       `Missing required environment variables: ${missing.join(', ')}\n` +
-      'Please check your .env file or set these variables in your environment.'
+        'Please check your .env file or set these variables in your environment.'
     );
   }
 }

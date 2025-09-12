@@ -6,6 +6,7 @@ import {
   Connection,
   Keypair,
   PublicKey,
+  sendAndConfirmTransaction,
   Transaction,
   sendAndConfirmTransaction,
   LAMPORTS_PER_SOL,
@@ -29,7 +30,7 @@ import { Hex, keccak256 } from 'viem';
 
 export class SvmPublisher extends BasePublisher {
   private connection: Connection;
-  
+
   constructor(rpcUrl: string) {
     super(rpcUrl);
     this.connection = new Connection(rpcUrl, {
@@ -39,7 +40,114 @@ export class SvmPublisher extends BasePublisher {
       confirmTransactionInitialTimeout: 60000,
     });
   }
-  
+
+  async publish(intent: Intent, privateKey: string): Promise<PublishResult> {
+    try {
+      const keypair = this.parsePrivateKey(privateKey);
+
+      // Get Portal program ID
+      const chainConfig = getChainById(intent.sourceChainId);
+      if (!chainConfig?.portalAddress) {
+        throw new Error(`No Portal address configured for chain ${intent.sourceChainId}`);
+      }
+
+      const portalProgramId = new PublicKey(
+        AddressNormalizer.denormalize(chainConfig.portalAddress, ChainType.SVM)
+      );
+
+      // Encode route for destination chain type
+      const destChainType = chainConfig.type;
+      const routeEncoded = PortalEncoder.encode(intent.route, destChainType);
+
+      // Create instruction data
+      // Note: This is a simplified version - actual implementation would need proper Borsh serialization
+      const instructionData = Buffer.concat([
+        Buffer.from([0]), // Instruction index for 'publish'
+        Buffer.from(intent.destination.toString(16).padStart(16, '0'), 'hex'), // destination
+        Buffer.from([routeEncoded.length]), // route length
+        Buffer.from(routeEncoded), // route data
+        this.encodeReward(intent.reward), // reward data
+      ]);
+
+      // Create instruction
+      const instruction = new TransactionInstruction({
+        keys: [
+          { pubkey: keypair.publicKey, isSigner: true, isWritable: true },
+          // Add other required accounts (Portal PDA, vault, etc.)
+        ],
+        programId: portalProgramId,
+        data: instructionData,
+      });
+
+      // Create and send transaction
+      const transaction = new Transaction().add(instruction);
+
+      logger.spinner('Publishing intent to Solana network...');
+      const signature = await sendAndConfirmTransaction(this.connection, transaction, [keypair], {
+        commitment: 'confirmed',
+      });
+
+      logger.succeed('Transaction confirmed');
+
+      return {
+        success: true,
+        transactionHash: signature,
+        intentHash: intent.intentHash,
+      };
+    } catch (error: any) {
+      logger.stopSpinner();
+      return {
+        success: false,
+        error: error.message || 'Unknown error',
+      };
+    }
+  }
+
+  async getBalance(address: string, chainId?: bigint): Promise<bigint> {
+    try {
+      const publicKey = new PublicKey(address);
+      const balance = await this.connection.getBalance(publicKey);
+      return BigInt(balance);
+    } catch (error) {
+      return 0n;
+    }
+  }
+
+  async validate(
+    intent: Intent,
+    senderAddress: string
+  ): Promise<{ valid: boolean; error?: string }> {
+    try {
+      // Check if sender has enough balance for reward native amount
+      const balance = await this.getBalance(senderAddress);
+
+      if (balance < intent.reward.nativeAmount) {
+        return {
+          valid: false,
+          error: `Insufficient SOL balance. Required: ${intent.reward.nativeAmount}, Available: ${balance}`,
+        };
+      }
+
+      // Validate addresses
+      try {
+        const creatorAddress = AddressNormalizer.denormalize(intent.reward.creator, ChainType.SVM);
+        new PublicKey(creatorAddress);
+      } catch {
+        return {
+          valid: false,
+          error: 'Invalid Solana creator address',
+        };
+      }
+
+      return { valid: true };
+    } catch (error: any) {
+      return {
+        valid: false,
+        error: error.message || 'Validation failed',
+      };
+    }
+  }
+
   private parsePrivateKey(privateKey: string): Keypair {
     if (privateKey.startsWith('[') && privateKey.endsWith(']')) {
       const bytes = JSON.parse(privateKey);

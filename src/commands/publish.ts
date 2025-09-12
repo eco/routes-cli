@@ -2,37 +2,34 @@
  * Publish Command
  */
 
-import chalk from 'chalk';
+import { Keypair, PublicKey } from '@solana/web3.js';
 import { Command } from 'commander';
 import inquirer from 'inquirer';
-import { logger } from '../utils/logger';
+import { TronWeb } from 'tronweb';
 import {
-  Address,
   encodeFunctionData,
   erc20Abi,
   formatUnits,
   Hex,
-  parseUnits,
-  zeroAddress,
   isAddress as isViemAddress,
+  parseUnits,
 } from 'viem';
-import { ChainType, Intent } from '../core/interfaces/intent';
-import { BasePublisher } from '../blockchain/base-publisher';
-import { EvmPublisher } from '../blockchain/evm-publisher';
-import { TvmPublisher } from '../blockchain/tvm-publisher';
-import { SvmPublisher } from '../blockchain/svm-publisher';
-import { ChainConfig, getChainById, getChainByName, listChains } from '../config/chains';
-import { getTokenAddress, getTokenBySymbol, listTokens } from '../config/tokens';
-import { loadEnvConfig } from '../config/env';
-import { AddressNormalizer } from '../core/utils/address-normalizer';
-import { IntentBuilder } from '../builders/intent-builder';
 import { privateKeyToAccount } from 'viem/accounts';
-import { TronWeb } from 'tronweb';
-import { Keypair, PublicKey } from '@solana/web3.js';
-import { serialize } from '../commons/utils/serialize';
-import { UniversalAddress } from '../core/types/universal-address';
-import { getQuote } from '../core/utils/quote';
-import { ChainTypeDetector } from '../core/utils/chain-detector';
+
+import { BasePublisher } from '@/blockchain/base-publisher';
+import { EvmPublisher } from '@/blockchain/evm-publisher';
+import { SvmPublisher } from '@/blockchain/svm-publisher';
+import { TvmPublisher } from '@/blockchain/tvm-publisher';
+import { IntentBuilder } from '@/builders/intent-builder';
+import { ChainConfig, getChainById, getChainByName, listChains } from '@/config/chains';
+import { loadEnvConfig } from '@/config/env';
+import { getTokenAddress, getTokenBySymbol, listTokens } from '@/config/tokens';
+import { ChainType, Intent } from '@/core/interfaces/intent';
+import { AddressNormalizer } from '@/core/utils/address-normalizer';
+import { getQuote } from '@/core/utils/quote';
+import { logger } from '@/utils/logger';
+import { BlockchainAddress, SvmAddress, TronAddress } from '@/core/types/blockchain-addresses';
+import { serialize } from '@/commons/utils/serialize';
 
 export function createPublishCommand(): Command {
   const command = new Command('publish');
@@ -51,31 +48,9 @@ export function createPublishCommand(): Command {
         logger.title('🎨 Interactive Intent Publishing');
 
         const { intent, sourceChain, destChain } = await buildIntentInteractively(options);
+        console.log('Intent: ', serialize(intent));
 
-        // Load configuration
-        const env = loadEnvConfig();
-
-        // Determine private key
-        let privateKey: string | undefined;
-        if (options.privateKey) {
-          privateKey = options.privateKey;
-        } else {
-          switch (sourceChain.type) {
-            case ChainType.EVM:
-              privateKey = env.evmPrivateKey;
-              break;
-            case ChainType.TVM:
-              privateKey = env.tvmPrivateKey;
-              break;
-            case ChainType.SVM:
-              privateKey = env.svmPrivateKey;
-              break;
-          }
-        }
-
-        if (!privateKey) {
-          throw new Error(`No private key provided for ${sourceChain.type} chain`);
-        }
+        const privateKey = getPrivateKey(sourceChain);
 
         // Determine RPC URL
         const rpcUrl = options.rpc || sourceChain.rpcUrl;
@@ -97,42 +72,14 @@ export function createPublishCommand(): Command {
         }
 
         // Get sender address
-        let senderAddress: string;
-        switch (sourceChain.type) {
-          case ChainType.EVM:
-            const account = privateKeyToAccount(privateKey as any);
-            senderAddress = account.address;
-            break;
-          case ChainType.TVM:
-            const tronAddress = TronWeb.address.fromPrivateKey(privateKey);
-            if (!tronAddress) {
-              throw new Error('Invalid Tron private key');
-            }
-            senderAddress = tronAddress;
-            break;
-          case ChainType.SVM:
-            // Parse Solana private key (simplified)
-            let keypair: Keypair;
-            if (privateKey.startsWith('[')) {
-              const bytes = JSON.parse(privateKey);
-              keypair = Keypair.fromSecretKey(new Uint8Array(bytes));
-            } else {
-              const bs58 = require('bs58') as any;
-              const bytes = bs58.decode(privateKey);
-              keypair = Keypair.fromSecretKey(bytes);
-            }
-            senderAddress = keypair.publicKey.toBase58();
-            break;
-          default:
-            throw new Error('Unknown chain type');
-        }
+        const senderAddress = getWalletAddr(sourceChain, options);
 
         logger.log(`Sender: ${senderAddress}`);
         logger.log(`Source: ${sourceChain.name} (${sourceChain.id})`);
         logger.log(`Destination: ${destChain.name} (${destChain.id})`);
 
         // Validate
-        const validationSpinner = logger.spinner('Validating intent configuration...');
+        logger.spinner('Validating intent configuration...');
         const validation = await publisher.validate(intent, senderAddress);
         if (!validation.valid) {
           logger.fail(`Validation failed: ${validation.error}`);
@@ -146,7 +93,7 @@ export function createPublishCommand(): Command {
         }
 
         // Publish
-        const publishSpinner = logger.spinner('Publishing intent to blockchain...');
+        logger.spinner('Publishing intent to blockchain...');
         const result = await publisher.publish(intent, privateKey);
 
         if (result.success) {
@@ -176,7 +123,6 @@ async function buildIntentInteractively(options: any): Promise<{
   destChain: ChainConfig;
 }> {
   const chains = listChains();
-  const env = loadEnvConfig();
 
   // 1. Get source chain
   let sourceChain: ChainConfig | undefined;
@@ -222,48 +168,6 @@ async function buildIntentInteractively(options: any): Promise<{
     destChain = getChainById(destinationId)!;
   }
 
-  // 3. Get wallet address (creator) from private key
-  const privateKey =
-    options.privateKey ||
-    (sourceChain.type === ChainType.EVM
-      ? env.evmPrivateKey
-      : sourceChain.type === ChainType.TVM
-        ? env.tvmPrivateKey
-        : env.svmPrivateKey);
-
-  if (!privateKey) {
-    throw new Error(`No private key configured for ${sourceChain.type} chain`);
-  }
-
-  let creatorAddress: UniversalAddress;
-  switch (sourceChain.type) {
-    case ChainType.EVM:
-      const account = privateKeyToAccount(privateKey as Hex);
-      creatorAddress = AddressNormalizer.normalizeEvm(account.address);
-      break;
-    case ChainType.TVM:
-      const tronAddress = TronWeb.address.fromPrivateKey(privateKey);
-      if (!tronAddress) {
-        throw new Error('Invalid Tron private key');
-      }
-      creatorAddress = AddressNormalizer.normalizeTvm(tronAddress);
-      break;
-    case ChainType.SVM:
-      let keypair: Keypair;
-      if (privateKey.startsWith('[')) {
-        const bytes = JSON.parse(privateKey);
-        keypair = Keypair.fromSecretKey(new Uint8Array(bytes));
-      } else {
-        const bs58 = require('bs58') as any;
-        const bytes = bs58.decode(privateKey);
-        keypair = Keypair.fromSecretKey(bytes);
-      }
-      creatorAddress = AddressNormalizer.normalizeSvm(keypair.publicKey.toBase58());
-      break;
-    default:
-      throw new Error('Unknown chain type');
-  }
-
   // 4. Get prover from chain config
   if (!sourceChain.proverAddress) {
     throw new Error(`No prover configured for ${sourceChain.name}`);
@@ -278,13 +182,12 @@ async function buildIntentInteractively(options: any): Promise<{
   logger.section('💰 Reward Configuration (Source Chain)');
 
   const rewardToken = await selectToken(sourceChain, 'reward');
-  let rewardAmount: bigint;
 
   const { rewardAmountStr } = await inquirer.prompt([
     {
       type: 'input',
       name: 'rewardAmountStr',
-      default: '0.1',
+      default: '0.01',
       message: `Enter reward amount${rewardToken.symbol ? ` (${rewardToken.symbol})` : ''} in human-readable format (e.g., "10" for 10 tokens):`,
       validate: input => {
         try {
@@ -301,7 +204,7 @@ async function buildIntentInteractively(options: any): Promise<{
   ]);
 
   // Convert human-readable amount to token units using parseUnits
-  rewardAmount = parseUnits(rewardAmountStr, rewardToken.decimals);
+  const rewardAmount = parseUnits(rewardAmountStr, rewardToken.decimals);
 
   // 7. Prompt for route configuration
   logger.section('📏 Route Configuration (Destination Chain)');
@@ -311,13 +214,19 @@ async function buildIntentInteractively(options: any): Promise<{
   // 7. Prompt for recipient address
   logger.section('👤 Recipient Configuration');
 
+  let defaultRecipient: string | undefined;
+  try {
+    defaultRecipient = getWalletAddr(destChain, options);
+  } catch (e) {
+    // Ignore default recipient
+  }
+
   const { recipientAddress } = await inquirer.prompt([
     {
       type: 'input',
       name: 'recipientAddress',
       message: `Enter recipient address on ${destChain.name} (${destChain.type} chain):`,
-      default: options.recipient,
-      when: () => !options.recipient,
+      default: defaultRecipient,
       validate: input => {
         if (!input || input.trim() === '') {
           return 'Recipient address is required';
@@ -356,8 +265,15 @@ async function buildIntentInteractively(options: any): Promise<{
       },
     },
   ]);
-  const finalRecipientAddress = options.recipient || recipientAddress;
-  const normalizedRecipient = AddressNormalizer.normalize(options.recipient || recipientAddress, destChain.type);
+
+  // 3. Get wallet address (creator) from private key
+  const creatorAddress = AddressNormalizer.normalize(
+    getWalletAddr(sourceChain, options),
+    sourceChain.type
+  );
+
+  // Normalize the recipient address
+  const normalizedRecipient = AddressNormalizer.normalize(recipientAddress, destChain.type);
 
   // 8. Get quote
   let routeAmount: bigint;
@@ -368,7 +284,7 @@ async function buildIntentInteractively(options: any): Promise<{
       source: sourceChain.id,
       destination: destChain.id,
       funder: AddressNormalizer.denormalize(creatorAddress, sourceChain.type),
-      recipient: finalRecipientAddress,
+      recipient: normalizedRecipient,
       amount: rewardAmount,
       routeToken: routeToken.address,
       rewardToken: rewardToken.address,
@@ -384,7 +300,7 @@ async function buildIntentInteractively(options: any): Promise<{
         type: 'input',
         name: 'routeAmountStr',
         message: `Enter route amount${routeToken.symbol ? ` (${routeToken.symbol})` : ''} in human-readable format (e.g., "100" for 100 tokens):`,
-        default: '0.07',
+        default: '0.007',
         validate: input => {
           try {
             const num = parseFloat(input);
@@ -410,7 +326,7 @@ async function buildIntentInteractively(options: any): Promise<{
   // const rewardDeadline = BigInt(now + 3 * 60 * 60); // 3 hours
 
   // 10. Build intent
-  const builder = new IntentBuilder()
+  const builder = new IntentBuilder(sourceChain, destChain)
     .setSourceChain(sourceChain.id)
     .setDestinationChain(destChain.id)
     .setPortal(destChain.portalAddress)
@@ -429,23 +345,16 @@ async function buildIntentInteractively(options: any): Promise<{
     rewardAmount
   );
 
-  builder.addCall(
-    AddressNormalizer.normalize(routeToken.address, destChain.type),
-    encodeFunctionData({
-      abi: erc20Abi,
-      functionName: 'transfer',
-      args: [AddressNormalizer.denormalizeToEvm(normalizedRecipient), routeAmount],
-    })
-  );
+  builder.setRecipient(normalizedRecipient);
 
   // 11. Show summary and confirm
-  const intent = builder.build();
+  const intent = await builder.build();
 
   logger.displayIntentSummary({
     source: `${sourceChain.name} (${sourceChain.id})`,
     destination: `${destChain.name} (${destChain.id})`,
     creator: AddressNormalizer.denormalize(creatorAddress, sourceChain.type),
-    recipient: finalRecipientAddress,
+    recipient: normalizedRecipient,
     routeDeadline: new Date(Number(routeDeadline) * 1000).toLocaleString(),
     rewardDeadline: new Date(Number(rewardDeadline) * 1000).toLocaleString(),
     routeToken: `${routeToken.address}${routeToken.symbol ? ` (${routeToken.symbol})` : ''}`,
@@ -476,7 +385,7 @@ async function buildIntentInteractively(options: any): Promise<{
 async function selectToken(
   chain: ChainConfig,
   type: string
-): Promise<{ address: string; decimals: number; symbol?: string }> {
+): Promise<{ address: BlockchainAddress; decimals: number; symbol?: string }> {
   // Get available tokens for this chain
   const allTokens = listTokens();
   const chainTokens = allTokens.filter(token => {
@@ -549,4 +458,63 @@ async function selectToken(
     decimals: tokenConfig.decimals,
     symbol: tokenConfig.symbol,
   };
+}
+
+export function getWalletAddr(chain: ChainConfig, options: any): BlockchainAddress {
+  const privateKey = getPrivateKey(chain, options?.privateKey);
+
+  if (!privateKey) {
+    throw new Error(`No private key configured for ${chain.type} chain`);
+  }
+
+  switch (chain.type) {
+    case ChainType.EVM:
+      const account = privateKeyToAccount(privateKey as Hex);
+      return account.address;
+    case ChainType.TVM:
+      const tronAddress = TronWeb.address.fromPrivateKey(privateKey);
+      if (!tronAddress) {
+        throw new Error('Invalid Tron private key');
+      }
+      return tronAddress as TronAddress;
+    case ChainType.SVM:
+      let keypair: Keypair;
+      if (privateKey.startsWith('[')) {
+        const bytes = JSON.parse(privateKey);
+        keypair = Keypair.fromSecretKey(new Uint8Array(bytes));
+      } else {
+        const bs58 = require('bs58') as any;
+        const bytes = bs58.decode(privateKey);
+        keypair = Keypair.fromSecretKey(bytes);
+      }
+      return keypair.publicKey.toBase58() as SvmAddress;
+    default:
+      throw new Error('Unknown chain type');
+  }
+}
+
+function getPrivateKey(chain: ChainConfig, privateKey?: string) {
+  // Load configuration
+  const env = loadEnvConfig();
+
+  // Determine private key
+  if (!privateKey) {
+    switch (chain.type) {
+      case ChainType.EVM:
+        privateKey = env.evmPrivateKey;
+        break;
+      case ChainType.TVM:
+        privateKey = env.tvmPrivateKey;
+        break;
+      case ChainType.SVM:
+        privateKey = env.svmPrivateKey;
+        break;
+    }
+  }
+
+  if (!privateKey) {
+    throw new Error(`No private key provided for ${chain.type} chain`);
+  }
+
+  return privateKey;
 }

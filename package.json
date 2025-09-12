@@ -9,6 +9,7 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsx -r tsconfig-paths/register src/index.ts",
+    "dev:testnet": "NODE_CHAINS_ENV=development tsx -r tsconfig-paths/register src/index.ts",
     "start": "node -r tsconfig-paths/register dist/index.js",
     "clean": "rm -rf dist",
     "test": "jest",
@@ -33,8 +34,7 @@
   "dependencies": {
     "@coral-xyz/anchor": "^0.31.1",
     "@solana/spl-token": "^0.4.14",
-    "@solana/web3.js": "^1.78.0",
-    "borsh": "^2.0.0",
+    "@solana/web3.js": "^1.91.8",
     "chalk": "^4.1.2",
     "cli-table3": "^0.6.5",
     "commander": "^12.1.0",
@@ -45,13 +45,16 @@
     "viem": "^2.21.58"
   },
   "devDependencies": {
+    "@types/bn.js": "^5.2.0",
     "@types/inquirer": "^9.0.7",
     "@types/jest": "^30.0.0",
     "@types/node": "^20.16.16",
-    "@typescript-eslint/eslint-plugin": "^8.42.0",
-    "@typescript-eslint/parser": "^8.42.0",
+    "@typescript-eslint/eslint-plugin": "^8.43.0",
+    "@typescript-eslint/parser": "^8.43.0",
     "eslint": "^9.35.0",
-    "eslint-config-prettier": "^10.1.8",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-prettier": "^5.1.3",
+    "eslint-plugin-simple-import-sort": "^12.1.1",
     "jest": "^30.1.3",
     "prettier": "^3.6.2",
     "ts-jest": "^29.4.1",

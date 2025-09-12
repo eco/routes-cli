@@ -2,13 +2,16 @@
  * Chain Configuration
  */
 
-import { UniversalAddress } from '../core/types/universal-address';
-import { AddressNormalizer } from '../core/utils/address-normalizer';
-import { ChainType } from '../core/interfaces/intent';
+import { ChainType } from '@/core/interfaces/intent';
+import { UniversalAddress } from '@/core/types/universal-address';
+import { AddressNormalizer } from '@/core/utils/address-normalizer';
+import { BlockchainAddress, SvmAddress } from '@/core/types/blockchain-addresses';
+import { program } from 'commander';
 
 export interface ChainConfig {
   id: bigint;
   name: string;
+  env: 'production' | 'development';
   type: ChainType;
   rpcUrl: string;
   portalAddress?: UniversalAddress;
@@ -21,12 +24,13 @@ export interface ChainConfig {
 }
 
 // Default chain configurations
-export const CHAIN_CONFIGS: Record<string, ChainConfig> = {
+const chains: Record<string, ChainConfig> = {
   // EVM Chains
   optimism: {
     id: 10n,
     name: 'Optimism',
     type: ChainType.EVM,
+    env: 'production',
     rpcUrl: 'https://mainnet.optimism.io',
     portalAddress: AddressNormalizer.normalizeEvm('0x90F0c8aCC1E083Bcb4F487f84FC349ae8d5e28D7'),
     // proverAddress: AddressNormalizer.normalizeEvm('0xe6FEbF8C8bf6366eF6fE7337b0b5B394D46d9fc6'), // PolymerProver
@@ -41,6 +45,7 @@ export const CHAIN_CONFIGS: Record<string, ChainConfig> = {
     id: 8453n,
     name: 'Base',
     type: ChainType.EVM,
+    env: 'production',
     rpcUrl: 'https://mainnet.base.org',
     portalAddress: AddressNormalizer.normalizeEvm('0x90F0c8aCC1E083Bcb4F487f84FC349ae8d5e28D7'),
     // proverAddress: AddressNormalizer.normalizeEvm('0xe6FEbF8C8bf6366eF6fE7337b0b5B394D46d9fc6'), // Polymer
@@ -57,6 +62,7 @@ export const CHAIN_CONFIGS: Record<string, ChainConfig> = {
     id: 84532n,
     name: 'Base Sepolia',
     type: ChainType.EVM,
+    env: 'development',
     rpcUrl: 'https://sepolia.base.org',
     portalAddress: AddressNormalizer.normalize(
       '0xBcdc2cfADcD6E026d4Da81D01D82BFa20bcf2CaC',
@@ -76,6 +82,7 @@ export const CHAIN_CONFIGS: Record<string, ChainConfig> = {
     id: 11155420n,
     name: 'Optimism Sepolia',
     type: ChainType.EVM,
+    env: 'development',
     rpcUrl: 'https://sepolia.optimism.io',
     portalAddress: AddressNormalizer.normalize(
       '0xBcdc2cfADcD6E026d4Da81D01D82BFa20bcf2CaC',
@@ -97,6 +104,7 @@ export const CHAIN_CONFIGS: Record<string, ChainConfig> = {
     id: 728126428n,
     name: 'Tron',
     type: ChainType.TVM,
+    env: 'production',
     rpcUrl: 'https://api.trongrid.io',
     portalAddress: AddressNormalizer.normalizeTvm('TQh8ig6rmuMqb5u8efU5LDvoott1oLzoqu'),
     proverAddress: AddressNormalizer.normalizeTvm('TSqwDT8qxNgExrkKu6qBo1XLjd5CdSYf2X'),
@@ -110,6 +118,7 @@ export const CHAIN_CONFIGS: Record<string, ChainConfig> = {
     id: 2494104990n,
     name: 'Tron Shasta',
     type: ChainType.TVM,
+    env: 'development',
     rpcUrl: 'https://api.shasta.trongrid.io',
     portalAddress: AddressNormalizer.normalizeTvm('TKWwVSTacc9iToWgfef6cbkXPiBAKeSX2t'),
     proverAddress: AddressNormalizer.normalizeTvm('TAxmRePzN5XiBW99iF3vHQMwYzbXZjUHki'), // Dummy prover
@@ -122,12 +131,17 @@ export const CHAIN_CONFIGS: Record<string, ChainConfig> = {
 
   // SVM Chains
   solana: {
-    id: 1399811149n, // Solana mainnet chain ID
+    id: 1399811149n,
     name: 'Solana',
     type: ChainType.SVM,
+    env: 'production',
     rpcUrl: 'https://api.mainnet-beta.solana.com',
-    portalAddress: AddressNormalizer.normalizeSvm('7rNRf9CW4jwzS52kXUDtf1pG1rUPfho7tFxgjy2J6cLe'), // Portal program ID
-    proverAddress: AddressNormalizer.normalizeSvm('DuZmeMYwc3tagKxQu2ZbRY7xoSsosFfjx5TNmWafCrkU'), // hyper prover
+    portalAddress: AddressNormalizer.normalizeSvm(
+      '7rNRf9CW4jwzS52kXUDtf1pG1rUPfho7tFxgjy2J6cLe' as SvmAddress
+    ),
+    proverAddress: AddressNormalizer.normalizeSvm(
+      'DuZmeMYwc3tagKxQu2ZbRY7xoSsosFfjx5TNmWafCrkU' as SvmAddress
+    ), // HyperProver
     nativeCurrency: {
       name: 'Solana',
       symbol: 'SOL',
@@ -136,12 +150,17 @@ export const CHAIN_CONFIGS: Record<string, ChainConfig> = {
   },
 
   'solana-devnet': {
-    id: 1399811150n, // Solana devnet chain ID
+    id: 1399811150n, // Solana devnet chain ID (from onchain)
     name: 'Solana Devnet',
     type: ChainType.SVM,
+    env: 'development',
     rpcUrl: 'https://api.devnet.solana.com',
-    portalAddress: AddressNormalizer.normalizeSvm('5nCJDkRg8mhj9XHkjuFoR6Mcs6VcDZVsCbZ7pTJhRFEF'), // Portal program ID
-    proverAddress: AddressNormalizer.normalizeSvm('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'), // dummy prover
+    portalAddress: AddressNormalizer.normalizeSvm(
+      '5nCJDkRg8mhj9XHkjuFoR6Mcs6VcDZVsCbZ7pTJhRFEF' as SvmAddress
+    ),
+    proverAddress: AddressNormalizer.normalizeSvm(
+      'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v' as SvmAddress
+    ), // Placeholder
     nativeCurrency: {
       name: 'Solana',
       symbol: 'SOL',
@@ -149,6 +168,11 @@ export const CHAIN_CONFIGS: Record<string, ChainConfig> = {
     },
   },
 };
+
+const ENV = process.env.NODE_CHAINS_ENV || 'production';
+export const CHAIN_CONFIGS: typeof chains = Object.fromEntries(
+  Object.entries(chains).filter(([, chain]) => chain.env === ENV)
+);
 
 // Helper function to get chain by ID
 export function getChainById(chainId: bigint): ChainConfig | undefined {
@@ -180,7 +204,7 @@ export function updatePortalAddresses(env: Record<string, string | undefined>) {
     if (address && CHAIN_CONFIGS[chainKey]) {
       try {
         CHAIN_CONFIGS[chainKey].portalAddress = AddressNormalizer.normalize(
-          address,
+          address as BlockchainAddress,
           CHAIN_CONFIGS[chainKey].type
         );
       } catch (error) {

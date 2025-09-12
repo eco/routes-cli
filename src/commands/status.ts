@@ -2,14 +2,16 @@
  * Status Command
  */
 
+import * as console from 'node:console';
+
 import { Command } from 'commander';
 import { Address, createPublicClient, getContract, Hex, http } from 'viem';
-import { chalk, logger } from '@/utils/logger';
-import { ChainConfig, getChainById, getChainByName } from '@/config/chains';
+
 import { portalAbi } from '@/commons/abis/portal.abi';
-import { AddressNormalizer } from '@/core/utils/address-normalizer';
+import { ChainConfig, getChainById, getChainByName } from '@/config/chains';
 import { ChainType } from '@/core/interfaces/intent';
-import * as console from 'node:console';
+import { AddressNormalizer } from '@/core/utils/address-normalizer';
+import { chalk, logger } from '@/utils/logger';
 
 interface IntentStatus {
   intentHash: string;

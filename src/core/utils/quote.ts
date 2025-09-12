@@ -1,4 +1,4 @@
-import { Address } from "viem";
+import { Address } from 'viem';
 
 interface QuoteRequest {
   source: bigint;
@@ -42,13 +42,13 @@ interface QuoteResponse {
   };
 }
 
-const quoteUrl = process.env.QUOTES_API_URL ?? "https://quotes-preprod.eco.com";
+const quoteUrl = process.env.QUOTES_API_URL ?? 'https://quotes-preprod.eco.com';
 
 export async function getQuote(requestOpts: QuoteRequest) {
-  const url = new URL("/api/v3/quotes/getQuote", quoteUrl);
+  const url = new URL('/api/v3/quotes/getQuote', quoteUrl);
 
   const request = {
-    dAppID: "eco-routes-cli",
+    dAppID: 'eco-routes-cli',
     quoteRequest: {
       sourceChainID: Number(requestOpts.source),
       sourceToken: requestOpts.rewardToken,
@@ -63,8 +63,8 @@ export async function getQuote(requestOpts: QuoteRequest) {
   console.log(`Calling quoting service: ${url.toString()}`);
 
   const response = await fetch(url.toString(), {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(request),
   });
 
