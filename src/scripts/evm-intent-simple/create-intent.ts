@@ -22,8 +22,8 @@ dotenv.config();
 
 // Configuration
 const PRIVATE_KEY = process.env.PRIVATE_KEY as Hex;
-const SOURCE_PORTAL = '0x90F0c8aCC1E083Bcb4F487f84FC349ae8d5e28D7' as Address;
-const DESTINATION_PORTAL = '0x90F0c8aCC1E083Bcb4F487f84FC349ae8d5e28D7' as Address;
+const SOURCE_PORTAL = '0x2b7F87a98707e6D19504293F6680498731272D4f' as Address;
+const DESTINATION_PORTAL = '0x2b7F87a98707e6D19504293F6680498731272D4f' as Address;
 const PROVER_ADDRESS = '0xde255Aab8e56a6Ae6913Df3a9Bbb6a9f22367f4C' as Address;
 
 // Token addresses

@@ -32,9 +32,9 @@ const chains: Record<string, ChainConfig> = {
     type: ChainType.EVM,
     env: 'production',
     rpcUrl: 'https://mainnet.optimism.io',
-    portalAddress: AddressNormalizer.normalizeEvm('0x90F0c8aCC1E083Bcb4F487f84FC349ae8d5e28D7'),
+    portalAddress: AddressNormalizer.normalizeEvm('0x2b7F87a98707e6D19504293F6680498731272D4f'),
     // proverAddress: AddressNormalizer.normalizeEvm('0xe6FEbF8C8bf6366eF6fE7337b0b5B394D46d9fc6'), // PolymerProver
-    proverAddress: AddressNormalizer.normalizeEvm('0xde255Aab8e56a6Ae6913Df3a9Bbb6a9f22367f4C'), // HyperProver
+    proverAddress: AddressNormalizer.normalizeEvm('0x3E4a157079Bc846e9d2C71f297d529e0fcb4D44d'), // HyperProver
     nativeCurrency: {
       name: 'Ether',
       symbol: 'ETH',
@@ -47,9 +47,9 @@ const chains: Record<string, ChainConfig> = {
     type: ChainType.EVM,
     env: 'production',
     rpcUrl: 'https://mainnet.base.org',
-    portalAddress: AddressNormalizer.normalizeEvm('0x90F0c8aCC1E083Bcb4F487f84FC349ae8d5e28D7'),
+    portalAddress: AddressNormalizer.normalizeEvm('0x2b7F87a98707e6D19504293F6680498731272D4f'),
     // proverAddress: AddressNormalizer.normalizeEvm('0xe6FEbF8C8bf6366eF6fE7337b0b5B394D46d9fc6'), // Polymer
-    proverAddress: AddressNormalizer.normalizeEvm('0xde255Aab8e56a6Ae6913Df3a9Bbb6a9f22367f4C'), // HyperProver
+    proverAddress: AddressNormalizer.normalizeEvm('0x3E4a157079Bc846e9d2C71f297d529e0fcb4D44d'), // HyperProver
     nativeCurrency: {
       name: 'Ether',
       symbol: 'ETH',
