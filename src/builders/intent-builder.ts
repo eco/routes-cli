@@ -130,6 +130,7 @@ export class IntentBuilder {
     const chainType = ChainTypeDetector.detect(this.intent.destination!);
     switch (chainType) {
       case ChainType.EVM:
+      case ChainType.TVM:
         return evmCallsBuilder(this.intent.route as Intent['route'], this.recipient!);
       case ChainType.SVM:
         return await svmCallsBuilder(
