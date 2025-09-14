@@ -1,11 +1,26 @@
 /**
  * Portal Encoder Utility
  *
- * Provides chain-specific encoding and decoding for Portal contract data structures.
- * Each blockchain type (EVM, TVM, SVM) has its own encoding format:
- * - EVM: ABI encoding (hex)
- * - TVM: ABI encoding (hex)
- * - SVM: Borsh serialization
+ * Provides chain-specific encoding and decoding for Portal contract data structures
+ * used in cross-chain intent publishing. This utility handles the serialization/
+ * deserialization of Route and Reward data for different blockchain types.
+ *
+ * Encoding formats by chain type:
+ * - EVM: ABI encoding using viem library (produces hex strings)
+ * - TVM: ABI encoding compatible with Tron (produces hex strings)
+ * - SVM: Borsh serialization for Solana programs (produces binary data)
+ *
+ * The encoder automatically handles Universal Address normalization/denormalization
+ * internally to ensure addresses are in the correct format for each blockchain.
+ *
+ * @example
+ * ```typescript
+ * // Encode route data for EVM chains
+ * const encoded = PortalEncoder.encode(intent.route, ChainType.EVM);
+ *
+ * // Decode reward data from Solana
+ * const reward = PortalEncoder.decode(encodedData, ChainType.SVM, 'reward');
+ * ```
  */
 
 import { decodeAbiParameters, encodeAbiParameters, Hex } from 'viem';
@@ -20,17 +35,27 @@ import { AddressNormalizer } from '@/core/utils/address-normalizer';
 
 import { ChainType, Intent } from '../interfaces/intent';
 
-// Helper to serialize objects with BigInt
-const serializeWithBigInt = (obj: any) =>
-  JSON.stringify(obj, (_, value) => (typeof value === 'bigint' ? value.toString() : value));
-
 export class PortalEncoder {
   /**
-   * Encodes Intent data for a specific chain type
+   * Encodes Intent data for a specific chain type.
    *
-   * @param data - Data to encode (Route or Reward from Intent)
-   * @param chainType - Target chain type
-   * @returns Encoded data as Buffer
+   * Converts Route or Reward data from the Intent structure into the appropriate
+   * format for the target blockchain. Automatically handles address denormalization
+   * from UniversalAddress to chain-native formats before encoding.
+   *
+   * @param data - Data to encode (Route or Reward from Intent structure)
+   * @param chainType - Target chain type determining the encoding method
+   * @returns Encoded data as hexadecimal string with 0x prefix
+   * @throws {Error} When the chain type is unsupported or encoding fails
+   *
+   * @example
+   * ```typescript
+   * // Encode route for EVM deployment
+   * const encodedRoute = PortalEncoder.encode(intent.route, ChainType.EVM);
+   *
+   * // Encode reward for Solana program
+   * const encodedReward = PortalEncoder.encode(intent.reward, ChainType.SVM);
+   * ```
    */
   static encode(data: Intent['route'] | Intent['reward'], chainType: ChainType): Hex {
     switch (chainType) {
@@ -45,12 +70,34 @@ export class PortalEncoder {
   }
 
   /**
-   * Decodes data from a specific chain type to Intent format
+   * Decodes data from a specific chain type to Intent format.
    *
-   * @param data - Encoded data as Buffer or string
-   * @param chainType - Source chain type
-   * @param dataType - Type of data ('route' or 'reward')
-   * @returns Decoded Route or Reward object in Intent format
+   * Converts encoded blockchain data back into the standardized Intent structure.
+   * Automatically handles address normalization from chain-native formats to
+   * UniversalAddress during the decoding process.
+   *
+   * @param data - Encoded data as Buffer or hex string
+   * @param chainType - Source chain type that determines the decoding method
+   * @param dataType - Type of data structure to decode ('route' or 'reward')
+   * @returns Decoded Route or Reward object in Intent format with UniversalAddresses
+   * @throws {Error} When the chain type is unsupported or decoding fails
+   *
+   * @example
+   * ```typescript
+   * // Decode route data from EVM transaction
+   * const route = PortalEncoder.decode(
+   *   encodedData,
+   *   ChainType.EVM,
+   *   'route'
+   * );
+   *
+   * // Decode reward data from Solana program account
+   * const reward = PortalEncoder.decode(
+   *   accountData,
+   *   ChainType.SVM,
+   *   'reward'
+   * );
+   * ```
    */
   static decode<Type extends 'route' | 'reward'>(
     data: Buffer | string,
@@ -70,7 +117,24 @@ export class PortalEncoder {
   }
 
   /**
-   * Type guard to determine if data is a Route
+   * Type guard to determine if data is a Route.
+   *
+   * Distinguishes between Route and Reward data structures by checking for
+   * Route-specific properties like 'salt', 'portal', and 'calls'.
+   *
+   * @param data - Intent data to check (Route or Reward)
+   * @returns True if data is a Route, false if it's a Reward
+   *
+   * @example
+   * ```typescript
+   * if (PortalEncoder.isRoute(intentData)) {
+   *   // Handle as Route
+   *   console.log(`Route has ${intentData.calls.length} calls`);
+   * } else {
+   *   // Handle as Reward
+   *   console.log(`Reward creator: ${intentData.creator}`);
+   * }
+   * ```
    */
   static isRoute(data: Intent['route'] | Intent['reward']): data is Intent['route'] {
     return 'salt' in data && 'portal' in data && 'calls' in data;

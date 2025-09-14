@@ -4,6 +4,7 @@
 
 import {
   Address,
+  Chain,
   createPublicClient,
   createWalletClient,
   encodeFunctionData,
@@ -195,11 +196,12 @@ export class EvmPublisher extends BasePublisher {
           error: 'Transaction failed',
         };
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.stopSpinner();
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       return {
         success: false,
-        error: error.message || 'Unknown error',
+        error: errorMessage,
       };
     }
   }
@@ -260,10 +262,11 @@ export class EvmPublisher extends BasePublisher {
       }
 
       return { valid: true };
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Validation failed';
       return {
         valid: false,
-        error: error.message || 'Validation failed',
+        error: errorMessage,
       };
     }
   }
@@ -272,7 +275,7 @@ export class EvmPublisher extends BasePublisher {
     const id = Number(chainId);
 
     // Find viem chain by ID
-    const viemChain = Object.values(chains).find((chain: any) => chain.id === id);
+    const viemChain = Object.values(chains).find((chain: Chain) => chain.id === id);
 
     if (!viemChain) {
       throw new Error(

@@ -10,6 +10,7 @@ import {
   Transaction,
   TransactionInstruction,
 } from '@solana/web3.js';
+
 import { getChainById } from '@/config/chains';
 import { ChainType, Intent } from '@/core/interfaces/intent';
 import { AddressNormalizer } from '@/core/utils/address-normalizer';
@@ -79,21 +80,22 @@ export class SvmPublisher extends BasePublisher {
         transactionHash: signature,
         intentHash: intent.intentHash,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.stopSpinner();
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       return {
         success: false,
-        error: error.message || 'Unknown error',
+        error: errorMessage,
       };
     }
   }
 
-  async getBalance(address: string, chainId?: bigint): Promise<bigint> {
+  async getBalance(address: string, _chainId?: bigint): Promise<bigint> {
     try {
       const publicKey = new PublicKey(address);
       const balance = await this.connection.getBalance(publicKey);
       return BigInt(balance);
-    } catch (error) {
+    } catch {
       return 0n;
     }
   }
@@ -125,10 +127,11 @@ export class SvmPublisher extends BasePublisher {
       }
 
       return { valid: true };
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Validation failed';
       return {
         valid: false,
-        error: error.message || 'Validation failed',
+        error: errorMessage,
       };
     }
   }
@@ -145,6 +148,7 @@ export class SvmPublisher extends BasePublisher {
       return Keypair.fromSecretKey(new Uint8Array(bytes));
     } else {
       // Base58 format
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const bs58 = require('bs58');
       const bytes = bs58.decode(privateKey);
       return Keypair.fromSecretKey(bytes);

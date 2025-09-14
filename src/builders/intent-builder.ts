@@ -1,22 +1,64 @@
 /**
  * Intent Builder
- * Builder pattern for creating intents
+ *
+ * Implements the builder pattern for creating cross-chain intents in a fluent,
+ * type-safe manner. Provides a convenient API for constructing complex Intent
+ * objects with proper validation and automatic call generation.
+ *
+ * The builder handles:
+ * - Default value initialization
+ * - UniversalAddress management
+ * - Chain-specific call generation
+ * - Intent validation and hashing
+ *
+ * @example
+ * ```typescript
+ * const intent = await new IntentBuilder(sourceChain, destChain)
+ *   .setRecipient(recipientAddress)
+ *   .setCreator(creatorAddress)
+ *   .setProver(proverAddress)
+ *   .setPortal(portalAddress)
+ *   .addRouteToken(tokenAddress, amount)
+ *   .addRewardToken(rewardTokenAddress, rewardAmount)
+ *   .build();
+ * ```
  */
 
 import { Hex } from 'viem';
 
+import { evmCallsBuilder } from '@/builders/call-builders/evm-call-builder';
+import { svmCallsBuilder } from '@/builders/call-builders/svm-call-builder';
+import { PortalHashUtils } from '@/commons/utils/portal-hash.utils';
+import { ChainConfig } from '@/config/chains';
 import { ChainType, Intent } from '@/core/interfaces/intent';
 import { UniversalAddress } from '@/core/types/universal-address';
 import { ChainTypeDetector } from '@/core/utils/chain-detector';
-import { PortalHashUtils } from '@/commons/utils/portal-hash.utils';
-import { evmCallsBuilder } from '@/builders/call-builders/evm-call-builder';
-import { svmCallsBuilder } from '@/builders/call-builders/svm-call-builder';
-import { ChainConfig } from '@/config/chains';
 
+/**
+ * Fluent builder for creating Intent objects.
+ *
+ * Provides a chain-able API for constructing cross-chain intents with validation
+ * and automatic defaults. Works with UniversalAddress format throughout and
+ * generates chain-specific calls during the build process.
+ */
 export class IntentBuilder {
   private intent: Partial<Intent> = {};
   private recipient: UniversalAddress | undefined;
 
+  /**
+   * Creates a new IntentBuilder instance.
+   *
+   * Initializes the builder with source and destination chain configurations
+   * and sets up default values for route and reward structures.
+   *
+   * @param sourceChain - Configuration for the source blockchain
+   * @param destinationChain - Configuration for the destination blockchain
+   *
+   * @example
+   * ```typescript
+   * const builder = new IntentBuilder(ethereumConfig, optimismConfig);
+   * ```
+   */
   constructor(
     private readonly sourceChain: ChainConfig,
     private readonly destinationChain: ChainConfig
@@ -40,16 +82,39 @@ export class IntentBuilder {
     };
   }
 
+  /**
+   * Sets the recipient address for route transactions.
+   *
+   * @param recipient - UniversalAddress of the recipient on the destination chain
+   * @returns This builder instance for method chaining
+   *
+   * @example
+   * ```typescript
+   * builder.setRecipient('0x742d35cc6634c0532925a3b8d65c32c2b3f6de1b000000000000000000000000');
+   * ```
+   */
   setRecipient(recipient: UniversalAddress): IntentBuilder {
     this.recipient = recipient;
     return this;
   }
 
+  /**
+   * Sets the source chain ID for the intent.
+   *
+   * @param chainId - Chain ID of the source blockchain
+   * @returns This builder instance for method chaining
+   */
   setSourceChain(chainId: bigint): IntentBuilder {
     this.intent.sourceChainId = chainId;
     return this;
   }
 
+  /**
+   * Sets the destination chain ID for the intent.
+   *
+   * @param chainId - Chain ID of the destination blockchain
+   * @returns This builder instance for method chaining
+   */
   setDestinationChain(chainId: bigint): IntentBuilder {
     this.intent.destination = chainId;
     return this;
@@ -143,6 +208,27 @@ export class IntentBuilder {
     }
   }
 
+  /**
+   * Builds the final Intent object.
+   *
+   * Validates all required fields are set, generates chain-specific calls,
+   * computes the intent hash, and returns the complete Intent object.
+   *
+   * @returns Promise resolving to the complete Intent object
+   * @throws {Error} When required fields are missing or call generation fails
+   *
+   * @example
+   * ```typescript
+   * const intent = await builder
+   *   .setRecipient(recipient)
+   *   .setCreator(creator)
+   *   .setProver(prover)
+   *   .addRouteToken(token, amount)
+   *   .build();
+   *
+   * console.log(`Intent hash: ${intent.intentHash}`);
+   * ```
+   */
   async build(): Promise<Intent> {
     if (!this.isValid()) {
       throw new Error('Intent is not complete. Missing required fields.');
@@ -157,7 +243,8 @@ export class IntentBuilder {
 
   private generateSalt(): Hex {
     const randomBytes = new Uint8Array(32);
-    const crypto = require('crypto');
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const crypto = require('node:crypto');
     crypto.randomFillSync(randomBytes);
     return ('0x' + Buffer.from(randomBytes).toString('hex')) as Hex;
   }

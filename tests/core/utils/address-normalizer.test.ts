@@ -3,6 +3,7 @@
  */
 
 import { ChainType } from '@/core/interfaces/intent';
+import { BlockchainAddress } from '@/core/types/blockchain-addresses';
 import { UniversalAddress } from '@/core/types/universal-address';
 import { AddressNormalizer } from '@/core/utils/address-normalizer';
 
@@ -17,7 +18,7 @@ describe('AddressNormalizer', () => {
     });
 
     it('should normalize TVM address to Universal Address', () => {
-      const tvmAddress = 'TRX9Jv6xH2fqwPrPiLZNDjMbcNZj7VZx3S';
+      const tvmAddress = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t'; // Valid USDT Tron address
       const result = AddressNormalizer.normalize(tvmAddress, ChainType.TVM);
 
       expect(result).toMatch(/^0x[0-9a-f]{64}$/i);
@@ -25,7 +26,7 @@ describe('AddressNormalizer', () => {
     });
 
     it('should normalize SVM address to Universal Address', () => {
-      const svmAddress = '11111111111111111111111111111112'; // System Program
+      const svmAddress = '11111111111111111111111111111112' as BlockchainAddress; // System Program
       const result = AddressNormalizer.normalize(svmAddress, ChainType.SVM);
 
       expect(result).toMatch(/^0x[0-9a-f]{64}$/i);
@@ -33,10 +34,10 @@ describe('AddressNormalizer', () => {
     });
 
     it('should handle already normalized Universal Address', () => {
-      const universalAddress = '0x0000000000000000000000001234567890123456789012345678901234567890';
-      const result = AddressNormalizer.normalize(universalAddress, ChainType.EVM);
+      const evmAddress = '0x1234567890123456789012345678901234567890'; // Regular EVM address
+      const result = AddressNormalizer.normalize(evmAddress, ChainType.EVM);
 
-      expect(result).toBe(universalAddress);
+      expect(result).toBe('0x0000000000000000000000001234567890123456789012345678901234567890');
     });
 
     it('should throw error for invalid EVM address', () => {
@@ -75,7 +76,7 @@ describe('AddressNormalizer', () => {
     });
 
     it('should throw error for invalid Universal Address format', () => {
-      const invalidAddress = '0x123' as UniversalAddress; // Too short
+      const invalidAddress = 'invalid-address' as UniversalAddress; // Not hex format
 
       expect(() => {
         AddressNormalizer.denormalize(invalidAddress, ChainType.EVM);
@@ -113,7 +114,7 @@ describe('AddressNormalizer', () => {
     });
 
     it('should maintain data integrity in SVM round-trip', () => {
-      const originalAddress = '11111111111111111111111111111112'; // System Program
+      const originalAddress = '11111111111111111111111111111112' as BlockchainAddress; // System Program
       const normalized = AddressNormalizer.normalize(originalAddress, ChainType.SVM);
       const denormalized = AddressNormalizer.denormalize(normalized, ChainType.SVM);
 

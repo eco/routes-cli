@@ -1,4 +1,3 @@
-import * as console from 'node:console';
 import { randomBytes } from 'node:crypto';
 
 import * as dotenv from 'dotenv';
@@ -17,6 +16,10 @@ import {
 } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { base, optimism } from 'viem/chains';
+
+// Add logger import - adjust path based on script location
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { logger } = require('../../utils/logger');
 
 dotenv.config();
 
@@ -162,7 +165,7 @@ function createIntent(routeAmount: bigint) {
 async function publishIntent(routeBytes: Hex, reward: Reward) {
   const destinationId = BigInt(destination.id); // Base Sepolia chain ID
 
-  console.log('Publishing intent to portal...');
+  logger.info('Publishing intent to portal...');
 
   const hash = await walletClient.writeContract({
     address: SOURCE_PORTAL,
@@ -172,8 +175,8 @@ async function publishIntent(routeBytes: Hex, reward: Reward) {
   });
 
   await publicClient.waitForTransactionReceipt({ hash });
-  console.log('Intent published!');
-  console.log('Transaction hash:', hash);
+  logger.success('Intent published!');
+  logger.info(`Transaction hash: ${hash}`);
 
   return hash;
 }
@@ -205,7 +208,7 @@ async function getQuote() {
     },
   };
 
-  console.log(`Calling quoting service: ${url.toString()}`);
+  logger.info(`Calling quoting service: ${url.toString()}`);
 
   const response = await fetch(url.toString(), {
     method: 'POST',
@@ -223,32 +226,35 @@ async function getQuote() {
 // Main execution
 async function main() {
   try {
-    console.log('Creating EVM to EVM intent...');
-    console.log(`From: ${source.name}`);
-    console.log(`To: ${destination.name}`);
-    console.log(`Reward amount: ${REWARD_AMOUNT}`);
-    console.log('');
+    logger.title('Creating EVM to EVM intent');
+    logger.info(`From: ${source.name}`);
+    logger.info(`To: ${destination.name}`);
+    logger.info(`Reward amount: ${REWARD_AMOUNT}`);
+    logger.info('');
 
     // Step 1: Get a quote
     const quote = await getQuote();
 
     // Step 1.1: Extract route amount
     const routeAmount = BigInt(quote.quoteResponse.destinationAmount);
-    console.log(`Route amount: ${routeAmount.toString()}`);
+    logger.info(`Route amount: ${routeAmount.toString()}`);
 
     // Step 2: Approve reward token
     await approveTokens();
 
     // Step 3: Create intent
     const { routeBytes, reward, salt } = createIntent(routeAmount);
-    console.log('Intent created with salt:', salt);
+    logger.info(`Intent created with salt: ${salt}`);
 
     // Step 4: Publish intent
     await publishIntent(routeBytes, reward);
 
-    console.log('\n✅ Intent successfully created and published!');
+    logger.success('Intent successfully created and published!');
   } catch (error) {
-    console.error('Error:', error);
+    logger.error(`Error: ${error instanceof Error ? error.message : String(error)}`);
+    if (process.env.DEBUG && error instanceof Error) {
+      logger.error(`Stack: ${error.stack}`);
+    }
     process.exit(1);
   }
 }

@@ -11,7 +11,8 @@ import { Command } from 'commander';
 import { createConfigCommand } from '@/commands/config';
 import { createPublishCommand } from '@/commands/publish';
 import { createStatusCommand } from '@/commands/status';
-import { updatePortalAddresses } from '@/config/chains';
+import { type ChainConfig, updatePortalAddresses } from '@/config/chains';
+import { type TokenConfig } from '@/config/tokens';
 import { handleCliError, setupGlobalErrorHandlers } from '@/utils/error-handler';
 import { logger } from '@/utils/logger';
 
@@ -42,16 +43,16 @@ program.addCommand(createConfigCommand());
 program
   .command('chains')
   .description('List supported chains')
-  .action(() => {
-    const { listChains } = require('@/config/chains');
+  .action(async () => {
+    const { listChains } = await import('@/config/chains');
     const chains = listChains();
 
     logger.title('📋 Supported Chains');
 
     const headers = ['Name', 'ID', 'Type', 'Native Currency'];
-    const rows = chains.map((chain: any) => [
+    const rows = chains.map((chain: ChainConfig) => [
       chalk.yellow(chain.name),
-      chain.id,
+      chain.id.toString(),
       chain.type,
       chain.nativeCurrency.symbol,
     ]);
@@ -63,14 +64,14 @@ program
 program
   .command('tokens')
   .description('List configured tokens')
-  .action(() => {
-    const { listTokens } = require('@/config/tokens');
+  .action(async () => {
+    const { listTokens } = await import('@/config/tokens');
     const tokens = listTokens();
 
     logger.title('💰 Configured Tokens');
 
     const headers = ['Symbol', 'Name', 'Decimals', 'Available Chains'];
-    const rows = tokens.map((token: any) => [
+    const rows = tokens.map((token: TokenConfig) => [
       chalk.yellow(token.symbol),
       token.name,
       token.decimals,

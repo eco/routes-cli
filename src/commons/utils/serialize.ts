@@ -1,2 +1,4 @@
-export const serialize = (obj: any) =>
-  JSON.stringify(obj, (_, value) => (typeof value === 'bigint' ? value.toString() : value));
+export const serialize = (obj: unknown): string =>
+  JSON.stringify(obj, (_key: string, value: unknown) =>
+    typeof value === 'bigint' ? value.toString() : value
+  );

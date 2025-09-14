@@ -1,16 +1,17 @@
-import { Intent } from '@/core/interfaces/intent';
-import { Hex } from 'viem';
-import { AddressNormalizer } from '@/core/utils/address-normalizer';
-import { UniversalAddress } from '@/core/types/universal-address';
+import { web3 } from '@coral-xyz/anchor';
 import {
   createTransferCheckedInstruction,
   getAssociatedTokenAddress,
   TOKEN_PROGRAM_ID,
 } from '@solana/spl-token';
-import { web3 } from '@coral-xyz/anchor';
-import { portalBorshCoder } from '@/commons/utils/portal-borsh-coder';
+import { Hex } from 'viem';
+
 import { CalldataWithAccountsInstruction } from '@/commons/types/portal-idl-coder.type';
+import { portalBorshCoder } from '@/commons/utils/portal-borsh-coder';
 import { ChainConfig } from '@/config/chains';
+import { Intent } from '@/core/interfaces/intent';
+import { UniversalAddress } from '@/core/types/universal-address';
+import { AddressNormalizer } from '@/core/utils/address-normalizer';
 
 export async function svmCallsBuilder(
   destination: ChainConfig,

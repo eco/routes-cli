@@ -3,10 +3,10 @@
  */
 
 import { ChainType } from '@/core/interfaces/intent';
+import { BlockchainAddress, SvmAddress } from '@/core/types/blockchain-addresses';
 import { UniversalAddress } from '@/core/types/universal-address';
 import { AddressNormalizer } from '@/core/utils/address-normalizer';
-import { BlockchainAddress, SvmAddress } from '@/core/types/blockchain-addresses';
-import { program } from 'commander';
+import { logger } from '@/utils/logger';
 
 export interface ChainConfig {
   id: bigint;
@@ -208,7 +208,9 @@ export function updatePortalAddresses(env: Record<string, string | undefined>) {
           CHAIN_CONFIGS[chainKey].type
         );
       } catch (error) {
-        console.warn(`Failed to set portal address for ${chainKey}:`, error);
+        logger.warning(
+          `Failed to set portal address for ${chainKey}: ${error instanceof Error ? error.message : String(error)}`
+        );
       }
     }
   }

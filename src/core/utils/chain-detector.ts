@@ -1,8 +1,27 @@
 /**
  * Chain Type Detector Utility
  *
- * Determines the blockchain type (EVM, TVM, SVM) based on chain ID or network identifier.
- * Used for Portal contract encoding/decoding operations.
+ * Provides utilities for determining blockchain types (EVM, TVM, SVM) from chain identifiers
+ * and validating address formats for cross-chain operations. This is essential for the
+ * Routes CLI system to handle multi-chain intent publishing correctly.
+ *
+ * Supports:
+ * - EVM chains: Ethereum, Optimism, Base, Arbitrum, etc.
+ * - TVM chains: Tron mainnet and testnets
+ * - SVM chains: Solana mainnet, devnet, and testnet
+ *
+ * @example
+ * ```typescript
+ * // Detect chain type from ID
+ * const chainType = ChainTypeDetector.detect(1); // ChainType.EVM (Ethereum)
+ * const solanaType = ChainTypeDetector.detect(1399811149); // ChainType.SVM
+ *
+ * // Validate address format
+ * const isValid = ChainTypeDetector.isValidAddressForChain(
+ *   '0x742d35Cc6634C0532925a3b8D65C32c2b3f6dE1b',
+ *   ChainType.EVM
+ * ); // true
+ * ```
  */
 
 import { ChainType } from '@/core/interfaces/intent';
@@ -28,11 +47,30 @@ const CHAIN_TYPE_MAPPINGS = {
 
 export class ChainTypeDetector {
   /**
-   * Detects chain type from numeric chain ID
+   * Detects chain type from numeric chain ID.
    *
-   * @param chainIdentifier - Chain ID (number/bigint)
-   * @returns ChainType enum value
-   * @throws Error if chain type cannot be determined
+   * Uses predefined mappings for known TVM and SVM chains, falling back to
+   * EVM detection heuristics for unrecognized chain IDs. String identifiers
+   * are deprecated in favor of numeric chain IDs.
+   *
+   * @param chainIdentifier - Chain ID as number, bigint, or deprecated string
+   * @returns ChainType enum value (EVM, TVM, or SVM)
+   * @throws {Error} When chain type cannot be determined or string identifier is used
+   *
+   * @example
+   * ```typescript
+   * // Ethereum mainnet
+   * const ethType = ChainTypeDetector.detect(1); // ChainType.EVM
+   *
+   * // Tron mainnet
+   * const tronType = ChainTypeDetector.detect(728126428); // ChainType.TVM
+   *
+   * // Solana mainnet
+   * const solanaType = ChainTypeDetector.detect(1399811149); // ChainType.SVM
+   *
+   * // Bigint support
+   * const chainType = ChainTypeDetector.detect(1n); // ChainType.EVM
+   * ```
    */
   static detect(chainIdentifier: bigint | number | string): ChainType {
     // Handle legacy string identifiers (deprecated - should be numeric)
@@ -64,10 +102,23 @@ export class ChainTypeDetector {
   }
 
   /**
-   * Gets the native address format for a chain type
+   * Gets the native address format description for a chain type.
    *
-   * @param chainType - The chain type
-   * @returns Address format description
+   * Provides human-readable descriptions of address formats used by different
+   * blockchain types. Useful for user interfaces and validation messages.
+   *
+   * @param chainType - The blockchain type to get format for
+   * @returns Human-readable address format description
+   * @throws {Error} When chain type is unknown
+   *
+   * @example
+   * ```typescript
+   * const evmFormat = ChainTypeDetector.getAddressFormat(ChainType.EVM);
+   * // Returns: 'hex (0x prefixed, 20 bytes)'
+   *
+   * const solanaFormat = ChainTypeDetector.getAddressFormat(ChainType.SVM);
+   * // Returns: 'base58 (Solana format, 32 bytes)'
+   * ```
    */
   static getAddressFormat(chainType: ChainType): string {
     switch (chainType) {
@@ -83,11 +134,36 @@ export class ChainTypeDetector {
   }
 
   /**
-   * Validates if an address format matches the expected chain type
+   * Validates if an address format matches the expected chain type.
+   *
+   * Performs regex-based validation to check if an address string conforms
+   * to the expected format for a given blockchain type. Does not validate
+   * checksums or verify the address exists on-chain.
    *
    * @param address - Address string to validate
-   * @param chainType - Expected chain type
-   * @returns true if address format matches chain type
+   * @param chainType - Expected blockchain type for validation
+   * @returns True if address format matches the chain type, false otherwise
+   *
+   * @example
+   * ```typescript
+   * // Valid EVM address
+   * const isValidEvm = ChainTypeDetector.isValidAddressForChain(
+   *   '0x742d35Cc6634C0532925a3b8D65C32c2b3f6dE1b',
+   *   ChainType.EVM
+   * ); // true
+   *
+   * // Invalid EVM address (wrong format)
+   * const isInvalid = ChainTypeDetector.isValidAddressForChain(
+   *   'TLyqzVGLV1srkB7dToTAEqgDSfPtXRJZYH',
+   *   ChainType.EVM
+   * ); // false
+   *
+   * // Valid Tron address
+   * const isValidTron = ChainTypeDetector.isValidAddressForChain(
+   *   'TLyqzVGLV1srkB7dToTAEqgDSfPtXRJZYH',
+   *   ChainType.TVM
+   * ); // true
+   * ```
    */
   static isValidAddressForChain(address: string, chainType: ChainType): boolean {
     switch (chainType) {
