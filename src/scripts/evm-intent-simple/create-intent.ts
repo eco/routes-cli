@@ -1,15 +1,10 @@
-import { randomBytes } from 'node:crypto';
-
 import * as dotenv from 'dotenv';
 import {
   Address,
   ContractFunctionArgs,
   createPublicClient,
   createWalletClient,
-  encodeAbiParameters,
-  encodeFunctionData,
   erc20Abi,
-  getAbiItem,
   Hex,
   http,
   parseAbi,
@@ -17,17 +12,12 @@ import {
 import { privateKeyToAccount } from 'viem/accounts';
 import { base, optimism } from 'viem/chains';
 
-// Add logger import - adjust path based on script location
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const { logger } = require('../../utils/logger');
-
 dotenv.config();
 
 // Configuration
 const PRIVATE_KEY = process.env.PRIVATE_KEY as Hex;
 const SOURCE_PORTAL = '0x2b7F87a98707e6D19504293F6680498731272D4f' as Address;
-const DESTINATION_PORTAL = '0x2b7F87a98707e6D19504293F6680498731272D4f' as Address;
-const PROVER_ADDRESS = '0xde255Aab8e56a6Ae6913Df3a9Bbb6a9f22367f4C' as Address;
+const PROVER_ADDRESS = '0x3E4a157079Bc846e9d2C71f297d529e0fcb4D44d' as Address;
 
 // Token addresses
 const SOURCE_TOKEN = '0x0b2c639c533813f4aa9d7837caf62653d097ff85' as Address;
@@ -65,6 +55,7 @@ interface QuoteResponse {
     funder: Address;
     refundRecipient: Address;
     recipient: Address;
+    encodedRoute: Hex;
     fees: [
       {
         name: string;
@@ -89,11 +80,6 @@ interface QuoteResponse {
 export type Route = ContractFunctionArgs<typeof portalAbi, 'nonpayable', 'fulfill'>[1];
 export type Reward = ContractFunctionArgs<typeof portalAbi, 'nonpayable', 'publishAndFund'>[2];
 
-export const routeAbiItem = getAbiItem({
-  abi: portalAbi,
-  name: 'fulfill',
-}).inputs[1];
-
 const walletClient = createWalletClient({
   account,
   chain: source,
@@ -105,49 +91,12 @@ const publicClient = createPublicClient({
   transport: http(),
 });
 
-function createIntent(routeAmount: bigint) {
-  // Generate random salt
-  const salt = `0x${randomBytes(32).toString('hex')}` as Hex;
-
-  // Set deadlines (1 hour for route, 24 hours for refund)
+function buildReward(): Reward {
   const now = Math.floor(Date.now() / 1000);
-  const routeDeadline = BigInt(now + 3600 * 2); // 2 hour
-  const refundDeadline = routeDeadline;
-
-  // Create ERC20 transfer call data
-  const transferCallData = encodeFunctionData({
-    abi: erc20Abi,
-    functionName: 'transfer',
-    args: [RECIPIENT, routeAmount], // Transfer to the user's address
-  });
-
-  // Create the route struct
-  const route: Route = {
-    salt,
-    deadline: routeDeadline,
-    portal: DESTINATION_PORTAL,
-    nativeAmount: 0n,
-    tokens: [
-      {
-        token: DESTINATION_TOKEN,
-        amount: routeAmount,
-      },
-    ],
-    calls: [
-      {
-        target: DESTINATION_TOKEN,
-        data: transferCallData,
-        value: 0n,
-      },
-    ],
-  };
-
-  // Encode the route
-  const routeBytes = encodeAbiParameters([routeAbiItem], [route]);
 
   // Create the reward struct
-  const reward: Reward = {
-    deadline: refundDeadline,
+  return {
+    deadline: BigInt(now + 3600 * 2), // 2 hour,
     creator: account.address,
     prover: PROVER_ADDRESS,
     nativeAmount: 0n,
@@ -158,14 +107,12 @@ function createIntent(routeAmount: bigint) {
       },
     ],
   };
-
-  return { routeBytes, reward, salt };
 }
 
 async function publishIntent(routeBytes: Hex, reward: Reward) {
   const destinationId = BigInt(destination.id); // Base Sepolia chain ID
 
-  logger.info('Publishing intent to portal...');
+  console.info('Publishing intent to portal...');
 
   const hash = await walletClient.writeContract({
     address: SOURCE_PORTAL,
@@ -175,8 +122,8 @@ async function publishIntent(routeBytes: Hex, reward: Reward) {
   });
 
   await publicClient.waitForTransactionReceipt({ hash });
-  logger.success('Intent published!');
-  logger.info(`Transaction hash: ${hash}`);
+  console.log('Intent published!');
+  console.info(`Transaction hash: ${hash}`);
 
   return hash;
 }
@@ -192,23 +139,34 @@ async function approveTokens() {
   await publicClient.waitForTransactionReceipt({ hash });
 }
 
-async function getQuote() {
+interface QuoteRequest {
+  source: number;
+  sourceAmount: bigint;
+  sourceToken: string;
+  funder: string;
+
+  destination: number;
+  destinationToken: string;
+  recipient: string;
+}
+
+async function getQuote(requestOpts: QuoteRequest) {
   const url = new URL('/api/v3/quotes/getQuote', quoteUrl);
   const request = {
     dAppID: 'dapp',
     quoteRequest: {
-      sourceChainID: Number(source.id),
-      sourceToken: SOURCE_TOKEN,
-      destinationChainID: Number(destination.id),
-      destinationToken: DESTINATION_TOKEN,
-      sourceAmount: REWARD_AMOUNT.toString(),
-      funder: RECIPIENT,
-      refundRecipient: RECIPIENT,
-      recipient: RECIPIENT,
+      sourceChainID: Number(requestOpts.source),
+      sourceAmount: requestOpts.sourceAmount.toString(),
+      sourceToken: requestOpts.sourceToken,
+      funder: requestOpts.funder,
+      refundRecipient: requestOpts.funder,
+      destinationChainID: Number(requestOpts.destination),
+      destinationToken: requestOpts.destinationToken,
+      recipient: requestOpts.recipient,
     },
   };
 
-  logger.info(`Calling quoting service: ${url.toString()}`);
+  console.info(`Calling quoting service: ${url.toString()}`);
 
   const response = await fetch(url.toString(), {
     method: 'POST',
@@ -226,34 +184,44 @@ async function getQuote() {
 // Main execution
 async function main() {
   try {
-    logger.title('Creating EVM to EVM intent');
-    logger.info(`From: ${source.name}`);
-    logger.info(`To: ${destination.name}`);
-    logger.info(`Reward amount: ${REWARD_AMOUNT}`);
-    logger.info('');
+    console.log('Creating EVM to EVM intent');
+    console.info(`From: ${source.name}`);
+    console.info(`To: ${destination.name}`);
+    console.info(`Reward amount: ${REWARD_AMOUNT}`);
+    console.info('');
 
     // Step 1: Get a quote
-    const quote = await getQuote();
+    const { quoteResponse } = await getQuote({
+      source: source.id,
+      sourceAmount: REWARD_AMOUNT,
+      sourceToken: SOURCE_TOKEN,
+      funder: RECIPIENT,
+
+      destination: destination.id,
+      destinationToken: DESTINATION_TOKEN,
+      recipient: RECIPIENT,
+    });
+
+    const { destinationAmount, encodedRoute } = quoteResponse;
 
     // Step 1.1: Extract route amount
-    const routeAmount = BigInt(quote.quoteResponse.destinationAmount);
-    logger.info(`Route amount: ${routeAmount.toString()}`);
+    const routeAmount = BigInt(destinationAmount);
+    console.info(`Route amount: ${routeAmount.toString()}`);
 
     // Step 2: Approve reward token
     await approveTokens();
 
     // Step 3: Create intent
-    const { routeBytes, reward, salt } = createIntent(routeAmount);
-    logger.info(`Intent created with salt: ${salt}`);
+    const reward = buildReward();
 
     // Step 4: Publish intent
-    await publishIntent(routeBytes, reward);
+    await publishIntent(encodedRoute, reward);
 
-    logger.success('Intent successfully created and published!');
+    console.log('Intent successfully created and published!');
   } catch (error) {
-    logger.error(`Error: ${error instanceof Error ? error.message : String(error)}`);
+    console.error(`Error: ${error instanceof Error ? error.message : String(error)}`);
     if (process.env.DEBUG && error instanceof Error) {
-      logger.error(`Stack: ${error.stack}`);
+      console.error(`Stack: ${error.stack}`);
     }
     process.exit(1);
   }
