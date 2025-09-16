@@ -138,7 +138,6 @@ export class SvmPublisher extends BasePublisher {
       const routeHex = this.encodeRouteForDestination(intent);
       const routeBytes = Buffer.from(routeHex.slice(2), 'hex');
       const routeHash = keccak256(routeHex);
-      console.log("MADDEN: Route hash: ", routeHash)
 
       const portalReward = {
         deadline: new BN(intent.reward.deadline),
@@ -150,6 +149,10 @@ export class SvmPublisher extends BasePublisher {
           amount: new BN(token.amount),
         })),
       };
+
+      // add funding
+      const fundingResult = await this.fundIntent(intent, privateKey, intent.intentHash!, routeHash);
+      if (fundingResult.success) logger.info(`Funding successful: ${fundingResult.transactionHash}`);
 
       logger.info('Building publish transaction...');
       const transaction = await program.methods
@@ -173,11 +176,7 @@ export class SvmPublisher extends BasePublisher {
       
       await this.confirmTransactionPolling(signature, 'confirmed');
       
-      logger.succeed('Transaction confirmed');
-
-      // add funding
-      const fundingResult = await this.fundIntent(intent, privateKey, intent.intentHash!, routeHash);
-      if (fundingResult.success) logger.info(`Funding successful: ${fundingResult.transactionHash}`);
+      logger.succeed('Transaction confirmed - Intent is published!');
       
       return {
         success: true,
@@ -237,7 +236,6 @@ export class SvmPublisher extends BasePublisher {
       const network = ChainTypeDetector.getNetworkFromChainConfig(intent.sourceChainId);
       const idl = getPortalIdl(network);
       const program = new Program(idl, provider);
-      console.log("ARGS: ", portalProgramId, intentHash);
 
       // Calculate vault PDA from intent hash
       const intentHashBytes = new Uint8Array(Buffer.from(intentHash.slice(2), 'hex'));
@@ -297,7 +295,6 @@ export class SvmPublisher extends BasePublisher {
         })),
       };
 
-      console.log("MADDEN: Route hash bytes: ", Buffer.from(routeHash.slice(2), 'hex'))
       const fundArgs = {
         destination: new BN(intent.destination),
         route_hash: Array.from(Buffer.from(routeHash.slice(2), 'hex')),
