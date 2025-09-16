@@ -7,7 +7,6 @@ import {
   Keypair,
   PublicKey,
   Transaction,
-  sendAndConfirmTransaction,
 } from '@solana/web3.js';
 import { Program, AnchorProvider, Wallet, BN } from '@coral-xyz/anchor';
 import {
@@ -23,7 +22,7 @@ import { AddressNormalizer } from '../core/utils/address-normalizer';
 import { PortalEncoder } from '../core/utils/portal-encoder';
 import { getChainById } from '../config/chains';
 import { logger } from '../utils/logger';
-import { getPortalIdl, Network } from '../commons/idls/portal.idl';
+import { getPortalIdl } from '../commons/idls/portal.idl';
 import { ChainTypeDetector } from '../core/utils/chain-detector';
 import { Hex, keccak256 } from 'viem';
 
@@ -50,6 +49,7 @@ export class SvmPublisher extends BasePublisher {
       return Keypair.fromSecretKey(new Uint8Array(bytes));
     } else {
       // Base58 format
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const bs58 = require('bs58');
       const bytes = bs58.decode(privateKey);
       return Keypair.fromSecretKey(bytes);
@@ -104,6 +104,7 @@ export class SvmPublisher extends BasePublisher {
 
     return PortalEncoder.encode(intent.route, destChain.type);
   }
+
   async publish(intent: Intent, privateKey: string): Promise<PublishResult> {
     try {
       const keypair = this.parsePrivateKey(privateKey);
@@ -366,7 +367,7 @@ export class SvmPublisher extends BasePublisher {
     }
   }
   
-  async getBalance(address: string, chainId?: bigint): Promise<bigint> {
+  async getBalance(address: string, _chainId?: bigint): Promise<bigint> {
     try {
       const publicKey = new PublicKey(address);
       const balance = await this.connection.getBalance(publicKey);

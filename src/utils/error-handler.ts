@@ -2,6 +2,7 @@
  * Global error handling utilities
  */
 
+import { hasErrorCode } from '@/commons/utils/error-handler';
 import { logger } from '@/utils/logger';
 
 export interface ErrorWithCode extends Error {
@@ -81,7 +82,7 @@ export function setupGlobalErrorHandlers(): void {
   });
 
   // Handle unhandled promise rejections
-  process.on('unhandledRejection', (reason: any, promise: Promise<any>) => {
+  process.on('unhandledRejection', (reason: unknown, _promise: Promise<unknown>) => {
     logger.error('Unhandled Rejection at Promise');
     logger.error(`Reason: ${String(reason)}`);
 
@@ -104,41 +105,45 @@ export function setupGlobalErrorHandlers(): void {
 /**
  * Handles CLI errors with appropriate logging and exit codes
  */
-export function handleCliError(error: any): never {
+export function handleCliError(error: unknown): never {
   if (error instanceof CliError) {
     // Our custom CLI errors
     logger.error(error.message);
 
-    if (process.env.NODE_ENV === 'development' && error.stack) {
+    if (process.env.DEBUG && error.stack) {
       logger.error('Stack trace:');
       logger.error(error.stack);
     }
 
     process.exit(error.statusCode);
-  } else if (error?.code === 'ENOENT') {
+  } else if (hasErrorCode(error) && error.code === 'ENOENT') {
     // File not found errors
-    logger.error(`File not found: ${error.path || 'unknown'}`);
+    const path = 'path' in error ? (error as Error & { path: string }).path : 'unknown';
+    logger.error(`File not found: ${path}`);
     process.exit(1);
-  } else if (error?.code === 'EACCES') {
+  } else if (hasErrorCode(error) && error.code === 'EACCES') {
     // Permission errors
-    logger.error(`Permission denied: ${error.path || 'unknown file/directory'}`);
+    const path =
+      'path' in error ? (error as Error & { path: string }).path : 'unknown file/directory';
+    logger.error(`Permission denied: ${path}`);
     logger.error('Try running with appropriate permissions or check file ownership');
     process.exit(1);
-  } else if (error?.code === 'ECONNREFUSED' || error?.code === 'ENOTFOUND') {
+  } else if (hasErrorCode(error) && (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND')) {
     // Network connection errors
     logger.error('Network connection failed');
     logger.error('Please check your internet connection and try again');
     process.exit(1);
-  } else if (error?.name === 'ValidationError') {
+  } else if (error instanceof Error && error.name === 'ValidationError') {
     // Validation errors from libraries
     logger.error(`Input validation failed: ${error.message}`);
     process.exit(1);
   } else {
     // Generic errors
     logger.error('An unexpected error occurred:');
-    logger.error(error?.message || String(error));
+    const message = error instanceof Error ? error.message : String(error);
+    logger.error(message);
 
-    if (process.env.NODE_ENV === 'development' && error?.stack) {
+    if (process.env.DEBUG && error instanceof Error && error.stack) {
       logger.error('Stack trace:');
       logger.error(error.stack);
     }
@@ -150,7 +155,7 @@ export function handleCliError(error: any): never {
 /**
  * Wraps async functions to handle errors gracefully
  */
-export function withErrorHandling<T extends any[], R>(
+export function withErrorHandling<T extends unknown[], R>(
   fn: (...args: T) => Promise<R>
 ): (...args: T) => Promise<R> {
   return async (...args: T): Promise<R> => {
@@ -165,13 +170,13 @@ export function withErrorHandling<T extends any[], R>(
 /**
  * Creates a retry wrapper for operations that might fail temporarily
  */
-export function withRetry<T extends any[], R>(
+export function withRetry<T extends unknown[], R>(
   fn: (...args: T) => Promise<R>,
   maxRetries: number = 3,
   delayMs: number = 1000
 ): (...args: T) => Promise<R> {
   return async (...args: T): Promise<R> => {
-    let lastError: any;
+    let lastError: unknown;
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {

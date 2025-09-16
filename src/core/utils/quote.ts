@@ -1,5 +1,7 @@
 import { Address } from 'viem';
 
+import { logger } from '@/utils/logger';
+
 interface QuoteRequest {
   source: bigint;
   destination: bigint;
@@ -60,7 +62,9 @@ export async function getQuote(requestOpts: QuoteRequest) {
     },
   };
 
-  console.log(`Calling quoting service: ${url.toString()}`);
+  if (process.env.DEBUG) {
+    logger.log(`Calling quoting service: ${url.toString()}`);
+  }
 
   const response = await fetch(url.toString(), {
     method: 'POST',

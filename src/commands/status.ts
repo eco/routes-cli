@@ -2,8 +2,6 @@
  * Status Command
  */
 
-import * as console from 'node:console';
-
 import { Command } from 'commander';
 import { Address, createPublicClient, getContract, Hex, http } from 'viem';
 
@@ -20,6 +18,13 @@ interface IntentStatus {
   transactionHash?: string;
   blockNumber?: bigint;
   timestamp?: Date;
+}
+
+interface StatusCommandOptions {
+  chain?: string;
+  watch?: boolean;
+  json?: boolean;
+  verbose?: boolean;
 }
 
 export function createStatusCommand(): Command {
@@ -73,7 +78,7 @@ export function createStatusCommand(): Command {
         }
       } catch (error) {
         if (options.json) {
-          console.log(
+          logger.log(
             JSON.stringify(
               { error: error instanceof Error ? error.message : String(error) },
               null,
@@ -140,7 +145,9 @@ async function getIntentStatus(
       intentHash,
     });
 
-    console.log({ event, portalAddress, client: client.chain.name });
+    if (process.env.DEBUG) {
+      logger.log(`Event: ${JSON.stringify({ event, portalAddress, client: client.chain.name })}`);
+    }
 
     const status: IntentStatus = {
       intentHash,
@@ -174,7 +181,11 @@ async function getIntentStatus(
   }
 }
 
-async function watchIntentStatus(intentHash: Hex, chain: ChainConfig, options: any): Promise<void> {
+async function watchIntentStatus(
+  intentHash: Hex,
+  chain: ChainConfig,
+  options: StatusCommandOptions
+): Promise<void> {
   const POLL_INTERVAL = 10_000; // 30 seconds
 
   if (!options.json) {
@@ -192,7 +203,7 @@ async function watchIntentStatus(intentHash: Hex, chain: ChainConfig, options: a
       // Only display if status changed or it's the first check
       if (!lastStatus || status.isFulfilled !== lastStatus.isFulfilled) {
         if (options.json) {
-          console.log(
+          logger.log(
             JSON.stringify(
               {
                 timestamp: new Date().toISOString(),
@@ -225,7 +236,7 @@ async function watchIntentStatus(intentHash: Hex, chain: ChainConfig, options: a
       await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL));
     } catch (error) {
       if (options.json) {
-        console.log(
+        logger.log(
           JSON.stringify(
             {
               timestamp: new Date().toISOString(),
@@ -247,9 +258,9 @@ async function watchIntentStatus(intentHash: Hex, chain: ChainConfig, options: a
   }
 }
 
-function displayStatus(status: IntentStatus, options: any): void {
+function displayStatus(status: IntentStatus, options: StatusCommandOptions): void {
   if (options.json) {
-    console.log(
+    logger.log(
       JSON.stringify(
         status,
         (key, value) => {

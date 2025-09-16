@@ -6,14 +6,7 @@ import { Keypair, PublicKey } from '@solana/web3.js';
 import { Command } from 'commander';
 import inquirer from 'inquirer';
 import { TronWeb } from 'tronweb';
-import {
-  encodeFunctionData,
-  erc20Abi,
-  formatUnits,
-  Hex,
-  isAddress as isViemAddress,
-  parseUnits,
-} from 'viem';
+import { formatUnits, Hex, isAddress as isViemAddress, parseUnits } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 
 import { BasePublisher } from '@/blockchain/base-publisher';
@@ -21,15 +14,23 @@ import { EvmPublisher } from '@/blockchain/evm-publisher';
 import { SvmPublisher } from '@/blockchain/svm-publisher';
 import { TvmPublisher } from '@/blockchain/tvm-publisher';
 import { IntentBuilder } from '@/builders/intent-builder';
+import { serialize } from '@/commons/utils/serialize';
 import { ChainConfig, getChainById, getChainByName, listChains } from '@/config/chains';
 import { loadEnvConfig } from '@/config/env';
 import { getTokenAddress, getTokenBySymbol, listTokens } from '@/config/tokens';
 import { ChainType, Intent } from '@/core/interfaces/intent';
+import { BlockchainAddress, SvmAddress, TronAddress } from '@/core/types/blockchain-addresses';
 import { AddressNormalizer } from '@/core/utils/address-normalizer';
 import { getQuote } from '@/core/utils/quote';
 import { logger } from '@/utils/logger';
-import { BlockchainAddress, SvmAddress, TronAddress } from '@/core/types/blockchain-addresses';
-import { serialize } from '@/commons/utils/serialize';
+
+interface PublishCommandOptions {
+  source?: string;
+  destination?: string;
+  privateKey?: string;
+  rpc?: string;
+  dryRun?: boolean;
+}
 
 export function createPublishCommand(): Command {
   const command = new Command('publish');
@@ -48,7 +49,10 @@ export function createPublishCommand(): Command {
         logger.title('🎨 Interactive Intent Publishing');
 
         const { intent, sourceChain, destChain } = await buildIntentInteractively(options);
-        console.log('Intent: ', serialize(intent));
+
+        if (process.env.DEBUG) {
+          logger.log(`Intent: ${serialize(intent)}`);
+        }
 
         const privateKey = getPrivateKey(sourceChain);
 
@@ -102,9 +106,10 @@ export function createPublishCommand(): Command {
           logger.fail('Publishing failed');
           throw new Error(result.error || 'Publishing failed');
         }
-      } catch (error: any) {
-        logger.error(`Error: ${error.message}`);
-        if (process.env.DEBUG) {
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        logger.error(`Error: ${errorMessage}`);
+        if (process.env.DEBUG && error instanceof Error) {
           logger.error(`Stack: ${error.stack}`);
         }
         process.exit(1);
@@ -117,7 +122,7 @@ export function createPublishCommand(): Command {
 /**
  * Build intent interactively
  */
-async function buildIntentInteractively(options: any): Promise<{
+async function buildIntentInteractively(options: PublishCommandOptions): Promise<{
   intent: Intent;
   sourceChain: ChainConfig;
   destChain: ChainConfig;
@@ -217,7 +222,7 @@ async function buildIntentInteractively(options: any): Promise<{
   let defaultRecipient: string | undefined;
   try {
     defaultRecipient = getWalletAddr(destChain, options);
-  } catch (e) {
+  } catch {
     // Ignore default recipient
   }
 
@@ -259,8 +264,9 @@ async function buildIntentInteractively(options: any): Promise<{
           // Try to normalize the address to ensure it's fully valid
           AddressNormalizer.normalize(input, destChain.type);
           return true;
-        } catch (error: any) {
-          return `Invalid address: ${error.message}`;
+        } catch (error: unknown) {
+          const errorMessage = error instanceof Error ? error.message : 'Invalid address format';
+          return `Invalid address: ${errorMessage}`;
         }
       },
     },
@@ -292,7 +298,7 @@ async function buildIntentInteractively(options: any): Promise<{
     routeAmount = BigInt(quote.quoteResponse.destinationAmount);
 
     logger.succeed('Quote fetched');
-  } catch (error) {
+  } catch {
     logger.fail('Quote failed. Enter amount manually');
 
     const { routeAmountStr } = await inquirer.prompt([
@@ -460,7 +466,10 @@ async function selectToken(
   };
 }
 
-export function getWalletAddr(chain: ChainConfig, options: any): BlockchainAddress {
+export function getWalletAddr(
+  chain: ChainConfig,
+  options?: PublishCommandOptions
+): BlockchainAddress {
   const privateKey = getPrivateKey(chain, options?.privateKey);
 
   if (!privateKey) {
@@ -483,7 +492,8 @@ export function getWalletAddr(chain: ChainConfig, options: any): BlockchainAddre
         const bytes = JSON.parse(privateKey);
         keypair = Keypair.fromSecretKey(new Uint8Array(bytes));
       } else {
-        const bs58 = require('bs58') as any;
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const bs58 = require('bs58');
         const bytes = bs58.decode(privateKey);
         keypair = Keypair.fromSecretKey(bytes);
       }

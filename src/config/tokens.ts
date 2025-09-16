@@ -3,9 +3,9 @@
  */
 
 import { ChainType } from '@/core/interfaces/intent';
+import { SvmAddress } from '@/core/types/blockchain-addresses';
 import { UniversalAddress } from '@/core/types/universal-address';
 import { AddressNormalizer } from '@/core/utils/address-normalizer';
-import { SvmAddress } from '@/core/types/blockchain-addresses';
 
 export interface TokenConfig {
   symbol: string;

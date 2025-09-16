@@ -6,96 +6,112 @@ import { ChainType } from '@/core/interfaces/intent';
 import { ChainTypeDetector } from '@/core/utils/chain-detector';
 
 describe('ChainTypeDetector', () => {
-  describe('detectFromAddress', () => {
-    it('should detect EVM addresses', () => {
-      const evmAddresses = [
-        '0x1234567890123456789012345678901234567890',
-        '0xA614f803B6FD780986A42c78Ec9c7f77e6DeD13C',
-        '0x0000000000000000000000000000000000000000',
-        '0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF',
+  describe('detect', () => {
+    it('should detect EVM chain types from chain IDs', () => {
+      const evmChainIds = [
+        1, // Ethereum mainnet
+        10, // Optimism
+        137, // Polygon
+        8453, // Base
+        42161, // Arbitrum
       ];
 
-      evmAddresses.forEach(address => {
-        expect(ChainTypeDetector.detectFromAddress(address)).toBe(ChainType.EVM);
+      evmChainIds.forEach(chainId => {
+        expect(ChainTypeDetector.detect(chainId)).toBe(ChainType.EVM);
       });
     });
 
-    it('should detect TVM addresses', () => {
-      const tvmAddresses = [
-        'TRX9Jv6xH2fqwPrPiLZNDjMbcNZj7VZx3S',
-        'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t', // USDT on Tron
-        'TLBaRhANQoJFTqre9Nf1mjuwNWjCJeYqUL',
-        'TGDqQAqvHEHeZ2x8yZR1dm8uykeX9knpci',
+    it('should detect TVM chain types from chain IDs', () => {
+      const tvmChainIds = [
+        728126428, // Tron mainnet
+        2494104990, // Tron Shasta testnet
       ];
 
-      tvmAddresses.forEach(address => {
-        expect(ChainTypeDetector.detectFromAddress(address)).toBe(ChainType.TVM);
+      tvmChainIds.forEach(chainId => {
+        expect(ChainTypeDetector.detect(chainId)).toBe(ChainType.TVM);
       });
     });
 
-    it('should detect SVM addresses', () => {
-      const svmAddresses = [
-        '11111111111111111111111111111112', // System Program
-        'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', // USDC on Solana
-        'So11111111111111111111111111111111111111112', // Wrapped SOL
-        '9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM',
+    it('should detect SVM chain types from chain IDs', () => {
+      const svmChainIds = [
+        1399811149, // Solana mainnet
+        1399811150, // Solana devnet
+        1399811151, // Solana testnet
       ];
 
-      svmAddresses.forEach(address => {
-        expect(ChainTypeDetector.detectFromAddress(address)).toBe(ChainType.SVM);
+      svmChainIds.forEach(chainId => {
+        expect(ChainTypeDetector.detect(chainId)).toBe(ChainType.SVM);
       });
     });
 
-    it('should detect Universal addresses as EVM by default', () => {
-      const universalAddresses = [
-        '0x0000000000000000000000001234567890123456789012345678901234567890',
-        '0x000000000000000000000000A614f803B6FD780986A42c78Ec9c7f77e6DeD13C',
-      ];
-
-      universalAddresses.forEach(address => {
-        expect(ChainTypeDetector.detectFromAddress(address)).toBe(ChainType.EVM);
-      });
+    it('should handle bigint chain identifiers', () => {
+      const chainId = BigInt(1);
+      expect(ChainTypeDetector.detect(chainId)).toBe(ChainType.EVM);
     });
 
-    it('should throw error for invalid addresses', () => {
-      const invalidAddresses = [
-        '',
-        '123',
-        'invalid-address',
-        '0x123', // Too short EVM address
-        'T123', // Too short TVM address
-        'xyz', // Invalid format
-      ];
+    it('should throw error for string chain identifiers (deprecated)', () => {
+      expect(() => {
+        ChainTypeDetector.detect('ethereum');
+      }).toThrow('String chain identifiers are deprecated');
+    });
 
-      invalidAddresses.forEach(address => {
-        expect(() => {
-          ChainTypeDetector.detectFromAddress(address);
-        }).toThrow();
-      });
+    it('should throw error for unknown chain IDs', () => {
+      const unknownChainId = 5000000000; // Outside EVM range (> 2^32)
+      expect(() => {
+        ChainTypeDetector.detect(unknownChainId);
+      }).toThrow('Cannot determine chain type for chain ID');
     });
   });
 
-  describe('isValidAddress', () => {
+  describe('getAddressFormat', () => {
+    it('should return correct format for EVM', () => {
+      expect(ChainTypeDetector.getAddressFormat(ChainType.EVM)).toBe('hex (0x prefixed, 20 bytes)');
+    });
+
+    it('should return correct format for TVM', () => {
+      expect(ChainTypeDetector.getAddressFormat(ChainType.TVM)).toBe('base58 (Tron format)');
+    });
+
+    it('should return correct format for SVM', () => {
+      expect(ChainTypeDetector.getAddressFormat(ChainType.SVM)).toBe(
+        'base58 (Solana format, 32 bytes)'
+      );
+    });
+
+    it('should throw error for unknown chain type', () => {
+      expect(() => {
+        ChainTypeDetector.getAddressFormat('UNKNOWN' as ChainType);
+      }).toThrow('Unknown chain type');
+    });
+  });
+
+  describe('isValidAddressForChain', () => {
     it('should validate EVM addresses', () => {
       expect(
-        ChainTypeDetector.isValidAddress(
+        ChainTypeDetector.isValidAddressForChain(
           '0x1234567890123456789012345678901234567890',
           ChainType.EVM
         )
       ).toBe(true);
-      expect(ChainTypeDetector.isValidAddress('0x123', ChainType.EVM)).toBe(false);
+      expect(ChainTypeDetector.isValidAddressForChain('0x123', ChainType.EVM)).toBe(false);
       expect(
-        ChainTypeDetector.isValidAddress('1234567890123456789012345678901234567890', ChainType.EVM)
+        ChainTypeDetector.isValidAddressForChain(
+          '1234567890123456789012345678901234567890',
+          ChainType.EVM
+        )
       ).toBe(false);
     });
 
     it('should validate TVM addresses', () => {
       expect(
-        ChainTypeDetector.isValidAddress('TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t', ChainType.TVM)
+        ChainTypeDetector.isValidAddressForChain(
+          'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t',
+          ChainType.TVM
+        )
       ).toBe(true);
-      expect(ChainTypeDetector.isValidAddress('TR7', ChainType.TVM)).toBe(false);
+      expect(ChainTypeDetector.isValidAddressForChain('TR7', ChainType.TVM)).toBe(false);
       expect(
-        ChainTypeDetector.isValidAddress(
+        ChainTypeDetector.isValidAddressForChain(
           '0x1234567890123456789012345678901234567890',
           ChainType.TVM
         )
@@ -104,17 +120,17 @@ describe('ChainTypeDetector', () => {
 
     it('should validate SVM addresses', () => {
       expect(
-        ChainTypeDetector.isValidAddress('11111111111111111111111111111112', ChainType.SVM)
+        ChainTypeDetector.isValidAddressForChain('11111111111111111111111111111112', ChainType.SVM)
       ).toBe(true);
       expect(
-        ChainTypeDetector.isValidAddress(
+        ChainTypeDetector.isValidAddressForChain(
           'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
           ChainType.SVM
         )
       ).toBe(true);
-      expect(ChainTypeDetector.isValidAddress('123', ChainType.SVM)).toBe(false);
+      expect(ChainTypeDetector.isValidAddressForChain('123', ChainType.SVM)).toBe(false);
       expect(
-        ChainTypeDetector.isValidAddress(
+        ChainTypeDetector.isValidAddressForChain(
           '0x1234567890123456789012345678901234567890',
           ChainType.SVM
         )

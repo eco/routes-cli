@@ -86,7 +86,7 @@ export class TvmPublisher extends BasePublisher {
 
       // Call publish function
       // Pass parameters as separate arguments
-      const publishSpinner = logger.spinner('Publishing intent to Portal contract...');
+      logger.spinner('Publishing intent to Portal contract...');
       const tx = await portalContract.publishAndFund(destination, routeHash, reward, false).send({
         from: senderAddress,
         callValue: Number(intent.reward.nativeAmount), // TRX amount in sun
@@ -108,20 +108,21 @@ export class TvmPublisher extends BasePublisher {
           error: 'Transaction failed',
         };
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.stopSpinner();
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       return {
         success: false,
-        error: error.message || 'Unknown error',
+        error: errorMessage,
       };
     }
   }
 
-  async getBalance(address: string, chainId?: bigint): Promise<bigint> {
+  async getBalance(address: string, _chainId?: bigint): Promise<bigint> {
     try {
       const balance = await this.tronWeb.trx.getBalance(address);
       return BigInt(balance);
-    } catch (error) {
+    } catch {
       return 0n;
     }
   }
@@ -151,10 +152,11 @@ export class TvmPublisher extends BasePublisher {
       }
 
       return { valid: true };
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Validation failed';
       return {
         valid: false,
-        error: error.message || 'Validation failed',
+        error: errorMessage,
       };
     }
   }

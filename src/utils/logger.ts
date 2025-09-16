@@ -136,7 +136,7 @@ export class Logger {
   /**
    * Create a table for displaying data
    */
-  table(options?: any): Table.Table {
+  table(options?: any): any {
     return new Table(
       options || {
         head: [],
@@ -152,7 +152,10 @@ export class Logger {
   /**
    * Display a simple key-value table
    */
-  displayKeyValue(data: Record<string, any>, title?: string): void {
+  displayKeyValue(
+    data: Record<string, string | number | boolean | undefined>,
+    title?: string
+  ): void {
     if (title) {
       this.section(title);
     }
@@ -172,7 +175,7 @@ export class Logger {
   /**
    * Display a data table with headers
    */
-  displayTable(headers: string[], rows: any[][], options?: any): void {
+  displayTable(headers: string[], rows: (string | number | boolean)[][], options?: any): void {
     const table = this.table({
       head: headers.map(h => chalk.cyan(h)),
       ...options,
@@ -198,7 +201,7 @@ export class Logger {
     if (result.success) {
       this.success('Intent published successfully!');
 
-      const data: Record<string, any> = {};
+      const data: Record<string, string | undefined> = {};
       if (result.transactionHash) data['Transaction Hash'] = result.transactionHash;
       if (result.intentHash) data['Intent Hash'] = result.intentHash;
       if (result.vaultAddress) data['Vault Address'] = result.vaultAddress;
@@ -261,14 +264,6 @@ export class Logger {
   } {
     let currentStep = 0;
     const totalSteps = steps.length;
-
-    const updateProgress = () => {
-      const progress = `[${currentStep}/${totalSteps}]`;
-      const currentStepName = steps[currentStep - 1];
-      if (currentStepName) {
-        this.updateSpinner(`${progress} ${currentStepName}`);
-      }
-    };
 
     return {
       next: (message?: string) => {

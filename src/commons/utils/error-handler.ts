@@ -42,7 +42,8 @@ export function hasErrorCode(error: unknown): error is Error & { code: string | 
   return (
     error instanceof Error &&
     'code' in error &&
-    (typeof (error as any).code === 'string' || typeof (error as any).code === 'number')
+    (typeof (error as Error & { code: unknown }).code === 'string' ||
+      typeof (error as Error & { code: unknown }).code === 'number')
   );
 }
 

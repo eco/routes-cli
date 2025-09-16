@@ -117,9 +117,9 @@ export function createConfigCommand(): Command {
         if (value !== undefined) {
           // Mask private keys for security
           if (key.toLowerCase().includes('private')) {
-            console.log('***[HIDDEN]***');
+            logger.log('***[HIDDEN]***');
           } else {
-            console.log(value);
+            logger.log(String(value));
           }
         } else {
           logger.warn(`Configuration key '${key}' not found`);
@@ -310,7 +310,7 @@ function ensureConfigDir(): void {
 }
 
 function displayConfig(config: ConfigSettings): void {
-  const data: Record<string, any> = {};
+  const data: Record<string, string | number | boolean | undefined> = {};
 
   if (config.defaultSourceChain) data['Default Source Chain'] = config.defaultSourceChain;
   if (config.defaultDestinationChain)
@@ -491,27 +491,45 @@ async function resetConfig(profileName?: string): Promise<void> {
 }
 
 // Utility functions for nested object operations
-function getNestedValue(obj: any, path: string): any {
-  return path.split('.').reduce((current, key) => current?.[key], obj);
+function getNestedValue(obj: ConfigSettings | Record<string, unknown>, path: string): unknown {
+  return path.split('.').reduce((current: unknown, key: string) => {
+    if (current && typeof current === 'object' && key in current) {
+      return (current as Record<string, unknown>)[key];
+    }
+    return undefined;
+  }, obj);
 }
 
-function setNestedValue(obj: any, path: string, value: any): void {
+function setNestedValue(
+  obj: ConfigSettings | Record<string, unknown>,
+  path: string,
+  value: unknown
+): void {
   const keys = path.split('.');
   const lastKey = keys.pop()!;
-  const target = keys.reduce((current, key) => {
-    if (!current[key] || typeof current[key] !== 'object') {
-      current[key] = {};
-    }
-    return current[key];
-  }, obj);
+  const target = keys.reduce(
+    (current: Record<string, unknown>, key: string) => {
+      if (!current[key] || typeof current[key] !== 'object') {
+        current[key] = {};
+      }
+      return current[key] as Record<string, unknown>;
+    },
+    obj as Record<string, unknown>
+  );
   target[lastKey] = value;
 }
 
-function deleteNestedValue(obj: any, path: string): void {
+function deleteNestedValue(obj: ConfigSettings | Record<string, unknown>, path: string): void {
   const keys = path.split('.');
   const lastKey = keys.pop()!;
-  const target = keys.reduce((current, key) => current?.[key], obj);
-  if (target) {
-    delete target[lastKey];
+  const target = keys.reduce((current: unknown, key: string) => {
+    if (current && typeof current === 'object' && key in current) {
+      return (current as Record<string, unknown>)[key];
+    }
+    return undefined;
+  }, obj as unknown);
+
+  if (target && typeof target === 'object' && lastKey in target) {
+    delete (target as Record<string, unknown>)[lastKey];
   }
 }

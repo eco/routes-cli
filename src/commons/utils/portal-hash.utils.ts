@@ -6,6 +6,7 @@
  */
 
 import { encodePacked, Hex, keccak256 } from 'viem';
+
 import { Intent } from '@/core/interfaces/intent';
 import { ChainTypeDetector } from '@/core/utils/chain-detector';
 import { PortalEncoder } from '@/core/utils/portal-encoder';
