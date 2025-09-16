@@ -58,47 +58,38 @@ Before running any script, you need:
 ### EVM to EVM (Optimism → Base)
 
 ```bash
-# Run with default configuration (Optimism to Base USDC)
-# Note: Run these commands from the evm-intent-simple directory
-cd src/scripts/evm-intent-simple && pnpm start
+# Run from the evm-intent-simple directory
+cd src/scripts/evm-intent-simple
 
-# Or run the specific script
+# Execute the script (uses Optimism to Base USDC configuration)
 pnpm exec ts-node scripts/evm-evm-intent.ts
-
-# With specific configuration
-pnpm exec ts-node scripts/evm-evm-intent.ts optimism-to-base usdc
-pnpm exec ts-node scripts/evm-evm-intent.ts base-to-optimism usdc
-pnpm exec ts-node scripts/evm-evm-intent.ts optimism-to-base usdt
 ```
+
+To use a different configuration, edit the `INTENT_CONFIG` in the script.
 
 ### EVM to Solana
 
 ```bash
-# Optimism to Solana mainnet
-pnpm exec ts-node scripts/evm-svm-intent.ts optimism mainnet YourSolanaAddress
+# Run from the evm-intent-simple directory
+cd src/scripts/evm-intent-simple
 
-# Base to Solana mainnet
-pnpm exec ts-node scripts/evm-svm-intent.ts base mainnet YourSolanaAddress
-
-# Optimism to Solana devnet (for testing)
-pnpm exec ts-node scripts/evm-svm-intent.ts optimism devnet YourSolanaDevnetAddress
+# Execute the script (uses Optimism to Solana configuration)
+pnpm exec ts-node scripts/evm-svm-intent.ts
 ```
+
+Note: Edit the `recipient` field in `OPTIMISM_TO_SOLANA_CONFIG` with your Solana address.
 
 ### EVM to Tron
 
 ```bash
-# Optimism to Tron mainnet
-pnpm exec ts-node scripts/evm-tvm-intent.ts optimism mainnet YourTronAddress
+# Run from the evm-intent-simple directory
+cd src/scripts/evm-intent-simple
 
-# Base to Tron mainnet
-pnpm exec ts-node scripts/evm-tvm-intent.ts base mainnet TRxxxxxxxxx
-
-# Ethereum to Tron mainnet
-pnpm exec ts-node scripts/evm-tvm-intent.ts ethereum mainnet YourTronAddress
-
-# Optimism to Tron Shasta testnet
-pnpm exec ts-node scripts/evm-tvm-intent.ts optimism shasta YourTronTestnetAddress
+# Execute the script (uses Optimism to Tron configuration)
+pnpm exec ts-node scripts/evm-tvm-intent.ts
 ```
+
+Note: Edit the `recipient` field in `OPTIMISM_TO_TRON_CONFIG` with your Tron address.
 
 ## Configuration Details
 
@@ -152,15 +143,25 @@ pnpm exec ts-node scripts/evm-tvm-intent.ts optimism shasta YourTronTestnetAddre
 
 ## Customizing Configurations
 
-You can modify the configurations in each script:
+Each script contains pre-configured setups that you can modify directly in the file:
+
+- **evm-evm-intent.ts**: Edit `INTENT_CONFIG` for Optimism to Base transfers
+- **evm-svm-intent.ts**: Edit `OPTIMISM_TO_SOLANA_CONFIG` for Solana transfers
+- **evm-tvm-intent.ts**: Edit `OPTIMISM_TO_TRON_CONFIG` for Tron transfers
 
 ```typescript
-// Example: Modify reward amount
-const config: IntentConfig = {
-  // ... other config
-  rewardAmount: 1000000n, // 1 USDC (6 decimals)
-  routeDeadlineSeconds: 3600, // 1 hour
-  rewardDeadlineSeconds: 3600, // 1 hour
+// Example: Modify the configuration in evm-evm-intent.ts
+export const INTENT_CONFIG: IntentConfig = {
+  privateKey: process.env.PRIVATE_KEY as Hex,
+  sourceChain: optimism,
+  destinationChain: base,
+  sourceToken: '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85', // USDC on Optimism
+  destinationToken: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', // USDC on Base
+  rewardAmount: 1000000n, // Change to 1 USDC (6 decimals)
+  recipient: '0xYourRecipientAddress', // Add specific recipient
+  quoteServiceUrl: 'https://quotes-preprod.eco.com',
+  routeDeadlineSeconds: 3600, // Change to 1 hour
+  rewardDeadlineSeconds: 3600, // Change to 1 hour
 };
 ```
 
