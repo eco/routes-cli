@@ -4,16 +4,18 @@ This directory contains example scripts for creating and publishing cross-chain 
 
 ## Available Scripts
 
-### 1. `intent-creator-base.ts` - Base Module
+All scripts are located in the `scripts/` subdirectory:
+
+### 1. `scripts/intent-creator-base.ts` - Base Module
 Shared functionality and the `IntentCreator` class used by all chain-specific scripts.
 
-### 2. `evm-evm-intent.ts` - EVM to EVM Transfers
+### 2. `scripts/evm-evm-intent.ts` - EVM to EVM Transfers
 Transfer tokens between EVM-compatible chains (Optimism, Base, Ethereum, etc.)
 
-### 3. `evm-svm-intent.ts` - EVM to Solana Transfers
+### 3. `scripts/evm-svm-intent.ts` - EVM to Solana Transfers
 Transfer tokens from EVM chains to Solana blockchain.
 
-### 4. `evm-tvm-intent.ts` - EVM to Tron Transfers
+### 4. `scripts/evm-tvm-intent.ts` - EVM to Tron Transfers
 Transfer tokens from EVM chains to Tron blockchain.
 
 ## Prerequisites
@@ -33,13 +35,14 @@ Before running any script, you need:
 
 ## Installation
 
-1. **Install dependencies:**
+1. **Install dependencies from project root:**
    ```bash
+   # From the project root directory
    pnpm install
    ```
 
 2. **Set up environment variables:**
-   Create a `.env` file in this directory:
+   Create a `.env` file in the project root:
    ```env
    # Required: Your EVM private key (with 0x prefix)
    PRIVATE_KEY=0x_your_private_key_here
@@ -56,44 +59,45 @@ Before running any script, you need:
 
 ```bash
 # Run with default configuration (Optimism to Base USDC)
-pnpm start
+# Note: Run these commands from the evm-intent-simple directory
+cd src/scripts/evm-intent-simple && pnpm start
 
 # Or run the specific script
-pnpm exec ts-node evm-evm-intent.ts
+pnpm exec ts-node scripts/evm-evm-intent.ts
 
 # With specific configuration
-pnpm exec ts-node evm-evm-intent.ts optimism-to-base usdc
-pnpm exec ts-node evm-evm-intent.ts base-to-optimism usdc
-pnpm exec ts-node evm-evm-intent.ts optimism-to-base usdt
+pnpm exec ts-node scripts/evm-evm-intent.ts optimism-to-base usdc
+pnpm exec ts-node scripts/evm-evm-intent.ts base-to-optimism usdc
+pnpm exec ts-node scripts/evm-evm-intent.ts optimism-to-base usdt
 ```
 
 ### EVM to Solana
 
 ```bash
 # Optimism to Solana mainnet
-pnpm exec ts-node evm-svm-intent.ts optimism mainnet YourSolanaAddress
+pnpm exec ts-node scripts/evm-svm-intent.ts optimism mainnet YourSolanaAddress
 
 # Base to Solana mainnet
-pnpm exec ts-node evm-svm-intent.ts base mainnet YourSolanaAddress
+pnpm exec ts-node scripts/evm-svm-intent.ts base mainnet YourSolanaAddress
 
 # Optimism to Solana devnet (for testing)
-pnpm exec ts-node evm-svm-intent.ts optimism devnet YourSolanaDevnetAddress
+pnpm exec ts-node scripts/evm-svm-intent.ts optimism devnet YourSolanaDevnetAddress
 ```
 
 ### EVM to Tron
 
 ```bash
 # Optimism to Tron mainnet
-pnpm exec ts-node evm-tvm-intent.ts optimism mainnet YourTronAddress
+pnpm exec ts-node scripts/evm-tvm-intent.ts optimism mainnet YourTronAddress
 
 # Base to Tron mainnet
-pnpm exec ts-node evm-tvm-intent.ts base mainnet TRxxxxxxxxx
+pnpm exec ts-node scripts/evm-tvm-intent.ts base mainnet TRxxxxxxxxx
 
 # Ethereum to Tron mainnet
-pnpm exec ts-node evm-tvm-intent.ts ethereum mainnet YourTronAddress
+pnpm exec ts-node scripts/evm-tvm-intent.ts ethereum mainnet YourTronAddress
 
 # Optimism to Tron Shasta testnet
-pnpm exec ts-node evm-tvm-intent.ts optimism shasta YourTronTestnetAddress
+pnpm exec ts-node scripts/evm-tvm-intent.ts optimism shasta YourTronTestnetAddress
 ```
 
 ## Configuration Details
