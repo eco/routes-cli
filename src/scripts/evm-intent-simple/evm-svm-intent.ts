@@ -52,7 +52,7 @@ export const OPTIMISM_TO_SOLANA_CONFIG: IntentConfig = {
 
   // Transaction parameters
   rewardAmount: 10000n, // 0.01 USDC (6 decimals)
-  recipient: '9TGzxE9Xg6tqJRpLu764RcoC3QKEGkwWeywJXuSqkuR3', // Set Solana recipient address (base58) or leave empty for default
+  recipient: '5nChimm7uJNx3JWPxZqH3xuunqL2dvHB4F4uQJHSYTPQ', // Set Solana recipient address (base58) or leave empty for default
 
   // Optional configurations
   quoteServiceUrl: 'https://quotes-preprod.eco.com',
