@@ -35,8 +35,6 @@ Before running any script, you need:
 
 1. **Install dependencies:**
    ```bash
-   npm install
-   # or
    pnpm install
    ```
 
@@ -58,44 +56,44 @@ Before running any script, you need:
 
 ```bash
 # Run with default configuration (Optimism to Base USDC)
-npm start
+pnpm start
 
 # Or run the specific script
-npx ts-node evm-evm-intent.ts
+pnpm exec ts-node evm-evm-intent.ts
 
 # With specific configuration
-npx ts-node evm-evm-intent.ts optimism-to-base usdc
-npx ts-node evm-evm-intent.ts base-to-optimism usdc
-npx ts-node evm-evm-intent.ts optimism-to-base usdt
+pnpm exec ts-node evm-evm-intent.ts optimism-to-base usdc
+pnpm exec ts-node evm-evm-intent.ts base-to-optimism usdc
+pnpm exec ts-node evm-evm-intent.ts optimism-to-base usdt
 ```
 
 ### EVM to Solana
 
 ```bash
 # Optimism to Solana mainnet
-npx ts-node evm-svm-intent.ts optimism mainnet YourSolanaAddress
+pnpm exec ts-node evm-svm-intent.ts optimism mainnet YourSolanaAddress
 
 # Base to Solana mainnet
-npx ts-node evm-svm-intent.ts base mainnet YourSolanaAddress
+pnpm exec ts-node evm-svm-intent.ts base mainnet YourSolanaAddress
 
 # Optimism to Solana devnet (for testing)
-npx ts-node evm-svm-intent.ts optimism devnet YourSolanaDevnetAddress
+pnpm exec ts-node evm-svm-intent.ts optimism devnet YourSolanaDevnetAddress
 ```
 
 ### EVM to Tron
 
 ```bash
 # Optimism to Tron mainnet
-npx ts-node evm-tvm-intent.ts optimism mainnet YourTronAddress
+pnpm exec ts-node evm-tvm-intent.ts optimism mainnet YourTronAddress
 
 # Base to Tron mainnet
-npx ts-node evm-tvm-intent.ts base mainnet TRxxxxxxxxx
+pnpm exec ts-node evm-tvm-intent.ts base mainnet TRxxxxxxxxx
 
 # Ethereum to Tron mainnet
-npx ts-node evm-tvm-intent.ts ethereum mainnet YourTronAddress
+pnpm exec ts-node evm-tvm-intent.ts ethereum mainnet YourTronAddress
 
 # Optimism to Tron Shasta testnet
-npx ts-node evm-tvm-intent.ts optimism shasta YourTronTestnetAddress
+pnpm exec ts-node evm-tvm-intent.ts optimism shasta YourTronTestnetAddress
 ```
 
 ## Configuration Details
