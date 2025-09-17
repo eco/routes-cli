@@ -1,7 +1,11 @@
 import { BorshCoder, Idl } from '@coral-xyz/anchor';
 
-import { portalIdl } from '@/commons/idls/portal.idl';
+import { getPortalIdl, Network, portalIdl } from '@/commons/idls/portal.idl';
 
-export const portalBorshCoder = new BorshCoder<string, (typeof portalIdl)['types'][number]['name']>(
-  portalIdl as unknown as Idl
-);
+export function getPortalBorshCoder(network: Network) {
+  const idl = getPortalIdl(network);
+  return new BorshCoder(idl as unknown as Idl);
+}
+
+// keeping the original export for backward compatibility (defaults to mainnet)
+export const portalBorshCoder = getPortalBorshCoder(Network.MAINNET);
