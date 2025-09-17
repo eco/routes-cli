@@ -290,7 +290,7 @@ async function buildIntentInteractively(options: PublishCommandOptions): Promise
       source: sourceChain.id,
       destination: destChain.id,
       funder: AddressNormalizer.denormalize(creatorAddress, sourceChain.type),
-      recipient: normalizedRecipient,
+      recipient: AddressNormalizer.denormalize(normalizedRecipient, destChain.type),
       amount: rewardAmount,
       routeToken: routeToken.address,
       rewardToken: rewardToken.address,
