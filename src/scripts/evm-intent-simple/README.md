@@ -1,219 +1,301 @@
-# EVM to EVM Intent Creation - Integration Example
+# Cross-Chain Intent Creation Scripts
 
-This script demonstrates how to create and publish cross-chain intents using the Eco Protocol. It transfers USDC from Optimism to Base.
+This directory contains example scripts for creating and publishing cross-chain intents using the Eco Protocol. The scripts demonstrate transfers between different blockchain types: EVM chains (Ethereum, Optimism, Base), Solana (SVM), and Tron (TVM).
+
+## Available Scripts
+
+All scripts are located in the `scripts/` subdirectory:
+
+### 1. `scripts/intent-creator-base.ts` - Base Module
+Shared functionality and the `IntentCreator` class used by all chain-specific scripts.
+
+### 2. `scripts/evm-evm-intent.ts` - EVM to EVM Transfers
+Transfer tokens between EVM-compatible chains (Optimism, Base, Ethereum, etc.)
+
+### 3. `scripts/evm-svm-intent.ts` - EVM to Solana Transfers
+Transfer tokens from EVM chains to Solana blockchain.
+
+### 4. `scripts/evm-tvm-intent.ts` - EVM to Tron Transfers
+Transfer tokens from EVM chains to Tron blockchain.
 
 ## Prerequisites
 
-Before running this script, you need:
+Before running any script, you need:
 
-1. **A computer with internet connection**
-2. **A crypto wallet with:**
-   - Some ETH on Optimism for gas fees (at least 0.01 ETH)
-   - Some USDC on Optimism for rewards (at least 0.1 USDC)
-3. **Basic ability to use Terminal/Command Prompt**
+1. **Node.js** (v18 or higher)
+   - Download from https://nodejs.org/
+   - Verify with: `node --version`
 
-## Step-by-Step Setup Guide
+2. **Required Tokens:**
+   - ETH/native token on source chain for gas fees
+   - Tokens to transfer (USDC, USDT, etc.)
 
-### Step 1: Install Required Software
+3. **Private Key:**
+   - Your wallet's private key with funds on the source chain
 
-1. **Install Node.js** (if not already installed)
-   - Go to https://nodejs.org/
-   - Download the "LTS" version for your operating system
-   - Run the installer and follow the prompts
-   - To verify installation, open Terminal/Command Prompt and type:
-     ```bash
-     node --version
-     ```
-     You should see a version number like `v20.11.0`
+## Installation
 
-### Step 2: Download and Prepare the Script
-
-1. **Get the script files**
-   - Download or copy these files to a folder on your computer:
-     - `create-intent.ts` (the main script)
-     - `package.json` (dependencies list)
-     - This `README.md` file
-
-2. **Open Terminal/Command Prompt**
-   - **On Mac:** Press `Cmd + Space`, type "Terminal", press Enter
-   - **On Windows:** Press `Windows + R`, type "cmd", press Enter
-   - **On Linux:** Press `Ctrl + Alt + T`
-
-3. **Navigate to the script folder**
+1. **Install dependencies from project root:**
    ```bash
-   cd path/to/your/folder
+   # From the project root directory
+   pnpm install
    ```
-   Replace `path/to/your/folder` with the actual path where you saved the files
 
-### Step 3: Install Dependencies
-
-In the Terminal/Command Prompt, run:
-```bash
-npm install
-```
-Wait for the installation to complete (this may take 1-2 minutes).
-
-### Step 4: Set Up Your Private Key
-
-1. **Create a configuration file**
-   - In the same folder, create a new file called `.env` (note the dot at the beginning)
-   - You can create this file using any text editor
-
-2. **Add your private key**
-   - Open the `.env` file in a text editor
-   - Add this line:
-     ```
-     PRIVATE_KEY=0x_your_private_key_here
-     ```
-   - Replace `0x_your_private_key_here` with your actual private key
+2. **Set up environment variables:**
+   Create a `.env` file in the project root:
+   ```env
+   # Required: Your EVM private key (with 0x prefix)
+   PRIVATE_KEY=0x_your_private_key_here
+   ```
 
    **⚠️ SECURITY WARNING:**
-   - NEVER share your private key with anyone
-   - NEVER commit this `.env` file to GitHub or any public repository
-   - Keep this file secure and private
+   - NEVER share your private key
+   - NEVER commit `.env` to version control
+   - Use a test wallet for initial testing
 
-3. **How to get your private key** (if you don't know it):
-   - **MetaMask:** Settings → Security & Privacy → Reveal Secret Recovery Phrase → Enter password → Copy private key
-   - **Other wallets:** Look for "Export Private Key" in security settings
-   - Your private key will look like: `0x1234567890abcdef...` (64 characters after 0x)
+## Usage Examples
 
-### Step 5: Get Required Tokens
+### EVM to EVM (Optimism → Base)
 
-Before running the script, ensure your wallet has:
+```bash
+# Run from the evm-intent-simple directory
+cd src/scripts/evm-intent-simple
 
-1. **ETH on Optimism** (for gas fees)
-   - You need at least 0.01 ETH
-   - Buy ETH on an exchange and withdraw to Optimism, or
-   - Bridge ETH from Ethereum to Optimism using: https://app.optimism.io/bridge
+# Execute the script (uses Optimism to Base USDC configuration)
+pnpm exec ts-node scripts/evm-evm-intent.ts
+```
 
-2. **USDC on Optimism** (for rewards)
-   - You need at least 0.1 USDC
-   - The script uses 0.01 USDC as reward by default
-   - USDC contract on Optimism: `0x0b2c639c533813f4aa9d7837caf62653d097ff85`
+To use a different configuration, edit the `INTENT_CONFIG` in the script.
 
-### Step 6: Run the Script
+### EVM to Solana
 
-1. **Execute the script**
-   ```bash
-   npm start
-   ```
+```bash
+# Run from the evm-intent-simple directory
+cd src/scripts/evm-intent-simple
 
-2. **What to expect:**
-   - The script will show progress messages:
-     ```
-     Creating EVM to EVM intent...
-     From: OP Mainnet
-     To: Base
-     Reward amount: 100000
-     
-     Calling quoting service...
-     Route amount: [calculated amount]
-     Intent created with salt: 0x...
-     Publishing intent to portal...
-     Intent published!
-     Transaction hash: 0x...
-     
-     ✅ Intent successfully created and published!
-     ```
+# Execute the script (uses Optimism to Solana configuration)
+pnpm exec ts-node scripts/evm-svm-intent.ts
+```
 
-3. **If successful:**
-   - You'll see a transaction hash
-   - The intent is now published and can be fulfilled by solvers
-   - Your USDC reward is locked until the intent is completed
+Note: Edit the `recipient` field in `OPTIMISM_TO_SOLANA_CONFIG` with your Solana address.
 
-### Step 7: Verify Your Transaction
+### EVM to Tron
 
-1. Copy the transaction hash from the output
-2. Go to https://optimistic.etherscan.io/
-3. Paste the transaction hash in the search box
-4. You can see your transaction details and confirmation
+```bash
+# Run from the evm-intent-simple directory
+cd src/scripts/evm-intent-simple
 
-## Troubleshooting
+# Execute the script (uses Optimism to Tron configuration)
+pnpm exec ts-node scripts/evm-tvm-intent.ts
+```
 
-### Common Issues and Solutions
-
-1. **"Cannot find module" error**
-   - Run `npm install` again
-   - Make sure you're in the correct folder
-
-2. **"Invalid private key" error**
-   - Check that your private key starts with `0x`
-   - Ensure it's exactly 66 characters long (including 0x)
-   - Make sure there are no spaces or line breaks
-
-3. **"Insufficient funds" error**
-   - Check your wallet has enough ETH for gas
-   - Check your wallet has enough USDC for the reward
-   - Make sure you're checking on the Optimism network
-
-4. **"ECONNREFUSED" or network errors**
-   - Check your internet connection
-   - Try again in a few minutes (RPC might be temporarily down)
-
-5. **Transaction fails or reverts**
-   - Make sure you have approved the USDC spending
-   - Check that you have sufficient balance
-   - Try reducing the reward amount in the script
+Note: Edit the `recipient` field in `OPTIMISM_TO_TRON_CONFIG` with your Tron address.
 
 ## Configuration Details
 
-The script is configured to:
-- **Source Network:** Optimism (Chain ID: 10)
-- **Destination Network:** Base (Chain ID: 8453)
-- **Transfer Token:** USDC
-- **Default Reward:** 0.01 USDC (100000 in token units, 6 decimals)
+### Default Token Configurations
 
-### Key Addresses
-- **Portal Contract:** `0x90F0c8aCC1E083Bcb4F487f84FC349ae8d5e28D7` (same on both chains)
-- **USDC on Optimism:** `0x0b2c639c533813f4aa9d7837caf62653d097ff85`
-- **USDC on Base:** `0x833589fcd6edb6e08f4c7c32d4f71b54bda02913`
+#### USDC
+- **Optimism:** `0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85`
+- **Base:** `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913`
+- **Solana:** `EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v`
+
+#### USDT
+- **Optimism:** `0x94b008aA00579c1307B0EF2c499aD98a8ce58e58`
+- **Base:** `0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2`
+- **Ethereum:** `0xdAC17F958D2ee523a2206206994597C13D831ec7`
+- **Tron:** `TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t`
+
+### Portal Contracts
+- **EVM Chains:** `0x2b7F87a98707e6D19504293F6680498731272D4f`
+- **Prover:** `0x3E4a157079Bc846e9d2C71f297d529e0fcb4D44d`
+
+### Chain IDs
+- **Optimism:** 10
+- **Base:** 8453
+- **Ethereum:** 1
+- **Solana Mainnet:** 1399811149
+- **Solana Devnet:** 1399811150
+- **Tron Mainnet:** 728126428
+- **Tron Shasta:** 2494104990
+
+## Address Formats
+
+### Solana Addresses
+- **Format:** Base58 encoded (32-44 characters)
+- **Example:** `7rNRf9CW4jwzS52kXUDtf1pG1rUPfho7tFxgjy2J6cLe`
+- **Validation:** Must be valid base58 string
+
+### Tron Addresses
+- **Base58 Format:** Starts with 'T', 34 characters
+  - Example: `TQh8ig6rmuMqb5u8efU5LDvoott1oLzoqu`
+- **Hex Format:** Starts with '41', 42 characters
+  - Example: `41a614f803b6fd780986a42c78ec9c7f77e6ded13c`
 
 ## How It Works
 
-1. **Quote Request:** The script first requests a quote from the solver service to determine optimal routing
-2. **Token Approval:** Approves the portal contract to spend your USDC reward
-3. **Intent Creation:** Creates an intent structure with:
-   - Route details (what to do on destination chain)
-   - Reward details (payment for the solver)
-4. **Publishing:** Publishes the intent to the portal contract on Optimism
-5. **Fulfillment:** Solvers monitor for intents and fulfill them for the reward
+1. **Configuration Setup:** Script loads configuration for source/destination chains and tokens
+2. **Quote Request:** Fetches optimal routing from the quote service
+3. **Token Approval:** Approves portal contract to spend reward tokens
+4. **Intent Creation:** Builds intent structure with route and reward details
+5. **Publishing:** Publishes intent to portal contract on source chain
+6. **Fulfillment:** Solvers monitor and fulfill intents for rewards
 
-## Key Functions
+## Customizing Configurations
 
-### `getQuote()`
-Requests a quote from the solver service to determine the optimal route amount.
+Each script contains pre-configured setups that you can modify directly in the file:
 
-### `approveTokens()`
-Approves the portal contract to spend USDC for rewards.
+- **evm-evm-intent.ts**: Edit `INTENT_CONFIG` for Optimism to Base transfers
+- **evm-svm-intent.ts**: Edit `OPTIMISM_TO_SOLANA_CONFIG` for Solana transfers
+- **evm-tvm-intent.ts**: Edit `OPTIMISM_TO_TRON_CONFIG` for Tron transfers
 
-### `createIntent()`
-Builds the intent structure with:
-- Random salt
-- Route details (destination chain, tokens, calls)
-- Reward details (tokens for the solver)
+```typescript
+// Example: Modify the configuration in evm-evm-intent.ts
+export const INTENT_CONFIG: IntentConfig = {
+  privateKey: process.env.PRIVATE_KEY as Hex,
+  sourceChain: optimism,
+  destinationChain: base,
+  sourceToken: '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85', // USDC on Optimism
+  destinationToken: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', // USDC on Base
+  rewardAmount: 1000000n, // Change to 1 USDC (6 decimals)
+  recipient: '0xYourRecipientAddress', // Add specific recipient
+  quoteServiceUrl: 'https://quotes-preprod.eco.com',
+  routeDeadlineSeconds: 3600, // Change to 1 hour
+  rewardDeadlineSeconds: 3600, // Change to 1 hour
+};
+```
 
-### `publishIntent()`
-Publishes the intent to the portal contract using `publishAndFund`.
+## Creating Your Own Configuration
+
+```typescript
+import { IntentConfig, IntentCreator } from './intent-creator-base';
+
+const myConfig: IntentConfig = {
+  privateKey: process.env.PRIVATE_KEY as Hex,
+  sourceChain: optimism,
+  destinationChain: base,
+  destinationChainId: 8453n, // For non-EVM, override chain ID
+  sourcePortalAddress: '0x2b7F87a98707e6D19504293F6680498731272D4f',
+  proverAddress: '0x3E4a157079Bc846e9d2C71f297d529e0fcb4D44d',
+  sourceToken: '0xYourTokenAddress',
+  destinationToken: '0xDestinationTokenAddress',
+  rewardAmount: 100000n,
+  recipient: '0xRecipientAddress',
+};
+
+const creator = new IntentCreator(myConfig);
+await creator.createAndPublish();
+```
+
+## Troubleshooting
+
+### Common Issues
+
+1. **"Invalid private key" error**
+   - Ensure private key starts with `0x`
+   - Must be exactly 66 characters (including 0x)
+
+2. **"Insufficient funds" error**
+   - Check wallet has enough native token for gas
+   - Check wallet has enough tokens for reward
+   - Verify you're on the correct network
+
+3. **"Invalid recipient address" error**
+   - Solana: Must be valid base58 address
+   - Tron: Must be valid base58 (T...) or hex (41...) address
+   - EVM: Must be valid checksummed address
+
+4. **Network errors**
+   - Check internet connection
+   - Try again (RPC might be temporarily down)
+   - Consider using custom RPC endpoints
+
+5. **Transaction fails**
+   - Ensure token approval succeeded
+   - Check token balances
+   - Verify portal contract addresses
+
+## Expected Output
+
+Successful execution shows:
+```
+🚀 Creating Intent
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📍 From: Optimism
+📍 To: Base (or Solana/Tron)
+💰 Reward: 100000
+👤 Recipient: 0x... (or Solana/Tron address)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Step 1: Getting quote...
+📡 Fetching quote from: https://quotes-preprod.eco.com
+   Destination amount: 99500
+
+Step 2: Approving tokens...
+✅ Approving 100000 tokens for 0x2b7F87a98707e6D19504293F6680498731272D4f
+   Approval confirmed: 0x...
+
+Step 3: Creating reward structure...
+   Deadline: 2024-01-01T12:00:00.000Z
+
+Step 4: Publishing intent...
+📤 Publishing intent to portal...
+✨ Intent published successfully!
+   Transaction: 0x...
+
+✅ Intent successfully created and published!
+
+📝 Transaction Details:
+   Hash: 0x...
+   Explorer: https://optimistic.etherscan.io/tx/0x...
+```
 
 ## Security Notes
 
-- **Private Key Safety:** Never share your private key or commit it to version control
-- **Test First:** Consider testing with small amounts first
-- **Verify Addresses:** Always verify contract addresses before sending transactions
-- **Use Dedicated Wallets:** Consider using a separate wallet for testing integrations
+- **Test First:** Use testnet tokens and small amounts initially
+- **Verify Addresses:** Double-check all contract addresses
+- **Private Key Safety:** Never expose or share private keys
+- **Use Test Wallets:** Consider dedicated wallets for testing
+
+## Advanced Usage
+
+### Using as a Module
+
+```typescript
+import {
+  IntentCreator,
+  createReward,
+  fetchQuote,
+  approveToken,
+  publishIntent
+} from './intent-creator-base';
+
+// Use individual functions or the IntentCreator class
+```
+
+### Batch Operations
+
+Create multiple intents programmatically:
+```typescript
+const configs = [config1, config2, config3];
+for (const config of configs) {
+  const creator = new IntentCreator(config);
+  await creator.createAndPublish();
+}
+```
 
 ## Support
 
-If you encounter issues:
-1. Double-check all steps above
-2. Ensure your wallet is properly funded
-3. Verify you're connected to the correct network
-4. Check transaction status on Etherscan
+For issues or questions:
+1. Check this README thoroughly
+2. Verify all prerequisites are met
+3. Review example configurations
+4. Check transaction status on block explorers
 
 ## Next Steps
 
-Once comfortable with this example, you can:
-- Modify amounts and tokens
-- Change source and destination chains
-- Integrate this flow into your own application
-- Add error handling and retry logic for production use
+After running these examples:
+- Integrate into your application
+- Add error handling and retry logic
+- Implement monitoring for intent fulfillment
+- Create custom configurations for your use case
