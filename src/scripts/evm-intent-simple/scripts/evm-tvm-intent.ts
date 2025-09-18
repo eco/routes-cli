@@ -44,10 +44,6 @@ export const OPTIMISM_TO_TRON_CONFIG: IntentConfig = {
   destinationChain: optimism, // We use a dummy chain object, actual chain ID is set below
   destinationChainId: TRON_MAINNET_CHAIN_ID, // Override with Tron chain ID
 
-  // Portal and prover addresses on Optimism
-  sourcePortalAddress: '0x2b7F87a98707e6D19504293F6680498731272D4f',
-  proverAddress: '0x3E4a157079Bc846e9d2C71f297d529e0fcb4D44d', // HyperProver
-
   // Token addresses
   sourceToken: '0x94b008aA00579c1307B0EF2c499aD98a8ce58e58', // USDT on Optimism
   destinationToken: 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t', // USDT on Tron (base58)
