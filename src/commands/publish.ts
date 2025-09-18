@@ -21,7 +21,7 @@ import { getTokenAddress, getTokenBySymbol, listTokens } from '@/config/tokens';
 import { ChainType, Intent } from '@/core/interfaces/intent';
 import { BlockchainAddress, SvmAddress, TronAddress } from '@/core/types/blockchain-addresses';
 import { AddressNormalizer } from '@/core/utils/address-normalizer';
-import { getQuote } from '@/core/utils/quote';
+import { getQuote, QuoteResponse } from '@/core/utils/quote';
 import { logger } from '@/utils/logger';
 
 interface PublishCommandOptions {
@@ -172,17 +172,7 @@ async function buildIntentInteractively(options: PublishCommandOptions): Promise
     destChain = getChainById(destinationId)!;
   }
 
-  // 4. Get prover from chain config
-  if (!sourceChain.proverAddress) {
-    throw new Error(`No prover configured for ${sourceChain.name}`);
-  }
-
-  // 5. Get portal from destination chain config
-  if (!destChain.portalAddress) {
-    throw new Error(`No portal configured for ${destChain.name}`);
-  }
-
-  // 6. Prompt for reward configuration
+  // 4. Prompt for reward configuration
   logger.section('💰 Reward Configuration (Source Chain)');
 
   const rewardToken = await selectToken(sourceChain, 'reward');
@@ -280,12 +270,13 @@ async function buildIntentInteractively(options: PublishCommandOptions): Promise
   // Normalize the recipient address
   const normalizedRecipient = AddressNormalizer.normalize(recipientAddress, destChain.type);
 
-  // 8. Get quote
+  // 5. Get quote (required for portal and prover addresses)
+  let quote: QuoteResponse;
   let routeAmount: bigint;
-  try {
-    logger.spinner('Getting quote...');
 
-    const quote = await getQuote({
+  logger.spinner('Getting quote...');
+  try {
+    quote = await getQuote({
       source: sourceChain.id,
       destination: destChain.id,
       funder: AddressNormalizer.denormalize(creatorAddress, sourceChain.type),
@@ -298,45 +289,30 @@ async function buildIntentInteractively(options: PublishCommandOptions): Promise
 
     logger.succeed('Quote fetched');
   } catch {
-    logger.fail('Quote failed. Enter amount manually');
-
-    const { routeAmountStr } = await inquirer.prompt([
-      {
-        type: 'input',
-        name: 'routeAmountStr',
-        message: `Enter route amount${routeToken.symbol ? ` (${routeToken.symbol})` : ''} in human-readable format (e.g., "100" for 100 tokens):`,
-        default: '0.007',
-        validate: input => {
-          try {
-            const num = parseFloat(input);
-            if (isNaN(num) || num <= 0) {
-              return 'Please enter a positive number';
-            }
-            return true;
-          } catch {
-            return 'Invalid amount';
-          }
-        },
-      },
-    ]);
-
-    // Convert human-readable amount to token units using parseUnits
-    routeAmount = parseUnits(routeAmountStr, routeToken.decimals);
+    logger.fail('Failed to fetch quote');
+    throw new Error(
+      'Quote service is required to get portal and prover addresses. Please try again.'
+    );
   }
 
-  // 9. Set fixed deadlines
+  // Validate contract addresses from quote
+  if (!quote.contracts?.sourcePortal || !quote.contracts?.prover) {
+    throw new Error('Quote response missing required contract addresses (sourcePortal or prover)');
+  }
+
+  // 6. Set fixed deadlines
   const now = Math.floor(Date.now() / 1000);
   const routeDeadline = BigInt(now + 2 * 60 * 60); // 2 hours
   const rewardDeadline = routeDeadline; // Same as route
   // const rewardDeadline = BigInt(now + 3 * 60 * 60); // 3 hours
 
-  // 10. Build intent
+  // 7. Build intent using addresses from quote
   const builder = new IntentBuilder(sourceChain, destChain)
     .setSourceChain(sourceChain.id)
     .setDestinationChain(destChain.id)
-    .setPortal(destChain.portalAddress)
+    .setPortal(AddressNormalizer.normalize(quote.contracts.sourcePortal, sourceChain.type))
     .setCreator(creatorAddress)
-    .setProver(sourceChain.proverAddress)
+    .setProver(AddressNormalizer.normalize(quote.contracts.prover, sourceChain.type))
     .setRouteDeadline(routeDeadline)
     .setRewardDeadline(rewardDeadline);
 
@@ -352,7 +328,7 @@ async function buildIntentInteractively(options: PublishCommandOptions): Promise
 
   builder.setRecipient(normalizedRecipient);
 
-  // 11. Show summary and confirm
+  // 8. Show summary and confirm
   const intent = await builder.build();
 
   logger.displayIntentSummary({

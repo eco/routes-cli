@@ -12,7 +12,7 @@ interface QuoteRequest {
   rewardToken: string;
 }
 
-interface QuoteResponse {
+export interface QuoteResponse {
   quoteResponse: {
     sourceChainID: number;
     destinationChainID: number;
@@ -38,9 +38,9 @@ interface QuoteResponse {
     deadline: number;
   };
   contracts: {
-    intentSource: Address;
+    sourcePortal: Address;
     prover: Address;
-    inbox: Address;
+    destinationPortal: Address;
   };
 }
 
