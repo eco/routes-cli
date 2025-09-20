@@ -41,6 +41,7 @@ export function createPublishCommand(): Command {
     .option('-d, --destination <chain>', 'Destination chain (name or ID)')
     .option('-k, --private-key <key>', 'Private key (overrides env)')
     .option('-r, --rpc <url>', 'RPC URL (overrides env)')
+    .option('--recipient <address>', 'Recipient address on destination chain')
     .option('--dry-run', 'Validate without publishing')
     .action(async options => {
       try {
@@ -289,7 +290,7 @@ async function buildIntentInteractively(options: PublishCommandOptions): Promise
       source: sourceChain.id,
       destination: destChain.id,
       funder: AddressNormalizer.denormalize(creatorAddress, sourceChain.type),
-      recipient: recipientAddress,
+      recipient: AddressNormalizer.denormalize(normalizedRecipient, destChain.type),
       amount: rewardAmount,
       routeToken: routeToken.address,
       rewardToken: rewardToken.address,
@@ -359,7 +360,7 @@ async function buildIntentInteractively(options: PublishCommandOptions): Promise
     source: `${sourceChain.name} (${sourceChain.id})`,
     destination: `${destChain.name} (${destChain.id})`,
     creator: AddressNormalizer.denormalize(creatorAddress, sourceChain.type),
-    recipient: recipientAddress,
+    recipient: normalizedRecipient,
     routeDeadline: new Date(Number(routeDeadline) * 1000).toLocaleString(),
     rewardDeadline: new Date(Number(rewardDeadline) * 1000).toLocaleString(),
     routeToken: `${routeToken.address}${routeToken.symbol ? ` (${routeToken.symbol})` : ''}`,

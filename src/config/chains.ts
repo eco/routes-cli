@@ -140,8 +140,8 @@ const chains: Record<string, ChainConfig> = {
       '7rNRf9CW4jwzS52kXUDtf1pG1rUPfho7tFxgjy2J6cLe' as SvmAddress
     ),
     proverAddress: AddressNormalizer.normalizeSvm(
-      'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v' as SvmAddress
-    ), // Placeholder
+      'DuZmeMYwc3tagKxQu2ZbRY7xoSsosFfjx5TNmWafCrkU' as SvmAddress
+    ), // HyperProver
     nativeCurrency: {
       name: 'Solana',
       symbol: 'SOL',
@@ -149,9 +149,9 @@ const chains: Record<string, ChainConfig> = {
     },
   },
 
-  'solana-testnet': {
-    id: 1399811150n,
-    name: 'Solana Testnet',
+  'solana-devnet': {
+    id: 1399811150n, // Solana devnet chain ID (from onchain)
+    name: 'Solana Devnet',
     type: ChainType.SVM,
     env: 'development',
     rpcUrl: 'https://api.devnet.solana.com',
