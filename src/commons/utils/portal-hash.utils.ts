@@ -29,6 +29,28 @@ export class PortalHashUtils {
     };
   }
 
+  static getIntentHashFromReward(
+    source: bigint,
+    destination: bigint,
+    encodedRoute: Hex,
+    reward: Intent['reward']
+  ): { intentHash: Hex; routeHash: Hex; rewardHash: Hex } {
+    const routeHash = keccak256(encodedRoute);
+    const rewardHash = PortalHashUtils.computeRewardHash(reward, source);
+
+    // Compute the intent hash using encodePacked
+    // intentHash = keccak256(abi.encodePacked(destination, routeHash, rewardHash))
+    const intentHash = keccak256(
+      encodePacked(['uint64', 'bytes32', 'bytes32'], [destination, routeHash, rewardHash])
+    );
+
+    return {
+      intentHash,
+      routeHash,
+      rewardHash,
+    };
+  }
+
   /**
    * Computes route hash using source chain encoding
    * Accepts both Intent route (with UniversalAddress) and EVMIntent route

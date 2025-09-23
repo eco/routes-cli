@@ -68,7 +68,6 @@ export abstract class BasePublisher {
    * specific blockchain network. Implementations must handle address denormalization,
    * transaction signing, and error handling appropriate for their blockchain type.
    *
-   * @param intent - Intent object containing route and reward data with UniversalAddresses
    * @param privateKey - Private key for transaction signing (format depends on blockchain)
    * @returns Promise resolving to PublishResult with transaction details or error info
    * @throws {Error} When publishing fails due to network, validation, or other issues
@@ -83,7 +82,13 @@ export abstract class BasePublisher {
    * }
    * ```
    */
-  abstract publish(intent: Intent, privateKey: string): Promise<PublishResult>;
+  abstract publish(
+    source: bigint,
+    destination: bigint,
+    reward: Intent['reward'],
+    encodedRoute: string,
+    privateKey: string
+  ): Promise<PublishResult>;
 
   /**
    * Gets the native token balance of an address.
@@ -103,30 +108,4 @@ export abstract class BasePublisher {
    * ```
    */
   abstract getBalance(address: string, chainId?: bigint): Promise<bigint>;
-
-  /**
-   * Validates if the publisher can publish the given intent.
-   *
-   * Performs pre-flight checks to ensure the intent can be successfully published.
-   * This may include balance checks, parameter validation, and blockchain-specific
-   * requirements verification.
-   *
-   * @param intent - Intent to validate
-   * @param senderAddress - Address that will send the transaction (in chain-native format)
-   * @returns Promise resolving to validation result with optional error message
-   *
-   * @example
-   * ```typescript
-   * const validation = await publisher.validate(intent, senderAddress);
-   * if (!validation.valid) {
-   *   console.error(`Validation failed: ${validation.error}`);
-   *   return;
-   * }
-   * // Proceed with publishing
-   * ```
-   */
-  abstract validate(
-    intent: Intent,
-    senderAddress: string
-  ): Promise<{ valid: boolean; error?: string }>;
 }
