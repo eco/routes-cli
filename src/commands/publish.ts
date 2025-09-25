@@ -278,7 +278,6 @@ async function buildIntentInteractively(options: PublishCommandOptions) {
       routeToken: routeToken.address,
       rewardToken: rewardToken.address,
     });
-    console.log({ quote });
 
     logger.succeed('Quote fetched');
   } catch (error: any) {

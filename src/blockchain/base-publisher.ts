@@ -40,6 +40,8 @@ export interface PublishResult {
   error?: string;
   /** Vault or contract address created (if applicable) */
   vaultAddress?: string;
+  /** Decoded program data (SVM only) */
+  decodedData?: any;
 }
 
 /**
