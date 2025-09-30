@@ -175,7 +175,7 @@ async function buildIntentInteractively(options: PublishCommandOptions) {
     {
       type: 'input',
       name: 'rewardAmountStr',
-      default: '0.01',
+      default: '0.1',
       message: `Enter reward amount${rewardToken.symbol ? ` (${rewardToken.symbol})` : ''} in human-readable format (e.g., "10" for 10 tokens):`,
       validate: input => {
         try {
