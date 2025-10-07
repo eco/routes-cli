@@ -6,7 +6,7 @@ export enum Network {
 }
 
 const PORTAL_ADDRESSES = {
-  [Network.MAINNET]: '7rNRf9CW4jwzS52kXUDtf1pG1rUPfho7tFxgjy2J6cLe',
+  [Network.MAINNET]: '8H7qa6zZ1qpTxdSXRh6H619G5a99KJafKzDrkdgWb8mX',
   [Network.DEVNET]: '5nCJDkRg8mhj9XHkjuFoR6Mcs6VcDZVsCbZ7pTJhRFEF', // Devnet Portal address from chain config
 } as const;
 

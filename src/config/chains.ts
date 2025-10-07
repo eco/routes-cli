@@ -34,7 +34,7 @@ const chains: Record<string, ChainConfig> = {
     rpcUrl: 'https://mainnet.optimism.io',
     portalAddress: AddressNormalizer.normalizeEvm('0xB5e58A8206473Df3Ab9b8DDd3B0F84c0ba68F8b5'),
     // proverAddress: AddressNormalizer.normalizeEvm('0xe6FEbF8C8bf6366eF6fE7337b0b5B394D46d9fc6'), // PolymerProver
-    proverAddress: AddressNormalizer.normalizeEvm('0xdFdfb1082D4e53D875350FC6A5B2f2A47C18f286'), // HyperProver
+    proverAddress: AddressNormalizer.normalizeEvm('0x11f8f7206a22e2f9f88828164Dd66679Ac6e229e'), // HyperProver
     nativeCurrency: {
       name: 'Ether',
       symbol: 'ETH',
@@ -137,10 +137,10 @@ const chains: Record<string, ChainConfig> = {
     env: 'production',
     rpcUrl: 'https://api.mainnet-beta.solana.com',
     portalAddress: AddressNormalizer.normalizeSvm(
-      '7rNRf9CW4jwzS52kXUDtf1pG1rUPfho7tFxgjy2J6cLe' as SvmAddress
+      '8H7qa6zZ1qpTxdSXRh6H619G5a99KJafKzDrkdgWb8mX' as SvmAddress
     ),
     proverAddress: AddressNormalizer.normalizeSvm(
-      'DuZmeMYwc3tagKxQu2ZbRY7xoSsosFfjx5TNmWafCrkU' as SvmAddress
+      'C34z78p3WtkDZoxtBqiKgeuC71rbnv2H7koqHmb5Eo3M' as SvmAddress
     ), // HyperProver
     nativeCurrency: {
       name: 'Solana',

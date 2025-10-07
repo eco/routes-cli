@@ -91,7 +91,7 @@ async function createEvmToSolanaIntent(config: IntentConfig): Promise<void> {
       // For demo purposes, use a placeholder Solana address
       // In production, this should be the user's actual Solana wallet address
       console.log('⚠️  Warning: No recipient address provided. Please set a valid Solana address.');
-      console.log('   Example: 7rNRf9CW4jwzS52kXUDtf1pG1rUPfho7tFxgjy2J6cLe');
+      console.log('   Example: 8H7qa6zZ1qpTxdSXRh6H619G5a99KJafKzDrkdgWb8mX');
       process.exit(1);
     }
 
