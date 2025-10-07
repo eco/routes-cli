@@ -147,7 +147,7 @@ export async function fetchQuote(
   request: QuoteRequest,
   quoteServiceUrl: string
 ): Promise<QuoteResponse> {
-  const url = new URL('/api/v3/quotes/getQuote', quoteServiceUrl);
+  const url = new URL('/api/v3/quotes/single', quoteServiceUrl);
 
   const requestBody = {
     dAppID: 'dapp',
