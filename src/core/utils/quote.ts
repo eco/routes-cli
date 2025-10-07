@@ -46,7 +46,7 @@ export interface QuoteResponse {
 }
 
 const quoteUrl =
-  process.env.QUOTES_API_URL ?? 'https://quotes-preprod.eco.com/api/v3/quotes/getQuote';
+  process.env.QUOTES_API_URL ?? 'https://quotes-preprod.eco.com/api/v3/quotes/single';
 
 export async function getQuote(requestOpts: QuoteRequest) {
   const request = {
