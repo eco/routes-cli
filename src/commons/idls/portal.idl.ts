@@ -10,9 +10,13 @@ const PORTAL_ADDRESSES = {
   [Network.DEVNET]: '5nCJDkRg8mhj9XHkjuFoR6Mcs6VcDZVsCbZ7pTJhRFEF', // Devnet Portal address from chain config
 } as const;
 
-export function getPortalIdl(network: Network): Idl {
+export function getPortalIdlByNetwork(network: Network): Idl {
+  return getPortalIdl(PORTAL_ADDRESSES[network]);
+}
+
+export function getPortalIdl(programAddress: string): Idl {
   return {
-    address: PORTAL_ADDRESSES[network],
+    address: programAddress,
     metadata: {
       name: 'portal',
       version: '0.1.0',
@@ -916,6 +920,3 @@ export function getPortalIdl(network: Network): Idl {
     ],
   } as const;
 }
-
-// Keep the original export for backward compatibility (defaults to mainnet)
-export const portalIdl: Idl = getPortalIdl(Network.MAINNET);

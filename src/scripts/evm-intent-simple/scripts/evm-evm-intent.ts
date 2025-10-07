@@ -33,17 +33,13 @@ export const INTENT_CONFIG: IntentConfig = {
   sourceChain: optimism,
   destinationChain: base,
 
-  // Portal and prover addresses on Optimism
-  sourcePortalAddress: '0x2b7F87a98707e6D19504293F6680498731272D4f',
-  proverAddress: '0x3E4a157079Bc846e9d2C71f297d529e0fcb4D44d', // HyperProver
-
   // Token addresses
   sourceToken: '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85', // USDC on Optimism
   destinationToken: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', // USDC on Base
 
   // Transaction parameters
   rewardAmount: 100000n, // 0.1 USDC (6 decimals)
-  recipient: '', // Will be set to sender address if empty
+  recipient: '0x256B70644f5D77bc8e2bb82C731Ddf747ecb1471', // Will be set to sender address if empty
 
   // Optional configurations
   quoteServiceUrl: 'https://quotes-preprod.eco.com',

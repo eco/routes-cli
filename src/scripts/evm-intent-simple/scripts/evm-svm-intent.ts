@@ -42,10 +42,6 @@ export const OPTIMISM_TO_SOLANA_CONFIG: IntentConfig = {
   destinationChain: optimism, // We use a dummy chain object, actual chain ID is set below
   destinationChainId: SOLANA_CHAIN_ID, // Override with Solana chain ID
 
-  // Portal and prover addresses on Optimism
-  sourcePortalAddress: '0x2b7F87a98707e6D19504293F6680498731272D4f',
-  proverAddress: '0x3E4a157079Bc846e9d2C71f297d529e0fcb4D44d', // HyperProver
-
   // Token addresses
   sourceToken: '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85', // USDC on Optimism
   destinationToken: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', // USDC on Solana (base58)

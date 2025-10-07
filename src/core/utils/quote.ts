@@ -12,7 +12,7 @@ interface QuoteRequest {
   rewardToken: string;
 }
 
-interface QuoteResponse {
+export interface QuoteResponse {
   quoteResponse: {
     sourceChainID: number;
     destinationChainID: number;
@@ -23,6 +23,7 @@ interface QuoteResponse {
     funder: string;
     refundRecipient: string;
     recipient: string;
+    encodedRoute: string;
     fees: [
       {
         name: string;
@@ -38,17 +39,16 @@ interface QuoteResponse {
     deadline: number;
   };
   contracts: {
-    intentSource: Address;
+    sourcePortal: Address;
     prover: Address;
-    inbox: Address;
+    destinationPortal: Address;
   };
 }
 
-const quoteUrl = process.env.QUOTES_API_URL ?? 'https://quotes-preprod.eco.com';
+const quoteUrl =
+  process.env.QUOTES_API_URL ?? 'https://quotes-preprod.eco.com/api/v3/quotes/getQuote';
 
 export async function getQuote(requestOpts: QuoteRequest) {
-  const url = new URL('/api/v3/quotes/getQuote', quoteUrl);
-
   const request = {
     dAppID: 'eco-routes-cli',
     quoteRequest: {
@@ -63,10 +63,10 @@ export async function getQuote(requestOpts: QuoteRequest) {
   };
 
   if (process.env.DEBUG) {
-    logger.log(`Calling quoting service: ${url.toString()}`);
+    logger.log(`Calling quoting service: ${quoteUrl}`);
   }
 
-  const response = await fetch(url.toString(), {
+  const response = await fetch(quoteUrl, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(request),
@@ -74,7 +74,11 @@ export async function getQuote(requestOpts: QuoteRequest) {
 
   const result = (await response.json()) as { data: QuoteResponse };
 
+  if (process.env.DEBUG) {
+    logger.log(`Quote: ${JSON.stringify(result, null, 2)}`);
+  }
+
   if (!response.ok) throw new Error(JSON.stringify(result));
 
-  return result.data;
+  return result.data ?? result;
 }

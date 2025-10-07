@@ -13,7 +13,6 @@ import { BasePublisher } from '@/blockchain/base-publisher';
 import { EvmPublisher } from '@/blockchain/evm-publisher';
 import { SvmPublisher } from '@/blockchain/svm-publisher';
 import { TvmPublisher } from '@/blockchain/tvm-publisher';
-import { IntentBuilder } from '@/builders/intent-builder';
 import { serialize } from '@/commons/utils/serialize';
 import { ChainConfig, getChainById, getChainByName, listChains } from '@/config/chains';
 import { loadEnvConfig } from '@/config/env';
@@ -21,7 +20,7 @@ import { getTokenAddress, getTokenBySymbol, listTokens } from '@/config/tokens';
 import { ChainType, Intent } from '@/core/interfaces/intent';
 import { BlockchainAddress, SvmAddress, TronAddress } from '@/core/types/blockchain-addresses';
 import { AddressNormalizer } from '@/core/utils/address-normalizer';
-import { getQuote } from '@/core/utils/quote';
+import { getQuote, QuoteResponse } from '@/core/utils/quote';
 import { logger } from '@/utils/logger';
 
 interface PublishCommandOptions {
@@ -48,10 +47,11 @@ export function createPublishCommand(): Command {
         // Interactive mode
         logger.title('🎨 Interactive Intent Publishing');
 
-        const { intent, sourceChain, destChain } = await buildIntentInteractively(options);
+        const { reward, encodedRoute, sourceChain, destChain } =
+          await buildIntentInteractively(options);
 
         if (process.env.DEBUG) {
-          logger.log(`Intent: ${serialize(intent)}`);
+          logger.log(`Reward: ${serialize(reward)}`);
         }
 
         const privateKey = getPrivateKey(sourceChain);
@@ -82,15 +82,6 @@ export function createPublishCommand(): Command {
         logger.log(`Source: ${sourceChain.name} (${sourceChain.id})`);
         logger.log(`Destination: ${destChain.name} (${destChain.id})`);
 
-        // Validate
-        logger.spinner('Validating intent configuration...');
-        const validation = await publisher.validate(intent, senderAddress);
-        if (!validation.valid) {
-          logger.fail(`Validation failed: ${validation.error}`);
-          throw new Error(`Validation failed: ${validation.error}`);
-        }
-        logger.succeed('Validation passed');
-
         if (options.dryRun) {
           logger.warning('Dry run - not publishing');
           return;
@@ -98,7 +89,13 @@ export function createPublishCommand(): Command {
 
         // Publish
         logger.spinner('Publishing intent to blockchain...');
-        const result = await publisher.publish(intent, privateKey);
+        const result = await publisher.publish(
+          sourceChain.id,
+          destChain.id,
+          reward,
+          encodedRoute,
+          privateKey
+        );
 
         if (result.success) {
           logger.displayTransactionResult(result);
@@ -122,11 +119,7 @@ export function createPublishCommand(): Command {
 /**
  * Build intent interactively
  */
-async function buildIntentInteractively(options: PublishCommandOptions): Promise<{
-  intent: Intent;
-  sourceChain: ChainConfig;
-  destChain: ChainConfig;
-}> {
+async function buildIntentInteractively(options: PublishCommandOptions) {
   const chains = listChains();
 
   // 1. Get source chain
@@ -173,17 +166,7 @@ async function buildIntentInteractively(options: PublishCommandOptions): Promise
     destChain = getChainById(destinationId)!;
   }
 
-  // 4. Get prover from chain config
-  if (!sourceChain.proverAddress) {
-    throw new Error(`No prover configured for ${sourceChain.name}`);
-  }
-
-  // 5. Get portal from destination chain config
-  if (!destChain.portalAddress) {
-    throw new Error(`No portal configured for ${destChain.name}`);
-  }
-
-  // 6. Prompt for reward configuration
+  // 4. Prompt for reward configuration
   logger.section('💰 Reward Configuration (Source Chain)');
 
   const rewardToken = await selectToken(sourceChain, 'reward');
@@ -192,7 +175,7 @@ async function buildIntentInteractively(options: PublishCommandOptions): Promise
     {
       type: 'input',
       name: 'rewardAmountStr',
-      default: '0.01',
+      default: '0.1',
       message: `Enter reward amount${rewardToken.symbol ? ` (${rewardToken.symbol})` : ''} in human-readable format (e.g., "10" for 10 tokens):`,
       validate: input => {
         try {
@@ -281,12 +264,12 @@ async function buildIntentInteractively(options: PublishCommandOptions): Promise
   // Normalize the recipient address
   const normalizedRecipient = AddressNormalizer.normalize(recipientAddress, destChain.type);
 
-  // 8. Get quote
-  let routeAmount: bigint;
-  try {
-    logger.spinner('Getting quote...');
+  // 5. Get quote (required for portal and prover addresses)
+  let quote: QuoteResponse;
 
-    const quote = await getQuote({
+  logger.spinner('Getting quote...');
+  try {
+    quote = await getQuote({
       source: sourceChain.id,
       destination: destChain.id,
       funder: AddressNormalizer.denormalize(creatorAddress, sourceChain.type),
@@ -295,76 +278,48 @@ async function buildIntentInteractively(options: PublishCommandOptions): Promise
       routeToken: routeToken.address,
       rewardToken: rewardToken.address,
     });
-    routeAmount = BigInt(quote.quoteResponse.destinationAmount);
 
     logger.succeed('Quote fetched');
-  } catch {
-    logger.fail('Quote failed. Enter amount manually');
-
-    const { routeAmountStr } = await inquirer.prompt([
-      {
-        type: 'input',
-        name: 'routeAmountStr',
-        message: `Enter route amount${routeToken.symbol ? ` (${routeToken.symbol})` : ''} in human-readable format (e.g., "100" for 100 tokens):`,
-        default: '0.007',
-        validate: input => {
-          try {
-            const num = parseFloat(input);
-            if (isNaN(num) || num <= 0) {
-              return 'Please enter a positive number';
-            }
-            return true;
-          } catch {
-            return 'Invalid amount';
-          }
-        },
-      },
-    ]);
-
-    // Convert human-readable amount to token units using parseUnits
-    routeAmount = parseUnits(routeAmountStr, routeToken.decimals);
+  } catch (error: any) {
+    console.log(error.stack);
+    logger.fail('Failed to fetch quote');
+    throw new Error(
+      'Quote service is required to get portal and prover addresses. Please try again.'
+    );
   }
 
-  // 9. Set fixed deadlines
+  // Validate contract addresses from quote
+  if (!quote.contracts?.sourcePortal || !quote.contracts?.prover) {
+    throw new Error('Quote response missing required contract addresses (sourcePortal or prover)');
+  }
+
+  // 6. Set fixed deadlines
   const now = Math.floor(Date.now() / 1000);
-  const routeDeadline = BigInt(now + 2 * 60 * 60); // 2 hours
-  const rewardDeadline = routeDeadline; // Same as route
-  // const rewardDeadline = BigInt(now + 3 * 60 * 60); // 3 hours
+  const rewardDeadline = BigInt(now + 2 * 60 * 60); // Same as route
+  const encodedRoute = quote.quoteResponse.encodedRoute;
 
-  // 10. Build intent
-  const builder = new IntentBuilder(sourceChain, destChain)
-    .setSourceChain(sourceChain.id)
-    .setDestinationChain(destChain.id)
-    .setPortal(destChain.portalAddress)
-    .setCreator(creatorAddress)
-    .setProver(sourceChain.proverAddress)
-    .setRouteDeadline(routeDeadline)
-    .setRewardDeadline(rewardDeadline);
-
-  builder.addRouteToken(
-    AddressNormalizer.normalize(routeToken.address, destChain.type),
-    routeAmount
-  );
-
-  builder.addRewardToken(
-    AddressNormalizer.normalize(rewardToken.address, sourceChain.type),
-    rewardAmount
-  );
-
-  builder.setRecipient(normalizedRecipient);
-
-  // 11. Show summary and confirm
-  const intent = await builder.build();
+  // 7. Build intent using addresses from quote
+  const reward: Intent['reward'] = {
+    deadline: rewardDeadline,
+    prover: AddressNormalizer.normalize(quote.contracts.prover, sourceChain.type),
+    creator: creatorAddress,
+    nativeAmount: 0n,
+    tokens: [
+      {
+        token: AddressNormalizer.normalize(rewardToken.address, sourceChain.type),
+        amount: rewardAmount,
+      },
+    ],
+  };
 
   logger.displayIntentSummary({
     source: `${sourceChain.name} (${sourceChain.id})`,
     destination: `${destChain.name} (${destChain.id})`,
     creator: AddressNormalizer.denormalize(creatorAddress, sourceChain.type),
     recipient: normalizedRecipient,
-    routeDeadline: new Date(Number(routeDeadline) * 1000).toLocaleString(),
     rewardDeadline: new Date(Number(rewardDeadline) * 1000).toLocaleString(),
     routeToken: `${routeToken.address}${routeToken.symbol ? ` (${routeToken.symbol})` : ''}`,
-    routeAmount: `${formatUnits(routeAmount, routeToken.decimals)} (${routeAmount.toString()} units)`,
+    routeAmount: formatUnits(BigInt(quote.quoteResponse.destinationAmount), routeToken.decimals),
     rewardToken: `${rewardToken.address}${rewardToken.symbol ? ` (${rewardToken.symbol})` : ''}`,
     rewardAmount: `${rewardAmountStr} (${rewardAmount.toString()} units)`,
   });
@@ -382,7 +337,7 @@ async function buildIntentInteractively(options: PublishCommandOptions): Promise
     throw new Error('Publication cancelled by user');
   }
 
-  return { intent, sourceChain, destChain };
+  return { reward, encodedRoute, sourceChain, destChain };
 }
 
 /**

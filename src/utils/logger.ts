@@ -222,7 +222,6 @@ export class Logger {
     destination: string;
     creator: string;
     recipient: string;
-    routeDeadline: string;
     rewardDeadline: string;
     routeToken: string;
     routeAmount: string;
@@ -240,7 +239,6 @@ export class Logger {
       [chalk.yellow('Source'), summary.source],
       [chalk.yellow('Destination'), summary.destination],
       [chalk.yellow('Creator'), summary.creator],
-      [chalk.yellow('Route Deadline'), summary.routeDeadline],
       [chalk.yellow('Reward Deadline'), summary.rewardDeadline],
       ['', ''],
       [chalk.green('Reward Token'), summary.rewardToken],

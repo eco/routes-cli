@@ -1,431 +1,212 @@
 /**
- * SVM (Solana) Chain Publisher
+ * SVM (Solana) Chain Publisher - Refactored for maintainability
+ * Main publisher class that orchestrates Solana-specific intent publishing
  */
 
-import {
-  Connection,
-  Keypair,
-  PublicKey,
-  Transaction,
-} from '@solana/web3.js';
-import { Program, AnchorProvider, Wallet, BN } from '@coral-xyz/anchor';
-import {
-  getAssociatedTokenAddress,
-  TOKEN_PROGRAM_ID,
-  ASSOCIATED_TOKEN_PROGRAM_ID,
-  TOKEN_2022_PROGRAM_ID,
-  createAssociatedTokenAccountInstruction,
-} from '@solana/spl-token';
+import { Connection, Keypair, PublicKey } from '@solana/web3.js';
+import { Hex } from 'viem';
+
+import { PortalHashUtils } from '@/commons/utils/portal-hash.utils';
+import { getChainById } from '@/config/chains';
+import { ChainType, Intent } from '@/core/interfaces/intent';
+import { AddressNormalizer } from '@/core/utils/address-normalizer';
+import { logger } from '@/utils/logger';
+
+import { SVM_CONNECTION_CONFIG, SVM_ERROR_MESSAGES, SVM_LOG_MESSAGES } from './svm/svm-constants';
+import { executeFunding, executePublish } from './svm/svm-transaction';
+import { PublishContext, SvmError, SvmErrorType } from './svm/svm-types';
 import { BasePublisher, PublishResult } from './base-publisher';
-import { Intent, ChainType } from '../core/interfaces/intent';
-import { AddressNormalizer } from '../core/utils/address-normalizer';
-import { PortalEncoder } from '../core/utils/portal-encoder';
-import { getChainById } from '../config/chains';
-import { logger } from '../utils/logger';
-import { getPortalIdl } from '../commons/idls/portal.idl';
-import { ChainTypeDetector } from '../core/utils/chain-detector';
-import { Hex, keccak256 } from 'viem';
 
 export class SvmPublisher extends BasePublisher {
   private connection: Connection;
 
   constructor(rpcUrl: string) {
     super(rpcUrl);
-    this.connection = new Connection(rpcUrl, {
-      commitment: 'confirmed',
-      disableRetryOnRateLimit: true,
-      wsEndpoint: undefined,
-      confirmTransactionInitialTimeout: 60000,
-    });
+    this.connection = new Connection(rpcUrl, SVM_CONNECTION_CONFIG);
   }
 
-  private parsePrivateKey(privateKey: string): Keypair {
-    if (privateKey.startsWith('[') && privateKey.endsWith(']')) {
-      const bytes = JSON.parse(privateKey);
-      return Keypair.fromSecretKey(new Uint8Array(bytes));
-    } else if (privateKey.includes(',')) {
-      // Comma-separated format: 1,2,3,...
-      const bytes = privateKey.split(',').map(b => parseInt(b.trim()));
-      return Keypair.fromSecretKey(new Uint8Array(bytes));
-    } else {
-      // Base58 format
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const bs58 = require('bs58');
-      const bytes = bs58.decode(privateKey);
-      return Keypair.fromSecretKey(bytes);
-    }
-  }
-
-  private async confirmTransactionPolling(
-    signature: string,
-    commitment: 'processed' | 'confirmed' | 'finalized' = 'confirmed',
-  ): Promise<void> {
-    const maxRetries = 30; // 30 seconds with 1 second intervals
-    let retries = 0;
-
-    while (retries < maxRetries) {
-      try {
-        const result = await this.connection.getSignatureStatus(signature, {
-          searchTransactionHistory: true,
-        });
-
-        if (
-          result?.value?.confirmationStatus === commitment ||
-          result?.value?.confirmationStatus === 'finalized'
-        ) {
-          if (result.value.err) {
-            throw new Error(`Transaction failed: ${JSON.stringify(result.value.err)}`);
-          }
-          logger.info(`Transaction confirmed with ${result.value.confirmationStatus} commitment`);
-          return;
-        }
-
-        if (result?.value?.err) {
-          throw new Error(`Transaction failed: ${JSON.stringify(result.value.err)}`);
-        }
-      } catch (error) {
-        if (retries === maxRetries - 1) {
-          throw error;
-        }
-      }
-
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      retries++;
-    }
-
-    throw new Error(`Transaction confirmation timeout after ${maxRetries} seconds`);
-  }
-
-  private encodeRouteForDestination(intent: Intent): Hex {
-    const destChain = getChainById(intent.destination);
-    if (!destChain) {
-      throw new Error(`Unknown destination chain: ${intent.destination}`);
-    }
-
-    return PortalEncoder.encode(intent.route, destChain.type);
-  }
-
-  async publish(intent: Intent, privateKey: string): Promise<PublishResult> {
+  /**
+   * Publishes an intent to the Solana blockchain
+   * Simplified main method that delegates to helper functions
+   */
+  async publish(
+    source: bigint,
+    destination: bigint,
+    reward: Intent['reward'],
+    encodedRoute: string,
+    privateKey: string
+  ): Promise<PublishResult> {
     try {
+      // Parse private key and validate configuration
       const keypair = this.parsePrivateKey(privateKey);
-      const chainConfig = getChainById(intent.sourceChainId);
-      if (!chainConfig?.portalAddress) {
-        throw new Error(`No Portal address configured for chain ${intent.sourceChainId}`);
-      }
-      
-      const portalProgramId = new PublicKey(
-        AddressNormalizer.denormalize(chainConfig.portalAddress, ChainType.SVM)
+      const portalProgramId = this.getPortalProgramId(source);
+
+      // Calculate hashes
+      const { intentHash, routeHash } = PortalHashUtils.getIntentHashFromReward(
+        source,
+        destination,
+        encodedRoute as Hex,
+        reward
       );
 
-      logger.info(`Using Portal Program: ${portalProgramId.toString()}`);
-      logger.info(`Creator: ${keypair.publicKey.toString()}`);
-      logger.info(`Destination Chain: ${intent.destination}`);
-      
-      const wallet = new Wallet(keypair);
-      const provider = new AnchorProvider(this.connection, wallet, {
-        commitment: 'confirmed',
-        preflightCommitment: 'confirmed',
-        skipPreflight: false,
-        maxRetries: 3,
-      });
+      // Log initial information
+      this.logPublishInfo(portalProgramId, keypair, destination);
 
-      logger.info('Setting up Anchor program...');
-      const network = ChainTypeDetector.getNetworkFromChainConfig(intent.sourceChainId);
-      const idl = getPortalIdl(network);
-      let program: Program = new Program(idl, provider);
-      
-
-      const routeHex = this.encodeRouteForDestination(intent);
-      const routeBytes = Buffer.from(routeHex.slice(2), 'hex');
-      const routeHash = keccak256(routeHex);
-
-      const portalReward = {
-        deadline: new BN(intent.reward.deadline),
-        creator: new PublicKey(AddressNormalizer.denormalize(intent.reward.creator, ChainType.SVM)),
-        prover: new PublicKey(AddressNormalizer.denormalize(intent.reward.prover, ChainType.SVM)),
-        nativeAmount: new BN(intent.reward.nativeAmount),
-        tokens: intent.reward.tokens.map((token) => ({
-          token: new PublicKey(AddressNormalizer.denormalize(token.token, ChainType.SVM)),
-          amount: new BN(token.amount),
-        })),
+      // Create publish context for all operations
+      const context: PublishContext = {
+        source,
+        destination,
+        reward,
+        encodedRoute,
+        privateKey,
+        intentHash,
+        routeHash,
+        keypair,
+        portalProgramId,
       };
 
-      // add funding
-      const fundingResult = await this.fundIntent(intent, privateKey, intent.intentHash!, routeHash);
-      if (fundingResult.success) logger.info(`Funding successful: ${fundingResult.transactionHash}`);
+      // Execute funding if tokens are present
+      const fundingResult = await this.fundIntent(context);
+      if (!fundingResult.success) {
+        return fundingResult;
+      }
 
-      logger.info('Building publish transaction...');
-      const transaction = await program.methods
-        .publish({
-          destination: new BN(intent.destination),
-          route: routeBytes,
-          reward: portalReward,
-        })
-        .accounts({})
-        .transaction();
+      // Execute publishing
+      const publishResult = await executePublish(this.connection, context);
 
-      logger.spinner('Publishing intent to Solana network...');
-      
-      const signature = await this.connection.sendTransaction(transaction, [keypair], {
-        skipPreflight: false,
-        preflightCommitment: 'confirmed',
-        maxRetries: 3,
-      });
+      if (publishResult.success) {
+        logger.info(SVM_LOG_MESSAGES.INTENT_PUBLISHED(publishResult.transactionHash!));
+      }
 
-      logger.info(`Intent published! Transaction signature: ${signature}`);
-      
-      await this.confirmTransactionPolling(signature, 'confirmed');
-      
-      logger.succeed('Transaction confirmed - Intent is published!');
-      
-      return {
-        success: true,
-        transactionHash: signature,
-        intentHash: intent.intentHash,
-      };
+      return publishResult;
     } catch (error: any) {
-      logger.stopSpinner();
-      logger.error(`Transaction failed: ${error.message}`);
-      
-      let errorMessage = error.message || 'Unknown error';
-      if (error.logs) {
-        errorMessage += `\nLogs: ${error.logs.join('\n')}`;
-      }
-      if (error.err) {
-        errorMessage += `\nError: ${JSON.stringify(error.err)}`;
-      }
-      
-      return {
-        success: false,
-        error: errorMessage,
-      };
+      return this.handleError(error);
     }
   }
 
   /**
-   * Fund an intent on Solana (optional functionality)
+   * Funds an intent if reward tokens are present
    */
-  async fundIntent(
-    intent: Intent, 
-    privateKey: string,
-    intentHash: string,
-    routeHash: Hex,
-  ): Promise<PublishResult> {
+  private async fundIntent(context: PublishContext): Promise<PublishResult> {
+    // Skip funding if no tokens in reward
+    if (context.reward.tokens.length === 0) {
+      return { success: true };
+    }
+
     try {
-      const keypair = this.parsePrivateKey(privateKey);
-      
-      // Get Portal program ID
-      const chainConfig = getChainById(intent.sourceChainId);
-      if (!chainConfig?.portalAddress) {
-        throw new Error(`No Portal address configured for chain ${intent.sourceChainId}`);
-      }
-      
-      const portalProgramId = new PublicKey(
-        AddressNormalizer.denormalize(chainConfig.portalAddress, ChainType.SVM)
-      );
+      const fundingResult = await executeFunding(this.connection, context);
 
-      // Set up Anchor Provider and Portal Program
-      const wallet = new Wallet(keypair);
-      const provider = new AnchorProvider(this.connection, wallet, {
-        commitment: 'confirmed',
-        preflightCommitment: 'confirmed',
-        skipPreflight: false,
-        maxRetries: 3,
-      });
-
-      const network = ChainTypeDetector.getNetworkFromChainConfig(intent.sourceChainId);
-      const idl = getPortalIdl(network);
-      const program = new Program(idl, provider);
-
-      // Calculate vault PDA from intent hash
-      const intentHashBytes = new Uint8Array(Buffer.from(intentHash.slice(2), 'hex'));
-      const [vaultPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from('vault'), intentHashBytes],
-        portalProgramId
-      );
-
-      logger.info(`Vault PDA: ${vaultPda.toString()}`);
-
-      // Get token accounts for funding
-      if (intent.reward.tokens.length === 0) {
-        throw new Error('No reward tokens to fund');
+      if (!fundingResult.success) {
+        logger.error(`Funding failed: ${fundingResult.error}`);
+        return fundingResult;
       }
 
-      const tokenMint = new PublicKey(
-        AddressNormalizer.denormalize(intent.reward.tokens[0].token, ChainType.SVM)
-      );
-      const funderTokenAccount = await getAssociatedTokenAddress(tokenMint, keypair.publicKey);
-      const vaultTokenAccount = await getAssociatedTokenAddress(
-        tokenMint,
-        vaultPda,
-        true, // allowOwnerOffCurve for PDA
-      );
-
-      // Check if funder token account exists, if not create it first
-      const funderAccountInfo = await this.connection.getAccountInfo(funderTokenAccount);
-      if (!funderAccountInfo) {
-        logger.info("Creating funder token account...");
-        
-        const createFunderTokenAccountIx = createAssociatedTokenAccountInstruction(
-          keypair.publicKey, // payer
-          funderTokenAccount, // associated token account
-          keypair.publicKey, // owner
-          tokenMint, // mint
-        );
-
-        const createAccountTx = new Transaction().add(createFunderTokenAccountIx);
-        const createAccountSig = await this.connection.sendTransaction(createAccountTx, [keypair], {
-          skipPreflight: false,
-          preflightCommitment: 'confirmed',
-          maxRetries: 3,
-        });
-
-        logger.info(`Created funder token account: ${createAccountSig}`);
-        await this.confirmTransactionPolling(createAccountSig, 'confirmed');
-      }
-      
-      const portalReward = {
-        deadline: new BN(intent.reward.deadline),
-        creator: new PublicKey(AddressNormalizer.denormalize(intent.reward.creator, ChainType.SVM)),
-        prover: new PublicKey(AddressNormalizer.denormalize(intent.reward.prover, ChainType.SVM)),
-        nativeAmount: new BN(intent.reward.nativeAmount),
-        tokens: intent.reward.tokens.map((token) => ({
-          token: new PublicKey(AddressNormalizer.denormalize(token.token, ChainType.SVM)),
-          amount: new BN(token.amount),
-        })),
-      };
-
-      const fundArgs = {
-        destination: new BN(intent.destination),
-        route_hash: Array.from(Buffer.from(routeHash.slice(2), 'hex')),
-        reward: portalReward,
-        allow_partial: false,
-      };
-
-      // Prepare token transfer accounts
-      const tokenTransferAccounts = [
-        { pubkey: funderTokenAccount, isWritable: true, isSigner: false },
-        { pubkey: vaultTokenAccount, isWritable: true, isSigner: false },
-        { pubkey: tokenMint, isWritable: false, isSigner: false },
-      ];
-
-      logger.info('Building funding transaction...');
-
-      // Build the funding transaction
-      const fundingTransaction = await program.methods
-        .fund(fundArgs)
-        .accountsStrict({
-          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-          systemProgram: new PublicKey('11111111111111111111111111111111'),
-          token2022Program: TOKEN_2022_PROGRAM_ID,
-          tokenProgram: TOKEN_PROGRAM_ID,
-          vault: vaultPda,
-          payer: keypair.publicKey,
-          funder: keypair.publicKey,
-        })
-        .remainingAccounts(tokenTransferAccounts)
-        .transaction();
-
-      logger.spinner('Funding intent on Solana network...');
-
-      const instructionData = Buffer.from(fundingTransaction.instructions[0].data)
-      Buffer.from(routeHash.slice(2), 'hex').copy(instructionData, 16)
-      fundingTransaction.instructions[0].data = instructionData
-
-
-      // Send the funding transaction
-      logger.info('Sending funding transaction...');
-      const fundingSignature = await this.connection.sendTransaction(fundingTransaction, [keypair], {
-        skipPreflight: false,
-        preflightCommitment: 'confirmed',
-        maxRetries: 3,
-      });
-
-      logger.info(`Intent funding transaction signature: ${fundingSignature}`);
-      
-      // Confirm the funding transaction
-      await this.confirmTransactionPolling(fundingSignature, 'confirmed');
-      
-      logger.succeed('Intent funded and confirmed!');
-
-      return {
-        success: true,
-        transactionHash: fundingSignature,
-        intentHash: intentHash,
-      };
+      logger.info(SVM_LOG_MESSAGES.FUNDING_SUCCESS(fundingResult.transactionHash!));
+      return fundingResult;
     } catch (error: any) {
-      logger.stopSpinner();
-      logger.error(`Funding failed: ${error.message}`);
-      
-      return {
-        success: false,
-        error: error.message || 'Funding failed',
-      };
+      if (error instanceof SvmError) {
+        return {
+          success: false,
+          error: error.message,
+        };
+      }
+      throw error;
     }
   }
-  
+
+  /**
+   * Gets the native SOL balance for an address
+   */
   async getBalance(address: string, _chainId?: bigint): Promise<bigint> {
     try {
       const publicKey = new PublicKey(address);
       const balance = await this.connection.getBalance(publicKey);
       return BigInt(balance);
-    } catch (error) {
+    } catch {
       return 0n;
     }
   }
-  
-  async validate(intent: Intent, senderAddress: string): Promise<{ valid: boolean; error?: string }> {
+
+  /**
+   * Parses a private key in various formats (Base58, array, comma-separated)
+   */
+  private parsePrivateKey(privateKey: string): Keypair {
     try {
-      // Check if sender has enough balance for reward native amount
-      const balance = await this.getBalance(senderAddress);
-      
-      if (balance < intent.reward.nativeAmount) {
-        return {
-          valid: false,
-          error: `Insufficient SOL balance. Required: ${intent.reward.nativeAmount}, Available: ${balance}`,
-        };
-      }
-      
-      // Validate addresses
-      try {
-        const creatorAddress = AddressNormalizer.denormalize(intent.reward.creator, ChainType.SVM);
-        new PublicKey(creatorAddress);
-      } catch {
-        return {
-          valid: false,
-          error: 'Invalid Solana creator address',
-        };
+      // Array format: [1,2,3,...]
+      if (privateKey.startsWith('[') && privateKey.endsWith(']')) {
+        const bytes = JSON.parse(privateKey);
+        return Keypair.fromSecretKey(new Uint8Array(bytes));
       }
 
-      try {
-        const proverAddress = AddressNormalizer.denormalize(intent.reward.prover, ChainType.SVM);
-        new PublicKey(proverAddress);
-      } catch {
-        return {
-          valid: false,
-          error: 'Invalid Solana prover address',
-        };
+      // Comma-separated format: 1,2,3,...
+      if (privateKey.includes(',')) {
+        const bytes = privateKey.split(',').map(b => parseInt(b.trim()));
+        return Keypair.fromSecretKey(new Uint8Array(bytes));
       }
 
-      // Validate token addresses if any
-      for (const token of intent.reward.tokens) {
-        try {
-          const tokenAddress = AddressNormalizer.denormalize(token.token, ChainType.SVM);
-          new PublicKey(tokenAddress);
-        } catch {
-          return {
-            valid: false,
-            error: `Invalid Solana token address: ${token.token}`,
-          };
-        }
-      }
-      
-      return { valid: true };
+      // Base58 format (default)
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const bs58 = require('bs58');
+      const bytes = bs58.decode(privateKey);
+      return Keypair.fromSecretKey(bytes);
     } catch (error: any) {
-      return {
-        valid: false,
-        error: error.message || 'Validation failed',
-      };
+      throw new SvmError(
+        SvmErrorType.INVALID_CONFIG,
+        SVM_ERROR_MESSAGES.INVALID_PRIVATE_KEY,
+        error
+      );
     }
+  }
+
+  /**
+   * Gets the Portal program ID for a given chain
+   */
+  private getPortalProgramId(chainId: bigint): PublicKey {
+    const chainConfig = getChainById(chainId);
+
+    if (!chainConfig?.portalAddress) {
+      throw new SvmError(
+        SvmErrorType.INVALID_CONFIG,
+        SVM_ERROR_MESSAGES.NO_PORTAL_ADDRESS(chainId)
+      );
+    }
+
+    return new PublicKey(AddressNormalizer.denormalize(chainConfig.portalAddress, ChainType.SVM));
+  }
+
+  /**
+   * Logs initial publishing information
+   */
+  private logPublishInfo(portalProgramId: PublicKey, keypair: Keypair, destination: bigint): void {
+    logger.info(SVM_LOG_MESSAGES.PORTAL_PROGRAM(portalProgramId.toString()));
+    logger.info(SVM_LOG_MESSAGES.CREATOR(keypair.publicKey.toString()));
+    logger.info(SVM_LOG_MESSAGES.DESTINATION_CHAIN(destination));
+  }
+
+  /**
+   * Handles errors with proper formatting and logging
+   */
+  private handleError(error: any): PublishResult {
+    logger.stopSpinner();
+
+    let errorMessage = error.message || 'Unknown error';
+
+    // Add additional error context if available
+    if (error.logs) {
+      errorMessage += `\nLogs: ${error.logs.join('\n')}`;
+    }
+    if (error.err) {
+      errorMessage += `\nError: ${JSON.stringify(error.err)}`;
+    }
+    if (error.details) {
+      errorMessage += `\nDetails: ${JSON.stringify(error.details)}`;
+    }
+
+    logger.error(`Transaction failed: ${errorMessage}`);
+
+    return {
+      success: false,
+      error: errorMessage,
+    };
   }
 }

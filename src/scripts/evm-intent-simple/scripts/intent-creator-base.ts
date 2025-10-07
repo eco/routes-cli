@@ -66,9 +66,9 @@ export interface QuoteResponse {
     deadline: number;
   };
   contracts: {
-    intentSource: Address;
+    sourcePortal: Address;
     prover: Address;
-    inbox: Address;
+    destinationPortal: Address;
   };
 }
 
@@ -83,10 +83,6 @@ export interface IntentConfig {
   sourceChain: Chain;
   destinationChain: Chain;
   destinationChainId?: bigint; // For non-EVM destination chains
-
-  // Contract addresses
-  sourcePortalAddress: Address;
-  proverAddress: Address;
 
   // Token configurations
   sourceToken: Address;
@@ -122,14 +118,18 @@ export interface QuoteRequest {
 /**
  * Creates a reward structure for the intent
  */
-export function createReward(config: IntentConfig, account: Account): Reward {
+export function createReward(
+  config: IntentConfig,
+  account: Account,
+  proverAddress: Address
+): Reward {
   const now = Math.floor(Date.now() / 1000);
   const deadline = config.rewardDeadlineSeconds || 7200; // Default 2 hours
 
   return {
     deadline: BigInt(now + deadline),
     creator: account.address,
-    prover: config.proverAddress,
+    prover: proverAddress,
     nativeAmount: 0n,
     tokens: [
       {
@@ -287,10 +287,10 @@ export class IntentCreator {
   /**
    * Approves tokens for the portal
    */
-  async approveTokens(): Promise<void> {
+  async approveTokens(portalAddress: Address): Promise<void> {
     await approveToken(
       this.config.sourceToken,
-      this.config.sourcePortalAddress,
+      portalAddress,
       this.config.rewardAmount,
       this.walletClient,
       this.publicClient
@@ -314,6 +314,7 @@ export class IntentCreator {
     console.log('Step 1: Getting quote...');
     const response = await this.getQuote();
     const { destinationAmount, encodedRoute } = response.quoteResponse;
+    const { sourcePortal, prover } = response.contracts;
     console.info(`   Destination amount: ${destinationAmount}`);
     console.log('');
 
@@ -322,21 +323,26 @@ export class IntentCreator {
       process.exit(1);
     }
 
+    if (!sourcePortal || !prover) {
+      console.error('Portal and/or Prover addresses not found in quote response');
+      process.exit(1);
+    }
+
     // Step 2: Approve tokens
     console.log('Step 2: Approving tokens...');
-    await this.approveTokens();
+    await this.approveTokens(sourcePortal);
     console.log('');
 
     // Step 3: Create reward
     console.log('Step 3: Creating reward structure...');
-    const reward = createReward(this.config, this.account);
+    const reward = createReward(this.config, this.account, prover);
     console.info(`   Deadline: ${new Date(Number(reward.deadline) * 1000).toISOString()}`);
     console.log('');
 
     // Step 4: Publish intent
     console.log('Step 4: Publishing intent...');
     const txHash = await publishIntent(
-      this.config.sourcePortalAddress,
+      sourcePortal,
       this.getDestinationChainId(),
       encodedRoute,
       reward,
@@ -359,10 +365,6 @@ export class IntentCreator {
 
     if (!this.config.sourceChain) {
       throw new Error('Source chain is required');
-    }
-
-    if (!this.config.sourcePortalAddress || !this.config.proverAddress) {
-      throw new Error('Portal and prover addresses are required');
     }
 
     if (!this.config.sourceToken || !this.config.destinationToken) {
