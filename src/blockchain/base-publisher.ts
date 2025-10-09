@@ -21,6 +21,8 @@
  * ```
  */
 
+import { UniversalAddress } from '@/core/types/universal-address';
+
 import { Intent } from '../core/interfaces/intent';
 
 /**
@@ -89,7 +91,9 @@ export abstract class BasePublisher {
     destination: bigint,
     reward: Intent['reward'],
     encodedRoute: string,
-    privateKey: string
+    privateKey: string,
+    portalAddress?: UniversalAddress,
+    proverAddress?: UniversalAddress
   ): Promise<PublishResult>;
 
   /**

@@ -64,6 +64,7 @@ export async function getQuote(requestOpts: QuoteRequest) {
 
   if (process.env.DEBUG) {
     logger.log(`Calling quoting service: ${quoteUrl}`);
+    logger.log(`Quote request: ${JSON.stringify(request)}`);
   }
 
   const response = await fetch(quoteUrl, {

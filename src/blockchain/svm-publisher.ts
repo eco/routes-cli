@@ -9,6 +9,7 @@ import { Hex } from 'viem';
 import { PortalHashUtils } from '@/commons/utils/portal-hash.utils';
 import { getChainById } from '@/config/chains';
 import { ChainType, Intent } from '@/core/interfaces/intent';
+import { UniversalAddress } from '@/core/types/universal-address';
 import { AddressNormalizer } from '@/core/utils/address-normalizer';
 import { logger } from '@/utils/logger';
 
@@ -34,12 +35,15 @@ export class SvmPublisher extends BasePublisher {
     destination: bigint,
     reward: Intent['reward'],
     encodedRoute: string,
-    privateKey: string
+    privateKey: string,
+    portalAddress?: UniversalAddress
   ): Promise<PublishResult> {
     try {
       // Parse private key and validate configuration
       const keypair = this.parsePrivateKey(privateKey);
-      const portalProgramId = this.getPortalProgramId(source);
+      const portalProgramId = portalAddress
+        ? new PublicKey(AddressNormalizer.denormalize(portalAddress, ChainType.SVM))
+        : this.getPortalProgramId(source);
 
       // Calculate hashes
       const { intentHash, routeHash } = PortalHashUtils.getIntentHashFromReward(

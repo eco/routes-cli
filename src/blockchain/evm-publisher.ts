@@ -20,6 +20,7 @@ import * as chains from 'viem/chains';
 import { portalAbi } from '@/commons/abis/portal.abi';
 import { getChainById } from '@/config/chains';
 import { Intent } from '@/core/interfaces/intent';
+import { UniversalAddress } from '@/core/types/universal-address';
 import { AddressNormalizer } from '@/core/utils/address-normalizer';
 import { logger } from '@/utils/logger';
 
@@ -31,7 +32,9 @@ export class EvmPublisher extends BasePublisher {
     destination: bigint,
     reward: Intent['reward'],
     encodedRoute: string,
-    privateKey: string
+    privateKey: string,
+    portalAddress?: UniversalAddress,
+    proverAddress?: UniversalAddress
   ): Promise<PublishResult> {
     try {
       const account = privateKeyToAccount(privateKey as Hex);
@@ -52,15 +55,17 @@ export class EvmPublisher extends BasePublisher {
       const sourceChainConfig = getChainById(source);
       const destinationChainConfig = getChainById(destination);
 
-      if (!sourceChainConfig?.portalAddress) {
+      const portalAddrUniversal = portalAddress ?? sourceChainConfig?.portalAddress;
+
+      if (!portalAddrUniversal) {
         throw new Error(`No Portal address configured for chain ${source}`);
       }
+
+      const finalPortalAddress = AddressNormalizer.denormalizeToEvm(portalAddrUniversal);
 
       if (!destinationChainConfig) {
         throw new Error(`Destination chain is not configured ${destination}`);
       }
-
-      const portalAddress = AddressNormalizer.denormalizeToEvm(sourceChainConfig.portalAddress);
 
       // Check native balance if required
       if (reward.nativeAmount > 0n) {
@@ -115,7 +120,7 @@ export class EvmPublisher extends BasePublisher {
           address: tokenAddress,
           abi: erc20Abi,
           functionName: 'allowance',
-          args: [account.address, portalAddress],
+          args: [account.address, finalPortalAddress],
         });
 
         if (allowance < token.amount) {
@@ -126,7 +131,7 @@ export class EvmPublisher extends BasePublisher {
             address: tokenAddress,
             abi: erc20Abi,
             functionName: 'approve',
-            args: [portalAddress, maxUint256],
+            args: [finalPortalAddress, maxUint256],
           });
 
           // Wait for approval confirmation
@@ -152,7 +157,7 @@ export class EvmPublisher extends BasePublisher {
         deadline: reward.deadline,
         nativeAmount: reward.nativeAmount,
         creator: AddressNormalizer.denormalizeToEvm(reward.creator),
-        prover: AddressNormalizer.denormalizeToEvm(reward.prover),
+        prover: AddressNormalizer.denormalizeToEvm(proverAddress ?? reward.prover),
         tokens: reward.tokens.map(t => ({
           token: AddressNormalizer.denormalizeToEvm(t.token),
           amount: t.amount,
@@ -169,7 +174,7 @@ export class EvmPublisher extends BasePublisher {
       // Send transaction with native value if required
       logger.spinner('Publishing intent to Portal contract...');
       const hash = await walletClient.sendTransaction({
-        to: portalAddress,
+        to: finalPortalAddress,
         data,
         value: reward.nativeAmount,
       });

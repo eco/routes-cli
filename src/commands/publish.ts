@@ -47,7 +47,7 @@ export function createPublishCommand(): Command {
         // Interactive mode
         logger.title('🎨 Interactive Intent Publishing');
 
-        const { reward, encodedRoute, sourceChain, destChain } =
+        const { reward, encodedRoute, sourceChain, destChain, sourcePortal } =
           await buildIntentInteractively(options);
 
         if (process.env.DEBUG) {
@@ -94,7 +94,8 @@ export function createPublishCommand(): Command {
           destChain.id,
           reward,
           encodedRoute,
-          privateKey
+          privateKey,
+          sourcePortal
         );
 
         if (result.success) {
@@ -337,7 +338,13 @@ async function buildIntentInteractively(options: PublishCommandOptions) {
     throw new Error('Publication cancelled by user');
   }
 
-  return { reward, encodedRoute, sourceChain, destChain };
+  return {
+    reward,
+    encodedRoute,
+    sourceChain,
+    destChain,
+    sourcePortal: AddressNormalizer.normalize(quote.contracts.sourcePortal, sourceChain.type),
+  };
 }
 
 /**

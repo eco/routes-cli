@@ -2,8 +2,10 @@
  * Chain Configuration
  */
 
+import { arbitrum } from 'viem/chains';
+
 import { ChainType } from '@/core/interfaces/intent';
-import { BlockchainAddress, SvmAddress } from '@/core/types/blockchain-addresses';
+import { BlockchainAddress } from '@/core/types/blockchain-addresses';
 import { UniversalAddress } from '@/core/types/universal-address';
 import { AddressNormalizer } from '@/core/utils/address-normalizer';
 import { logger } from '@/utils/logger';
@@ -32,9 +34,6 @@ const chains: Record<string, ChainConfig> = {
     type: ChainType.EVM,
     env: 'production',
     rpcUrl: 'https://mainnet.optimism.io',
-    portalAddress: AddressNormalizer.normalizeEvm('0xB5e58A8206473Df3Ab9b8DDd3B0F84c0ba68F8b5'),
-    // proverAddress: AddressNormalizer.normalizeEvm('0xe6FEbF8C8bf6366eF6fE7337b0b5B394D46d9fc6'), // PolymerProver
-    proverAddress: AddressNormalizer.normalizeEvm('0x11f8f7206a22e2f9f88828164Dd66679Ac6e229e'), // HyperProver
     nativeCurrency: {
       name: 'Ether',
       symbol: 'ETH',
@@ -47,9 +46,18 @@ const chains: Record<string, ChainConfig> = {
     type: ChainType.EVM,
     env: 'production',
     rpcUrl: 'https://mainnet.base.org',
-    portalAddress: AddressNormalizer.normalizeEvm('0xB5e58A8206473Df3Ab9b8DDd3B0F84c0ba68F8b5'),
-    // proverAddress: AddressNormalizer.normalizeEvm('0xe6FEbF8C8bf6366eF6fE7337b0b5B394D46d9fc6'), // Polymer
-    proverAddress: AddressNormalizer.normalizeEvm('0xdFdfb1082D4e53D875350FC6A5B2f2A47C18f286'), // HyperProver
+    nativeCurrency: {
+      name: 'Ether',
+      symbol: 'ETH',
+      decimals: 18,
+    },
+  },
+  arbitrum: {
+    id: BigInt(arbitrum.id),
+    name: arbitrum.name,
+    type: ChainType.EVM,
+    env: 'production',
+    rpcUrl: arbitrum.rpcUrls.default.http[0],
     nativeCurrency: {
       name: 'Ether',
       symbol: 'ETH',
@@ -64,14 +72,6 @@ const chains: Record<string, ChainConfig> = {
     type: ChainType.EVM,
     env: 'development',
     rpcUrl: 'https://sepolia.base.org',
-    portalAddress: AddressNormalizer.normalize(
-      '0xBcdc2cfADcD6E026d4Da81D01D82BFa20bcf2CaC',
-      ChainType.EVM
-    ),
-    proverAddress: AddressNormalizer.normalize(
-      '0xdc9D0C27B0E76F3D7472aC7e10413667B12768Cc',
-      ChainType.EVM
-    ),
     nativeCurrency: {
       name: 'Ether',
       symbol: 'ETH',
@@ -84,14 +84,6 @@ const chains: Record<string, ChainConfig> = {
     type: ChainType.EVM,
     env: 'development',
     rpcUrl: 'https://sepolia.optimism.io',
-    portalAddress: AddressNormalizer.normalize(
-      '0xBcdc2cfADcD6E026d4Da81D01D82BFa20bcf2CaC',
-      ChainType.EVM
-    ),
-    proverAddress: AddressNormalizer.normalize(
-      '0xdc9D0C27B0E76F3D7472aC7e10413667B12768Cc',
-      ChainType.EVM
-    ),
     nativeCurrency: {
       name: 'Ether',
       symbol: 'ETH',
@@ -106,8 +98,6 @@ const chains: Record<string, ChainConfig> = {
     type: ChainType.TVM,
     env: 'production',
     rpcUrl: 'https://api.trongrid.io',
-    portalAddress: AddressNormalizer.normalizeTvm('TQh8ig6rmuMqb5u8efU5LDvoott1oLzoqu'),
-    proverAddress: AddressNormalizer.normalizeTvm('TSqwDT8qxNgExrkKu6qBo1XLjd5CdSYf2X'),
     nativeCurrency: {
       name: 'Tron',
       symbol: 'TRX',
@@ -120,8 +110,6 @@ const chains: Record<string, ChainConfig> = {
     type: ChainType.TVM,
     env: 'development',
     rpcUrl: 'https://api.shasta.trongrid.io',
-    portalAddress: AddressNormalizer.normalizeTvm('TKWwVSTacc9iToWgfef6cbkXPiBAKeSX2t'),
-    proverAddress: AddressNormalizer.normalizeTvm('TAxmRePzN5XiBW99iF3vHQMwYzbXZjUHki'), // Dummy prover
     nativeCurrency: {
       name: 'Tron',
       symbol: 'TRX',
@@ -136,12 +124,6 @@ const chains: Record<string, ChainConfig> = {
     type: ChainType.SVM,
     env: 'production',
     rpcUrl: 'https://api.mainnet-beta.solana.com',
-    portalAddress: AddressNormalizer.normalizeSvm(
-      '8H7qa6zZ1qpTxdSXRh6H619G5a99KJafKzDrkdgWb8mX' as SvmAddress
-    ),
-    proverAddress: AddressNormalizer.normalizeSvm(
-      'C34z78p3WtkDZoxtBqiKgeuC71rbnv2H7koqHmb5Eo3M' as SvmAddress
-    ), // HyperProver
     nativeCurrency: {
       name: 'Solana',
       symbol: 'SOL',
@@ -155,12 +137,6 @@ const chains: Record<string, ChainConfig> = {
     type: ChainType.SVM,
     env: 'development',
     rpcUrl: 'https://api.devnet.solana.com',
-    portalAddress: AddressNormalizer.normalizeSvm(
-      '5nCJDkRg8mhj9XHkjuFoR6Mcs6VcDZVsCbZ7pTJhRFEF' as SvmAddress
-    ),
-    proverAddress: AddressNormalizer.normalizeSvm(
-      'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v' as SvmAddress
-    ), // Placeholder
     nativeCurrency: {
       name: 'Solana',
       symbol: 'SOL',

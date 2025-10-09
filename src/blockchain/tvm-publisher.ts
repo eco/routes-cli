@@ -9,6 +9,7 @@ import { portalAbi } from '@/commons/abis/portal.abi';
 import { PortalHashUtils } from '@/commons/utils/portal-hash.utils';
 import { getChainById } from '@/config/chains';
 import { ChainType, Intent } from '@/core/interfaces/intent';
+import { UniversalAddress } from '@/core/types/universal-address';
 import { AddressNormalizer } from '@/core/utils/address-normalizer';
 import { logger } from '@/utils/logger';
 
@@ -29,7 +30,8 @@ export class TvmPublisher extends BasePublisher {
     destination: bigint,
     reward: Intent['reward'],
     encodedRoute: string,
-    privateKey: string
+    privateKey: string,
+    _portalAddress?: UniversalAddress
   ): Promise<PublishResult> {
     try {
       // Set private key
@@ -38,11 +40,11 @@ export class TvmPublisher extends BasePublisher {
 
       // Get Portal address
       const chainConfig = getChainById(source);
-      if (!chainConfig?.portalAddress) {
+      const portalAddrUniversal = _portalAddress ?? chainConfig?.portalAddress;
+      if (!portalAddrUniversal) {
         throw new Error(`No Portal address configured for chain ${source}`);
       }
-
-      const portalAddress = AddressNormalizer.denormalize(chainConfig.portalAddress, ChainType.TVM);
+      const portalAddress = AddressNormalizer.denormalize(portalAddrUniversal, ChainType.TVM);
 
       // Encode route for destination chain type
       const destChainConfig = getChainById(BigInt(destination));
