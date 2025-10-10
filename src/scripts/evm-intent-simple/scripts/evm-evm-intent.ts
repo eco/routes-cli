@@ -42,7 +42,7 @@ export const INTENT_CONFIG: IntentConfig = {
   recipient: '0x256B70644f5D77bc8e2bb82C731Ddf747ecb1471', // Will be set to sender address if empty
 
   // Optional configurations
-  quoteServiceUrl: 'https://quotes-preprod.eco.com',
+  quoteServiceUrl: 'https://quotes.eco.com',
   routeDeadlineSeconds: 7200, // 2 hours
   rewardDeadlineSeconds: 7200, // 2 hours
 };

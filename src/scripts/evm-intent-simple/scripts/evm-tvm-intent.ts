@@ -53,7 +53,7 @@ export const OPTIMISM_TO_TRON_CONFIG: IntentConfig = {
   recipient: '', // Set Tron recipient address (base58 or hex) or leave empty for default
 
   // Optional configurations
-  quoteServiceUrl: 'https://quotes-preprod.eco.com',
+  quoteServiceUrl: 'https://quotes.eco.com',
   routeDeadlineSeconds: 7200, // 2 hours
   rewardDeadlineSeconds: 7200, // 2 hours
 };

@@ -269,7 +269,7 @@ export class IntentCreator {
    * Gets a quote for the intent
    */
   async getQuote(): Promise<QuoteResponse> {
-    const quoteServiceUrl = this.config.quoteServiceUrl || 'https://quotes-preprod.eco.com';
+    const quoteServiceUrl = this.config.quoteServiceUrl || 'https://quotes.eco.com';
 
     const request: QuoteRequest = {
       source: this.config.sourceChain.id,

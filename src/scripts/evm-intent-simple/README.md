@@ -159,7 +159,7 @@ export const INTENT_CONFIG: IntentConfig = {
   destinationToken: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', // USDC on Base
   rewardAmount: 1000000n, // Change to 1 USDC (6 decimals)
   recipient: '0xYourRecipientAddress', // Add specific recipient
-  quoteServiceUrl: 'https://quotes-preprod.eco.com',
+  quoteServiceUrl: 'https://quotes.eco.com',
   routeDeadlineSeconds: 3600, // Change to 1 hour
   rewardDeadlineSeconds: 3600, // Change to 1 hour
 };
@@ -228,7 +228,7 @@ Successful execution shows:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Step 1: Getting quote...
-📡 Fetching quote from: https://quotes-preprod.eco.com
+📡 Fetching quote from: https://quotes.eco.com
    Destination amount: 99500
 
 Step 2: Approving tokens...

@@ -51,7 +51,7 @@ export const OPTIMISM_TO_SOLANA_CONFIG: IntentConfig = {
   recipient: '5nChimm7uJNx3JWPxZqH3xuunqL2dvHB4F4uQJHSYTPQ', // Set Solana recipient address (base58) or leave empty for default
 
   // Optional configurations
-  quoteServiceUrl: 'https://quotes-preprod.eco.com',
+  quoteServiceUrl: 'https://quotes.eco.com',
   routeDeadlineSeconds: 7200, // 2 hours
   rewardDeadlineSeconds: 7200, // 2 hours
 };
