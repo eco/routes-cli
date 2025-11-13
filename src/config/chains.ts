@@ -72,6 +72,14 @@ const chains: Record<string, ChainConfig> = {
     type: ChainType.EVM,
     env: 'development',
     rpcUrl: 'https://sepolia.base.org',
+    portalAddress: AddressNormalizer.normalize(
+      '0xFC6695eD50c06Ac1102371168C33B3cFAb7c884b',
+      ChainType.EVM
+    ),
+    proverAddress: AddressNormalizer.normalize(
+      '0x9523b6c0caac8122dbd5dd1c1d336ceba637038d',
+      ChainType.EVM
+    ),
     nativeCurrency: {
       name: 'Ether',
       symbol: 'ETH',
@@ -84,6 +92,54 @@ const chains: Record<string, ChainConfig> = {
     type: ChainType.EVM,
     env: 'development',
     rpcUrl: 'https://sepolia.optimism.io',
+    portalAddress: AddressNormalizer.normalize(
+      '0xFC6695eD50c06Ac1102371168C33B3cFAb7c884b',
+      ChainType.EVM
+    ),
+    proverAddress: AddressNormalizer.normalize(
+      '0x9523b6c0caac8122dbd5dd1c1d336ceba637038d',
+      ChainType.EVM
+    ),
+    nativeCurrency: {
+      name: 'Ether',
+      symbol: 'ETH',
+      decimals: 18,
+    },
+  },
+  'plasma-testnet': {
+    id: 9746n,
+    name: 'Plasma Testnet',
+    type: ChainType.EVM,
+    env: 'development',
+    rpcUrl: 'https://rpc.testnet.plasm.technology',
+    portalAddress: AddressNormalizer.normalize(
+      '0xFC6695eD50c06Ac1102371168C33B3cFAb7c884b',
+      ChainType.EVM
+    ),
+    proverAddress: AddressNormalizer.normalize(
+      '0x9523b6c0caac8122dbd5dd1c1d336ceba637038d',
+      ChainType.EVM
+    ),
+    nativeCurrency: {
+      name: 'Ether',
+      symbol: 'ETH',
+      decimals: 18,
+    },
+  },
+  sepolia: {
+    id: 11155111n,
+    name: 'Sepolia',
+    type: ChainType.EVM,
+    env: 'development',
+    rpcUrl: 'https://rpc.sepolia.org',
+    portalAddress: AddressNormalizer.normalize(
+      '0xFC6695eD50c06Ac1102371168C33B3cFAb7c884b',
+      ChainType.EVM
+    ),
+    proverAddress: AddressNormalizer.normalize(
+      '0x9523b6c0caac8122dbd5dd1c1d336ceba637038d',
+      ChainType.EVM
+    ),
     nativeCurrency: {
       name: 'Ether',
       symbol: 'ETH',

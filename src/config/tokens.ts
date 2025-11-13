@@ -31,13 +31,21 @@ export const TOKEN_CONFIGS: Record<string, TokenConfig> = {
         ChainType.EVM
       ), // Base
       '84532': AddressNormalizer.normalize(
-        '0x036CbD53842c5426634e7929541eC2318f3dCF7e',
+        '0x036cbd53842c5426634e7929541ec2318f3dcf7e',
         ChainType.EVM
       ), // Base Sepolia
       '11155420': AddressNormalizer.normalize(
         '0x5fd84259d66Cd46123540766Be93DFE6D43130D7',
         ChainType.EVM
-      ),
+      ), // Optimism Sepolia
+      '9746': AddressNormalizer.normalize(
+        '0x107d0b0428741b37331138040F793aF171682603',
+        ChainType.EVM
+      ), // Plasma Testnet
+      '11155111': AddressNormalizer.normalize(
+        '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238',
+        ChainType.EVM
+      ), // Sepolia
       '1399811149': AddressNormalizer.normalizeSvm(
         'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v' as SvmAddress
       ),
