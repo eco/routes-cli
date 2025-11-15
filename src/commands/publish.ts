@@ -294,7 +294,7 @@ async function buildIntentInteractively(options: PublishCommandOptions) {
     logger.succeed('Quote fetched');
 
     // Validate contract addresses from quote
-    if (!quote.contracts?.sourcePortal || !quote.contracts?.prover) {
+    if (quote && (!quote.contracts?.sourcePortal || !quote.contracts?.prover)) {
       logger.warning('Quote response missing required contract addresses');
       quote = null;
     }
@@ -308,21 +308,36 @@ async function buildIntentInteractively(options: PublishCommandOptions) {
   }
 
   // Variables to hold route/reward data
-  let encodedRoute: Hex;
-  let sourcePortal: UniversalAddress;
-  let proverAddress: UniversalAddress;
-  let routeAmountDisplay: string;
+  let encodedRoute!: Hex;
+  let sourcePortal!: UniversalAddress;
+  let proverAddress!: UniversalAddress;
+  let routeAmountDisplay!: string;
 
   if (quote) {
-    // Use quote data
-    encodedRoute = quote.quoteResponse.encodedRoute as Hex;
-    sourcePortal = AddressNormalizer.normalize(quote.contracts.sourcePortal, sourceChain.type);
-    proverAddress = AddressNormalizer.normalize(quote.contracts.prover, sourceChain.type);
-    routeAmountDisplay = formatUnits(
-      BigInt(quote.quoteResponse.destinationAmount),
-      routeToken.decimals
-    );
-  } else {
+    // Extract quote data (now unified format from both APIs)
+    const quoteData = quote.quoteResponse;
+
+    if (!quoteData) {
+      logger.warning('Quote response missing quote data');
+      quote = null;
+    } else {
+      encodedRoute = quoteData.encodedRoute as Hex;
+      sourcePortal = AddressNormalizer.normalize(quote.contracts.sourcePortal, sourceChain.type);
+      proverAddress = AddressNormalizer.normalize(quote.contracts.prover, sourceChain.type);
+      routeAmountDisplay = formatUnits(BigInt(quoteData.destinationAmount), routeToken.decimals);
+
+      // Display solver-v2 specific fields if available
+      if (quoteData.estimatedFulfillTimeSec) {
+        logger.info(`Estimated fulfillment time: ${quoteData.estimatedFulfillTimeSec} seconds`);
+      }
+
+      if (quoteData.intentExecutionType) {
+        logger.info(`Execution type: ${quoteData.intentExecutionType}`);
+      }
+    }
+  }
+
+  if (!quote) {
     // FALLBACK: Manual configuration
     logger.section('⚠️  Manual Configuration Required');
 

@@ -15,6 +15,7 @@ export interface EnvConfig {
   evmRpcUrl?: string;
   tvmRpcUrl?: string;
   svmRpcUrl?: string;
+  solverUrl?: string;
 }
 
 export function loadEnvConfig(): EnvConfig {
@@ -25,5 +26,6 @@ export function loadEnvConfig(): EnvConfig {
     evmRpcUrl: process.env.EVM_RPC_URL,
     tvmRpcUrl: process.env.TVM_RPC_URL || 'https://api.trongrid.io',
     svmRpcUrl: process.env.SVM_RPC_URL || 'https://api.mainnet-beta.solana.com',
+    solverUrl: process.env.SOLVER_URL,
   };
 }

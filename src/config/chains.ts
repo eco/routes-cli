@@ -73,7 +73,7 @@ const chains: Record<string, ChainConfig> = {
     env: 'development',
     rpcUrl: 'https://sepolia.base.org',
     portalAddress: AddressNormalizer.normalize(
-      '0xFC6695eD50c06Ac1102371168C33B3cFAb7c884b',
+      '0x06EFdb68dbF245ECb49E3aE10Cd0f893B674443c',
       ChainType.EVM
     ),
     proverAddress: AddressNormalizer.normalize(
@@ -93,7 +93,7 @@ const chains: Record<string, ChainConfig> = {
     env: 'development',
     rpcUrl: 'https://sepolia.optimism.io',
     portalAddress: AddressNormalizer.normalize(
-      '0xFC6695eD50c06Ac1102371168C33B3cFAb7c884b',
+      '0x06EFdb68dbF245ECb49E3aE10Cd0f893B674443c',
       ChainType.EVM
     ),
     proverAddress: AddressNormalizer.normalize(
@@ -113,7 +113,7 @@ const chains: Record<string, ChainConfig> = {
     env: 'development',
     rpcUrl: 'https://rpc.testnet.plasm.technology',
     portalAddress: AddressNormalizer.normalize(
-      '0xFC6695eD50c06Ac1102371168C33B3cFAb7c884b',
+      '0x06EFdb68dbF245ECb49E3aE10Cd0f893B674443c',
       ChainType.EVM
     ),
     proverAddress: AddressNormalizer.normalize(
@@ -133,7 +133,7 @@ const chains: Record<string, ChainConfig> = {
     env: 'development',
     rpcUrl: 'https://rpc.sepolia.org',
     portalAddress: AddressNormalizer.normalize(
-      '0xFC6695eD50c06Ac1102371168C33B3cFAb7c884b',
+      '0x06EFdb68dbF245ECb49E3aE10Cd0f893B674443c',
       ChainType.EVM
     ),
     proverAddress: AddressNormalizer.normalize(

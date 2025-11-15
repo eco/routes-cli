@@ -24,9 +24,9 @@
  * ```
  */
 
-import { ChainType } from '@/core/interfaces/intent';
 import { Network } from '@/commons/idls/portal.idl';
 import { getChainById } from '@/config/chains';
+import { ChainType } from '@/core/interfaces/intent';
 
 /**
  * Chain ID ranges and specific identifiers for different blockchain types
@@ -213,7 +213,7 @@ export class ChainTypeDetector {
     if (!chainConfig) {
       throw new Error(`Unknown chain: ${chainId}`);
     }
-    
+
     return chainConfig.env === 'production' ? Network.MAINNET : Network.DEVNET;
   }
 }
