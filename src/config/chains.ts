@@ -2,7 +2,7 @@
  * Chain Configuration
  */
 
-import { arbitrum } from 'viem/chains';
+import { arbitrum, polygon } from 'viem/chains';
 
 import { ChainType } from '@/core/interfaces/intent';
 import { BlockchainAddress } from '@/core/types/blockchain-addresses';
@@ -63,6 +63,14 @@ const chains: Record<string, ChainConfig> = {
       symbol: 'ETH',
       decimals: 18,
     },
+  },
+  polygon: {
+    id: BigInt(polygon.id),
+    name: polygon.name,
+    type: ChainType.EVM,
+    env: 'production',
+    rpcUrl: polygon.rpcUrls.default.http[0],
+    nativeCurrency: polygon.nativeCurrency,
   },
 
   // Testnet Chains

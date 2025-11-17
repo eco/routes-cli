@@ -30,6 +30,10 @@ export const TOKEN_CONFIGS: Record<string, TokenConfig> = {
         '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
         ChainType.EVM
       ), // Base
+      '137': AddressNormalizer.normalize(
+        '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359',
+        ChainType.EVM
+      ), // Base
       '42161': AddressNormalizer.normalize(
         '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
         ChainType.EVM
