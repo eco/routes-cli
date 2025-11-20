@@ -33,7 +33,11 @@ export const TOKEN_CONFIGS: Record<string, TokenConfig> = {
       '137': AddressNormalizer.normalize(
         '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359',
         ChainType.EVM
-      ), // Base
+      ), // Polygon
+      '2020': AddressNormalizer.normalize(
+        '0x0b7007c13325c48911f73a2dad5fa5dcbf808adc',
+        ChainType.EVM
+      ), // Runin
       '42161': AddressNormalizer.normalize(
         '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
         ChainType.EVM

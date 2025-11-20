@@ -2,7 +2,7 @@
  * Chain Configuration
  */
 
-import { arbitrum, polygon } from 'viem/chains';
+import { arbitrum, polygon, ronin } from 'viem/chains';
 
 import { ChainType } from '@/core/interfaces/intent';
 import { BlockchainAddress } from '@/core/types/blockchain-addresses';
@@ -71,6 +71,14 @@ const chains: Record<string, ChainConfig> = {
     env: 'production',
     rpcUrl: polygon.rpcUrls.default.http[0],
     nativeCurrency: polygon.nativeCurrency,
+  },
+  ronin: {
+    id: BigInt(ronin.id),
+    name: ronin.name,
+    type: ChainType.EVM,
+    env: 'production',
+    rpcUrl: ronin.rpcUrls.default.http[0],
+    nativeCurrency: ronin.nativeCurrency,
   },
 
   // Testnet Chains

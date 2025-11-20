@@ -124,7 +124,7 @@ export function createReward(
   proverAddress: Address
 ): Reward {
   const now = Math.floor(Date.now() / 1000);
-  const deadline = config.rewardDeadlineSeconds || 7200; // Default 2 hours
+  const deadline = config.rewardDeadlineSeconds || 8000; // Default 2 hours
 
   return {
     deadline: BigInt(now + deadline),

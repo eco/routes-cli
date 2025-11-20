@@ -313,6 +313,10 @@ async function buildIntentInteractively(options: PublishCommandOptions) {
   let proverAddress!: UniversalAddress;
   let routeAmountDisplay!: string;
 
+  // 6. Set fixed deadlines
+  const now = Math.floor(Date.now() / 1000);
+  let rewardDeadline = BigInt(now + 2.5 * 60 * 60);
+
   if (quote) {
     // Extract quote data (now unified format from both APIs)
     const quoteData = quote.quoteResponse;
@@ -325,6 +329,7 @@ async function buildIntentInteractively(options: PublishCommandOptions) {
       sourcePortal = AddressNormalizer.normalize(quote.contracts.sourcePortal, sourceChain.type);
       proverAddress = AddressNormalizer.normalize(quote.contracts.prover, sourceChain.type);
       routeAmountDisplay = formatUnits(BigInt(quoteData.destinationAmount), routeToken.decimals);
+      rewardDeadline = BigInt(quoteData.deadline);
 
       // Display solver-v2 specific fields if available
       if (quoteData.estimatedFulfillTimeSec) {
@@ -472,10 +477,6 @@ async function buildIntentInteractively(options: PublishCommandOptions) {
     encodedRoute = PortalEncoder.encode(route, destChain.type);
     logger.succeed('Route built and encoded');
   }
-
-  // 6. Set fixed deadlines
-  const now = Math.floor(Date.now() / 1000);
-  const rewardDeadline = BigInt(now + 2 * 60 * 60);
 
   // 7. Build reward using addresses from quote or manual input
   const reward: Intent['reward'] = {
