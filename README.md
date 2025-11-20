@@ -27,7 +27,7 @@ A powerful command-line interface for creating and publishing cross-chain intent
 ### Clone and Build
 
 ```bash
-git clone https://github.com/eco-protocol/routes-cli.git
+git clone https://github.com/eco/routes-cli.git
 cd routes-cli
 pnpm install
 pnpm build
