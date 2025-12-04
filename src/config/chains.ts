@@ -81,6 +81,19 @@ const chains: Record<string, ChainConfig> = {
     nativeCurrency: ronin.nativeCurrency,
   },
 
+  hyperevm: {
+    id: BigInt(999),
+    name: 'HyperEVM',
+    type: ChainType.EVM,
+    env: 'production',
+    rpcUrl: 'https://rpc.hyperliquid.xyz/evm',
+    nativeCurrency: {
+      decimals: 18,
+      name: 'HYPE',
+      symbol: 'HYPE',
+    },
+  },
+
   // Testnet Chains
   'base-sepolia': {
     id: 84532n,
