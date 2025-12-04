@@ -34,6 +34,10 @@ export const TOKEN_CONFIGS: Record<string, TokenConfig> = {
         '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359',
         ChainType.EVM
       ), // Polygon
+      '999': AddressNormalizer.normalize(
+        '0xb88339CB7199b77E23DB6E890353E22632Ba630f',
+        ChainType.EVM
+      ), // Hyperevm
       '2020': AddressNormalizer.normalize(
         '0x0b7007c13325c48911f73a2dad5fa5dcbf808adc',
         ChainType.EVM
@@ -77,6 +81,10 @@ export const TOKEN_CONFIGS: Record<string, TokenConfig> = {
         '0x94b008aA00579c1307B0EF2c499aD98a8ce58e58',
         ChainType.EVM
       ), // Optimism
+      '999': AddressNormalizer.normalize(
+        '0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb',
+        ChainType.EVM
+      ), // Hyperevm
       '8453': AddressNormalizer.normalize(
         '0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2',
         ChainType.EVM
