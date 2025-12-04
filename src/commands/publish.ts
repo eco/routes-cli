@@ -20,6 +20,7 @@ import { privateKeyToAccount } from 'viem/accounts';
 
 import { BasePublisher } from '@/blockchain/base-publisher';
 import { EvmPublisher } from '@/blockchain/evm-publisher';
+import { createScanner, isScanningSupported, ScanEventType } from '@/blockchain/scanner';
 import { SvmPublisher } from '@/blockchain/svm-publisher';
 import { TvmPublisher } from '@/blockchain/tvm-publisher';
 import { serialize } from '@/commons/utils/serialize';
@@ -40,6 +41,7 @@ interface PublishCommandOptions {
   privateKey?: string;
   rpc?: string;
   dryRun?: boolean;
+  noWatch?: boolean;
 }
 
 export function createPublishCommand(): Command {
@@ -53,12 +55,13 @@ export function createPublishCommand(): Command {
     .option('-r, --rpc <url>', 'RPC URL (overrides env)')
     .option('--recipient <address>', 'Recipient address on destination chain')
     .option('--dry-run', 'Validate without publishing')
+    .option('--no-watch', 'Skip watching for fulfillment on destination chain')
     .action(async options => {
       try {
         // Interactive mode
         logger.title('🎨 Interactive Intent Publishing');
 
-        const { reward, encodedRoute, sourceChain, destChain, sourcePortal } =
+        const { reward, encodedRoute, sourceChain, destChain, sourcePortal, destinationPortal } =
           await buildIntentInteractively(options);
 
         if (process.env.DEBUG) {
@@ -111,6 +114,19 @@ export function createPublishCommand(): Command {
 
         if (result.success) {
           logger.displayTransactionResult(result);
+
+          // Watch for fulfillment on destination chain (unless --no-watch)
+          if (!options.noWatch && result.intentHash && destinationPortal) {
+            await watchForFulfillment({
+              intentHash: result.intentHash,
+              destinationPortal,
+              destChain,
+            });
+          } else if (!options.noWatch && !destinationPortal) {
+            logger.warning(
+              'Cannot watch for fulfillment: destination portal address not available from quote'
+            );
+          }
         } else {
           logger.fail('Publishing failed');
           throw new Error(result.error || 'Publishing failed');
@@ -523,7 +539,68 @@ async function buildIntentInteractively(options: PublishCommandOptions) {
     sourceChain,
     destChain,
     sourcePortal,
+    destinationPortal: quote?.contracts?.destinationPortal,
   };
+}
+
+/**
+ * Watch for fulfillment on the destination chain
+ */
+async function watchForFulfillment(params: {
+  intentHash: string;
+  destinationPortal: string;
+  destChain: ChainConfig;
+}): Promise<void> {
+  const { intentHash, destinationPortal, destChain } = params;
+
+  // Check if scanning is supported for this chain type
+  if (!isScanningSupported(destChain.type)) {
+    logger.warning(
+      `Fulfillment scanning not yet supported for ${destChain.type} chains. ` +
+        `Intent hash: ${intentHash}`
+    );
+    return;
+  }
+
+  logger.section('🔍 Watching for Fulfillment');
+
+  try {
+    const scanner = createScanner({
+      intentHash,
+      portalAddress: destinationPortal,
+      rpcUrl: destChain.rpcUrl,
+      chainId: destChain.id,
+      chainType: destChain.type,
+      chainName: destChain.name,
+    });
+
+    const result = await scanner.scan(ScanEventType.FULFILLMENT);
+
+    if (result.found) {
+      const elapsedDisplay = result.elapsedMs
+        ? `${(result.elapsedMs / 1000).toFixed(1)}s`
+        : 'Unknown';
+      logger.displayKeyValue(
+        {
+          'Intent Hash': intentHash,
+          Claimant: result.claimant || 'Unknown',
+          'Fulfillment Tx': result.transactionHash || 'Unknown',
+          'Time to Fulfill': elapsedDisplay,
+        },
+        '✅ Intent Fulfilled!'
+      );
+    } else if (result.timedOut) {
+      logger.warning(
+        'Fulfillment not detected within timeout. The intent may still be fulfilled later.'
+      );
+      logger.info(`You can check the intent status using: eco-routes status ${intentHash}`);
+    } else if (result.error) {
+      logger.warning(`Fulfillment scanning stopped: ${result.error}`);
+    }
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    logger.warning(`Failed to watch for fulfillment: ${errorMessage}`);
+  }
 }
 
 /**
