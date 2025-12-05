@@ -1,8 +1,9 @@
 /**
  * EVM Scanner
  *
- * Scans for portal events (IntentFulfilled, IntentProven, IntentWithdrawn)
- * on EVM chains using viem's getLogs with polling.
+ * Scans for portal events on EVM chains using viem's getLogs with polling.
+ * Currently supports: IntentFulfilled
+ * TODO: IntentProven, IntentWithdrawn
  */
 
 import { Address, Chain, createPublicClient, getAbiItem, Hex, http, PublicClient } from 'viem';
@@ -13,20 +14,10 @@ import { logger } from '@/utils/logger';
 
 import { BaseScanner, ScanEventType, ScannerConfig, ScanResult } from './base-scanner';
 
-// Extract events from portal ABI
+// Extract IntentFulfilled event from portal ABI
 const intentFulfilledEvent = getAbiItem({
   abi: portalAbi,
   name: 'IntentFulfilled',
-});
-
-const intentProvenEvent = getAbiItem({
-  abi: portalAbi,
-  name: 'IntentProven',
-});
-
-const intentWithdrawnEvent = getAbiItem({
-  abi: portalAbi,
-  name: 'IntentWithdrawn',
 });
 
 /**
@@ -37,7 +28,6 @@ export class EvmScanner extends BaseScanner {
   private client: PublicClient;
   private startBlock: bigint | null = null;
   private scanStartTime: number = 0;
-  private currentEventType: ScanEventType = ScanEventType.FULFILLMENT;
 
   constructor(config: ScannerConfig) {
     super(config);
@@ -52,7 +42,6 @@ export class EvmScanner extends BaseScanner {
    * Scan for events until found or timeout
    */
   async scan(eventType: ScanEventType): Promise<ScanResult> {
-    this.currentEventType = eventType;
     this.scanStartTime = Date.now();
     this.stopped = false;
     const { timeoutMs, pollIntervalMs, chainName } = this.config;
@@ -122,9 +111,8 @@ export class EvmScanner extends BaseScanner {
       case ScanEventType.FULFILLMENT:
         return this.checkForFulfillment();
       case ScanEventType.PROVEN:
-        return this.checkForProven();
       case ScanEventType.WITHDRAWAL:
-        return this.checkForWithdrawal();
+        throw new Error(`${eventType} scanning not yet implemented`);
       default:
         return {
           found: false,
@@ -174,86 +162,6 @@ export class EvmScanner extends BaseScanner {
   }
 
   /**
-   * Check for IntentProven events
-   */
-  private async checkForProven(): Promise<ScanResult> {
-    const eventType = ScanEventType.PROVEN;
-    try {
-      const currentBlock = await this.client.getBlockNumber();
-      const { intentHash, portalAddress } = this.config;
-
-      const logs = await this.client.getLogs({
-        address: portalAddress as Address,
-        event: intentProvenEvent,
-        args: {
-          intentHash: intentHash as Hex,
-        },
-        fromBlock: this.startBlock ?? currentBlock - 1000n,
-        toBlock: currentBlock,
-      });
-
-      if (logs.length > 0) {
-        const log = logs[0];
-        const elapsedMs = Date.now() - this.scanStartTime;
-        return {
-          found: true,
-          eventType,
-          claimant: log.args.claimant as string,
-          transactionHash: log.transactionHash,
-          elapsedMs,
-        };
-      }
-
-      return { found: false, eventType };
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.warn(`Error checking for proof: ${errorMessage}`);
-      return { found: false, eventType };
-    }
-  }
-
-  /**
-   * Check for IntentWithdrawn events
-   * Note: intentHash is not indexed in this event, so we filter in memory
-   */
-  private async checkForWithdrawal(): Promise<ScanResult> {
-    const eventType = ScanEventType.WITHDRAWAL;
-    try {
-      const currentBlock = await this.client.getBlockNumber();
-      const { intentHash, portalAddress } = this.config;
-
-      const logs = await this.client.getLogs({
-        address: portalAddress as Address,
-        event: intentWithdrawnEvent,
-        fromBlock: this.startBlock ?? currentBlock - 1000n,
-        toBlock: currentBlock,
-      });
-
-      // Filter by intentHash in memory since it's not indexed
-      const matchingLog = logs.find(
-        log => log.args.intentHash?.toLowerCase() === intentHash.toLowerCase()
-      );
-
-      if (matchingLog) {
-        const elapsedMs = Date.now() - this.scanStartTime;
-        return {
-          found: true,
-          eventType,
-          claimant: matchingLog.args.claimant as string,
-          transactionHash: matchingLog.transactionHash,
-          elapsedMs,
-        };
-      }
-
-      return { found: false, eventType };
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.warn(`Error checking for withdrawal: ${errorMessage}`);
-      return { found: false, eventType };
-    }
-  }
-
-  /**
    * Get human-readable label for event type
    */
   private getEventLabel(eventType: ScanEventType): string {
@@ -277,7 +185,6 @@ export class EvmScanner extends BaseScanner {
     const viemChain = Object.values(chains).find((chain: Chain) => chain.id === id);
 
     if (!viemChain) {
-      // Return a minimal chain config for unsupported chains
       return {
         id,
         name: `Chain ${id}`,
