@@ -9,6 +9,7 @@ import { ChainType } from '@/core/interfaces/intent';
 
 import { BaseScanner, ScannerConfig } from './base-scanner';
 import { EvmScanner } from './evm-scanner';
+import { SvmScanner } from './svm-scanner';
 
 export * from './base-scanner';
 
@@ -21,7 +22,7 @@ export function createScanner(config: ScannerConfig): BaseScanner {
       return new EvmScanner(config);
 
     case ChainType.SVM:
-      throw new Error(`SVM scanning not yet implemented. Intent: ${config.intentHash}`);
+      return new SvmScanner(config);
 
     case ChainType.TVM:
       throw new Error(`TVM scanning not yet implemented. Intent: ${config.intentHash}`);
@@ -35,5 +36,5 @@ export function createScanner(config: ScannerConfig): BaseScanner {
  * Check if scanning is supported for a chain type
  */
 export function isScanningSupported(chainType: ChainType): boolean {
-  return chainType === ChainType.EVM;
+  return chainType === ChainType.EVM || chainType === ChainType.SVM;
 }

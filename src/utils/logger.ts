@@ -161,7 +161,6 @@ export class Logger {
     }
 
     const table = this.table({
-      colWidths: [25, 70],
       wordWrap: false,
     });
 
