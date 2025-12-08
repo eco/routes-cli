@@ -9,6 +9,8 @@ dist/
 .env.local
 .env.*.local
 
+sentinel.config.yaml
+
 # IDE files
 .vscode/
 .idea/

@@ -1,0 +1,65 @@
+service:
+  name: "sentinel"
+  environment: "development"
+  logLevel: "info"
+
+chains:
+  - base
+  - optimism
+  - arbitrum
+  - solana
+
+tokens:
+  - symbol: USDC
+    amount: "0.05"
+
+routes:
+  mode: "all"
+  exclude:
+    - source: solana
+      destination: solana
+
+scheduler:
+  strategy: "periodic"
+  intervalMs: 60000
+
+execution:
+  parallelism: 1
+  timeoutMs: 300000
+  dryRun: false
+  retries:
+    maxAttempts: 2
+    backoffMs: 5000
+
+health:
+  degradedAfterFailures: 2
+  failedAfterFailures: 5
+  healthyAfterSuccesses: 3
+  maxFulfillmentTimeMs: 180000
+
+reporting:
+  console:
+    enabled: true
+    verbose: true
+    summaryIntervalMs: 300000
+
+# EVM wallet configuration
+evm:
+  wallets:
+    basic:
+      type: "basic"
+      privateKey: "0x947963b3ebdafa33ab49af4fb17f928f7a6a61f5b62315209b21d9d9f876bee9"  # Your EVM private key
+
+# SVM (Solana) wallet configuration
+svm:
+  wallets:
+    basic:
+      type: "basic"
+      secretKey: "5T2JQmqaFqQwnCkYs6zVGMSRpc7QPQ7kxShTr62abPRQWDRCCZCp2dHifaByyZPsjXCJxQe44BH9WrHuPEa7Ahop"  # Your Solana secret key (base58 or JSON array)
+
+# TVM (Tron) wallet configuration
+# tvm:
+#   wallets:
+#     basic:
+#       type: "basic"
+#       privateKey: "..."

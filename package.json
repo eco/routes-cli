@@ -33,6 +33,7 @@
   "author": "Eco Protocol",
   "license": "MIT",
   "dependencies": {
+    "@aws-sdk/client-secrets-manager": "^3.946.0",
     "@coral-xyz/anchor": "^0.31.1",
     "@solana/spl-token": "^0.4.14",
     "@solana/web3.js": "^1.91.8",
@@ -41,14 +42,17 @@
     "commander": "^12.1.0",
     "dotenv": "^16.4.5",
     "inquirer": "^9.3.7",
+    "js-yaml": "^4.1.1",
     "ora": "^8.2.0",
     "tronweb": "^6.0.0",
-    "viem": "^2.21.58"
+    "viem": "^2.21.58",
+    "zod": "^4.1.13"
   },
   "devDependencies": {
     "@types/bn.js": "^5.2.0",
     "@types/inquirer": "^9.0.7",
     "@types/jest": "^30.0.0",
+    "@types/js-yaml": "^4.0.9",
     "@types/node": "^20.16.16",
     "@typescript-eslint/eslint-plugin": "^8.43.0",
     "@typescript-eslint/parser": "^8.43.0",
