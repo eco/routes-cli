@@ -1,1 +1,4 @@
+# Run pre-commit hooks (detect private keys, etc.)
+pre-commit run
+
 npx lint-staged
