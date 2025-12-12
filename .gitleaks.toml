@@ -1,0 +1,30 @@
+# Gitleaks custom configuration for blockchain projects
+title = "Gitleaks config for eco-routes-cli"
+
+[extend]
+# Extend the default gitleaks config
+useDefault = true
+
+[[rules]]
+id = "ethereum-private-key"
+description = "Ethereum/EVM Private Key (64 hex chars with 0x prefix)"
+regex = '''0x[a-fA-F0-9]{64}'''
+keywords = ["0x"]
+
+[[rules]]
+id = "ethereum-private-key-no-prefix"
+description = "Ethereum/EVM Private Key (64 hex chars in quotes)"
+regex = '''["'][a-fA-F0-9]{64}["']'''
+
+[[rules]]
+id = "solana-private-key-array"
+description = "Solana Private Key (byte array)"
+regex = '''\[\s*\d{1,3}(?:\s*,\s*\d{1,3}){31,63}\s*\]'''
+
+[extend.allowlist]
+# Allow .env.example files
+paths = [
+  '''\.env\.example$''',
+  '''\.example$''',
+  '''\.sample$''',
+]
