@@ -1,0 +1,54 @@
+service:
+  name: "sentinel"
+  environment: "development"
+  logLevel: "info"
+
+chains:
+  - base
+  - solana
+
+tokens:
+  - symbol: USDC
+    amount: "0.05"
+
+routes:
+  mode: "all"
+  exclude:
+    - source: solana
+      destination: solana
+
+scheduler:
+  strategy: "periodic"
+  intervalMs: 60000
+
+execution:
+  parallelism: 1
+  timeoutMs: 300000
+  dryRun: false
+  retries:
+    maxAttempts: 2
+    backoffMs: 5000
+
+health:
+  degradedAfterFailures: 2
+  failedAfterFailures: 5
+  healthyAfterSuccesses: 3
+  maxFulfillmentTimeMs: 180000
+
+reporting:
+  console:
+    enabled: true
+    verbose: true
+    summaryIntervalMs: 300000
+
+evm:
+  wallets:
+    basic:
+      type: "basic"
+      privateKey: "0x..."
+
+svm:
+  wallets:
+    basic:
+      type: "basic"
+      secretKey: "..."
