@@ -24,11 +24,7 @@ import {
   SVM_PROVIDER_CONFIG,
 } from './svm-constants';
 import { extractIntentPublishedEvent, logTransactionDetails } from './svm-decode';
-import {
-  createTokenAccountIfNeeded,
-  getOrCreateVaultTokenAccount,
-  prepareTokenTransferAccounts,
-} from './svm-token-operations';
+import { prepareTokenTransferAccounts } from './svm-token-operations';
 import {
   AnchorSetupResult,
   PublishContext,
@@ -128,20 +124,11 @@ export async function buildFundingTransaction(
   );
   const funderTokenAccount = await getAssociatedTokenAddress(tokenMint, context.keypair.publicKey);
 
-  // Ensure funder token account exists
-  await createTokenAccountIfNeeded(
-    connection,
-    tokenMint,
-    context.keypair.publicKey,
-    context.keypair
-  );
-
-  // Get or create a vault token account
-  const vaultTokenAccount = await getOrCreateVaultTokenAccount(
-    connection,
+  // Get vault token account address (must already exist)
+  const vaultTokenAccount = await getAssociatedTokenAddress(
     tokenMint,
     vaultPda,
-    context.keypair
+    true // allowOwnerOffCurve for PDA
   );
 
   // Build portal reward
