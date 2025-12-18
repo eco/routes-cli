@@ -14,7 +14,7 @@ import { AddressNormalizer } from '@/core/utils/address-normalizer';
 import { logger } from '@/utils/logger';
 
 import { SVM_CONNECTION_CONFIG, SVM_ERROR_MESSAGES, SVM_LOG_MESSAGES } from './svm/svm-constants';
-import { executeFunding, executePublish } from './svm/svm-transaction';
+import { executeFunding } from './svm/svm-transaction';
 import { PublishContext, SvmError, SvmErrorType } from './svm/svm-types';
 import { BasePublisher, PublishResult } from './base-publisher';
 
@@ -69,20 +69,14 @@ export class SvmPublisher extends BasePublisher {
         portalProgramId,
       };
 
-      // Execute funding if tokens are present
+      // Execute funding (tokens must be present)
       const fundingResult = await this.fundIntent(context);
-      if (!fundingResult.success) {
-        return fundingResult;
+
+      if (fundingResult.success) {
+        logger.info(SVM_LOG_MESSAGES.FUNDING_SUCCESS(fundingResult.transactionHash!));
       }
 
-      // Execute publishing
-      const publishResult = await executePublish(this.connection, context);
-
-      if (publishResult.success) {
-        logger.info(SVM_LOG_MESSAGES.INTENT_PUBLISHED(publishResult.transactionHash!));
-      }
-
-      return publishResult;
+      return fundingResult;
     } catch (error: any) {
       return this.handleError(error);
     }
@@ -92,9 +86,14 @@ export class SvmPublisher extends BasePublisher {
    * Funds an intent if reward tokens are present
    */
   private async fundIntent(context: PublishContext): Promise<PublishResult> {
-    // Skip funding if no tokens in reward
+    // Funding requires tokens in reward
     if (context.reward.tokens.length === 0) {
-      return { success: true };
+      const errorMsg = 'Cannot fund intent: No reward tokens specified';
+      logger.error(errorMsg);
+      return {
+        success: false,
+        error: errorMsg,
+      };
     }
 
     try {
