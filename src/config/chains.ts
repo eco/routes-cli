@@ -5,7 +5,7 @@
 import { arbitrum, polygon, ronin } from 'viem/chains';
 
 import { ChainType } from '@/core/interfaces/intent';
-import { BlockchainAddress } from '@/core/types/blockchain-addresses';
+import { BlockchainAddress, SvmAddress } from '@/core/types/blockchain-addresses';
 import { UniversalAddress } from '@/core/types/universal-address';
 import { AddressNormalizer } from '@/core/utils/address-normalizer';
 import { logger } from '@/utils/logger';
@@ -209,6 +209,9 @@ const chains: Record<string, ChainConfig> = {
     type: ChainType.SVM,
     env: 'production',
     rpcUrl: 'https://api.mainnet-beta.solana.com',
+    portalAddress: AddressNormalizer.normalizeSvm(
+      'CmscPpBTt2dHmexbAe2VfhVPAEjFDj4rw96jMGmqqbvB' as SvmAddress
+    ),
     nativeCurrency: {
       name: 'Solana',
       symbol: 'SOL',

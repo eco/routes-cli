@@ -293,4 +293,104 @@ export class EvmPublisher extends BasePublisher {
 
     return viemChain;
   }
+
+  async refund(
+    source: bigint,
+    destination: bigint,
+    routeHash: Hex,
+    reward: Intent['reward'],
+    privateKey: string,
+    portalAddress?: UniversalAddress
+  ): Promise<PublishResult> {
+    try {
+      // Setup account and clients
+      const account = privateKeyToAccount(privateKey as Hex);
+      const chain = this.getChain(source);
+
+      const walletClient = createWalletClient({
+        account,
+        chain,
+        transport: http(this.rpcUrl),
+      });
+
+      const publicClient = createPublicClient({
+        chain,
+        transport: http(this.rpcUrl),
+      });
+
+      // Get portal address
+      const sourceChainConfig = getChainById(source);
+      if (!sourceChainConfig) {
+        throw new Error(`Unknown source chain: ${source}`);
+      }
+
+      const portalAddrUniversal = portalAddress ?? sourceChainConfig.portalAddress;
+      if (!portalAddrUniversal) {
+        throw new Error(`No portal address configured for chain ${source}`);
+      }
+
+      const finalPortalAddress = AddressNormalizer.denormalizeToEvm(portalAddrUniversal);
+
+      // Build EVM-compatible reward struct
+      const evmReward = {
+        deadline: reward.deadline,
+        creator: AddressNormalizer.denormalizeToEvm(reward.creator),
+        prover: AddressNormalizer.denormalizeToEvm(reward.prover),
+        nativeAmount: reward.nativeAmount,
+        tokens: reward.tokens.map(t => ({
+          token: AddressNormalizer.denormalizeToEvm(t.token),
+          amount: t.amount,
+        })),
+      };
+
+      logger.spinner('Building refund transaction...');
+
+      // Encode refund function call
+      const txData = encodeFunctionData({
+        abi: portalAbi,
+        functionName: 'refund',
+        args: [destination, routeHash, evmReward],
+      });
+
+      logger.updateSpinner('Submitting refund transaction...');
+
+      // Send transaction
+      const txHash = await walletClient.sendTransaction({
+        to: finalPortalAddress,
+        data: txData,
+        account,
+      });
+
+      logger.updateSpinner('Waiting for confirmation...');
+
+      // Wait for transaction receipt
+      const receipt = await publicClient.waitForTransactionReceipt({
+        hash: txHash,
+      });
+
+      logger.succeed('Refund transaction confirmed');
+
+      // Parse IntentRefunded event
+      const logs = parseEventLogs({
+        abi: portalAbi,
+        eventName: 'IntentRefunded',
+        logs: receipt.logs,
+      });
+
+      const intentHash = logs[0]?.args.intentHash as Hex;
+
+      return {
+        success: receipt.status === 'success',
+        transactionHash: txHash,
+        intentHash,
+      };
+    } catch (error: unknown) {
+      logger.stopSpinner();
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      return {
+        success: false,
+        error: errorMessage,
+      };
+    }
+  }
 }

@@ -4,18 +4,19 @@
  */
 
 import { Connection, Keypair, PublicKey } from '@solana/web3.js';
-import { Hex } from 'viem';
+import { encodePacked, Hex, keccak256 } from 'viem';
 
 import { PortalHashUtils } from '@/commons/utils/portal-hash.utils';
 import { getChainById } from '@/config/chains';
 import { ChainType, Intent } from '@/core/interfaces/intent';
 import { UniversalAddress } from '@/core/types/universal-address';
 import { AddressNormalizer } from '@/core/utils/address-normalizer';
+import { PortalEncoder } from '@/core/utils/portal-encoder';
 import { logger } from '@/utils/logger';
 
 import { SVM_CONNECTION_CONFIG, SVM_ERROR_MESSAGES, SVM_LOG_MESSAGES } from './svm/svm-constants';
-import { executeFunding } from './svm/svm-transaction';
-import { PublishContext, SvmError, SvmErrorType } from './svm/svm-types';
+import { executeFunding, executeRefund } from './svm/svm-transaction';
+import { PublishContext, RefundContext, SvmError, SvmErrorType } from './svm/svm-types';
 import { BasePublisher, PublishResult } from './base-publisher';
 
 export class SvmPublisher extends BasePublisher {
@@ -211,5 +212,51 @@ export class SvmPublisher extends BasePublisher {
       success: false,
       error: errorMessage,
     };
+  }
+
+  async refund(
+    source: bigint,
+    destination: bigint,
+    routeHash: Hex,
+    reward: Intent['reward'],
+    privateKey: string,
+    portalAddress?: UniversalAddress
+  ): Promise<PublishResult> {
+    try {
+      // Parse private key
+      const keypair = this.parsePrivateKey(privateKey);
+
+      // Get portal program ID
+      const portalProgramId = portalAddress
+        ? new PublicKey(AddressNormalizer.denormalize(portalAddress, ChainType.SVM))
+        : this.getPortalProgramId(source);
+
+      // Calculate intent hash
+      const intentHash = keccak256(
+        encodePacked(
+          ['uint64', 'bytes32', 'bytes32'],
+          [destination, routeHash, keccak256(PortalEncoder.encode(reward, ChainType.SVM))]
+        )
+      );
+
+      logger.info(`Intent hash: ${intentHash}`);
+      logger.info(`Portal program: ${portalProgramId.toBase58()}`);
+
+      // Create refund context
+      const context: RefundContext = {
+        source,
+        destination,
+        reward,
+        routeHash,
+        intentHash,
+        keypair,
+        portalProgramId,
+      };
+
+      // Execute refund
+      return await executeRefund(this.connection, context);
+    } catch (error: unknown) {
+      return this.handleError(error);
+    }
   }
 }

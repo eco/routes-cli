@@ -28,6 +28,7 @@ import { prepareTokenTransferAccounts } from './svm-token-operations';
 import {
   AnchorSetupResult,
   PublishContext,
+  RefundContext,
   SvmError,
   SvmErrorType,
   TransactionResultWithDecoding,
@@ -76,6 +77,36 @@ export function calculateVaultPDA(intentHash: string, portalProgramId: PublicKey
   );
 
   return vaultPda;
+}
+
+/**
+ * Calculates the proof PDA for an intent
+ * PDA seeds: ["proof", intent_hash_bytes]
+ * Program: prover (not portal program!)
+ */
+export function calculateProofPDA(intentHash: string, prover: PublicKey): PublicKey {
+  const intentHashBytes = hexToBuffer(intentHash);
+  const [proofPda] = PublicKey.findProgramAddressSync(
+    [createPdaSeedBuffer(SVM_PDA_SEEDS.PROOF), intentHashBytes],
+    prover
+  );
+  return proofPda;
+}
+
+/**
+ * Calculates the withdrawn marker PDA for an intent
+ * PDA seeds: ["withdrawn_marker", intent_hash_bytes]
+ */
+export function calculateWithdrawnMarkerPDA(
+  intentHash: string,
+  portalProgramId: PublicKey
+): PublicKey {
+  const intentHashBytes = hexToBuffer(intentHash);
+  const [markerPda] = PublicKey.findProgramAddressSync(
+    [createPdaSeedBuffer(SVM_PDA_SEEDS.WITHDRAWN_MARKER), intentHashBytes],
+    portalProgramId
+  );
+  return markerPda;
 }
 
 /**
@@ -189,7 +220,20 @@ export async function sendAndConfirmTransaction(
   logger.spinner(description);
 
   try {
-    const signature = await connection.sendTransaction(transaction, signers, {
+    // Get the latest blockhash and set it on the transaction
+    const { blockhash } = await connection.getLatestBlockhash();
+    transaction.recentBlockhash = blockhash;
+    transaction.feePayer = signers[0].publicKey;
+
+    // Sign the transaction
+    transaction.sign(...signers);
+
+    // Serialize and calculate transaction size
+    const serializedTransaction = transaction.serialize();
+    const transactionSize = serializedTransaction.length;
+    logger.info(`Transaction size: ${transactionSize} bytes`);
+
+    const signature = await connection.sendRawTransaction(serializedTransaction, {
       skipPreflight: SVM_CONFIRMATION_CONFIG.SKIP_PREFLIGHT,
       preflightCommitment: SVM_CONFIRMATION_CONFIG.PREFLIGHT_COMMITMENT,
       maxRetries: SVM_CONFIRMATION_CONFIG.MAX_SEND_RETRIES,
@@ -364,5 +408,119 @@ export async function executePublish(
     }
 
     throw new SvmError(SvmErrorType.TRANSACTION_FAILED, SVM_ERROR_MESSAGES.PUBLISH_FAILED, error);
+  }
+}
+
+/**
+ * Builds a refund transaction for Solana
+ */
+export async function buildRefundTransaction(
+  connection: Connection,
+  program: Program<PortalIdl>,
+  context: RefundContext
+): Promise<Transaction> {
+  logger.spinner('Calculating required accounts...');
+
+  // Derive PDAs
+  const vaultPda = calculateVaultPDA(context.intentHash, context.portalProgramId);
+  const proofPda = calculateProofPDA(
+    context.intentHash,
+    new PublicKey(AddressNormalizer.denormalizeToSvm(context.reward.prover))
+  );
+  const withdrawnMarkerPda = calculateWithdrawnMarkerPDA(
+    context.intentHash,
+    context.portalProgramId
+  );
+
+  logger.info(`Vault PDA: ${vaultPda.toBase58()}`);
+  logger.info(`Proof PDA: ${proofPda.toBase58()}`);
+  logger.info(`Withdrawn Marker: ${withdrawnMarkerPda.toBase58()}`);
+
+  // Build reward structure for Solana
+  const svmReward = buildPortalReward(context.reward);
+
+  // Prepare token transfer accounts (vault -> creator)
+  const creator = new PublicKey(AddressNormalizer.denormalizeToSvm(context.reward.creator));
+  const tokenAccounts = [];
+
+  for (const token of context.reward.tokens) {
+    const tokenMint = new PublicKey(AddressNormalizer.denormalizeToSvm(token.token));
+    const vaultAta = await getAssociatedTokenAddress(tokenMint, vaultPda, true);
+    const creatorAta = await getAssociatedTokenAddress(tokenMint, creator);
+
+    tokenAccounts.push(
+      { pubkey: vaultAta, isWritable: true, isSigner: false },
+      { pubkey: creatorAta, isWritable: true, isSigner: false },
+      { pubkey: tokenMint, isWritable: false, isSigner: false }
+    );
+  }
+
+  // Build transaction
+  const transaction = await program.methods
+    .refund({
+      destination: new BN(context.destination.toString()),
+      routeHash: { 0: hexToArray(context.routeHash) },
+      reward: svmReward,
+    })
+    .accounts({
+      payer: context.keypair.publicKey,
+      creator,
+      vault: vaultPda,
+      proof: proofPda,
+      withdrawnMarker: withdrawnMarkerPda,
+    })
+    .remainingAccounts(tokenAccounts)
+    .transaction();
+
+  logger.succeed('Refund transaction built');
+  return transaction;
+}
+
+/**
+ * Executes refund transaction for Solana
+ */
+export async function executeRefund(
+  connection: Connection,
+  context: RefundContext
+): Promise<PublishResult> {
+  try {
+    // Setup Anchor program - create minimal PublishContext for setup
+    const publishContext: PublishContext = {
+      ...context,
+      encodedRoute: '',
+      privateKey: '',
+      intentHash: context.intentHash,
+    };
+    const { program } = setupAnchorProgram(connection, publishContext);
+
+    // Build transaction
+    const transaction = await buildRefundTransaction(connection, program, context);
+
+    // Send and confirm
+    const result = await sendAndConfirmTransaction(
+      connection,
+      transaction,
+      [context.keypair],
+      SVM_LOG_MESSAGES.REFUNDING_INTENT,
+      program
+    );
+
+    logger.succeed('Intent refunded successfully');
+
+    return {
+      success: true,
+      transactionHash: result.signature,
+      intentHash: context.intentHash,
+    };
+  } catch (error: unknown) {
+    logger.stopSpinner();
+    if (error instanceof SvmError) {
+      throw error;
+    }
+    throw new SvmError(
+      SvmErrorType.TRANSACTION_FAILED,
+      SVM_ERROR_MESSAGES.REFUND_FAILED,
+      error instanceof Error ? error.message : String(error)
+    );
   }
 }

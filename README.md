@@ -144,6 +144,50 @@ pnpm dev publish --source tron-shasta --destination base-sepolia
 | `--destination` | `-d` | Destination chain name or ID | `optimism`, `10` |
 | `--verbose` | `-v` | Show detailed output | |
 
+### 💸 Refund Expired Intents
+
+Reclaim funds from expired, unfulfilled intents:
+
+```bash
+# Refund a specific intent
+pnpm dev refund <intentHash>
+
+# Skip confirmation prompt
+pnpm dev refund <intentHash> --yes
+
+# Use custom RPC endpoint
+pnpm dev refund <intentHash> --rpc https://custom-rpc.example.com
+```
+
+**Requirements:**
+- Intent must have been published using this CLI (stored locally)
+- Reward deadline must have passed
+- Intent must not have been fulfilled
+- Intent must not have already been refunded
+
+**Example:**
+```bash
+$ pnpm dev refund 0x1234...5678
+💸 Intent Refund
+Intent Hash: 0x1234...5678
+
+✓ Intent data loaded
+
+📋 Intent Details
+Source Chain: Ethereum (1)
+Destination Chain: Optimism (10)
+Published: 2026-01-05 10:30:00
+Deadline: 2026-01-05 12:00:00 (expired ✓)
+
+? Execute refund transaction? (Y/n)
+
+🔄 Executing Refund
+✓ Refund transaction confirmed
+  Transaction: 0xabcd...efgh
+  Intent Hash: 0x1234...5678
+✓ Intent marked as refunded in local storage
+```
+
 ### 📊 Information Commands
 
 #### List Supported Chains

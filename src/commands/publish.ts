@@ -22,6 +22,7 @@ import { BasePublisher } from '@/blockchain/base-publisher';
 import { EvmPublisher } from '@/blockchain/evm-publisher';
 import { SvmPublisher } from '@/blockchain/svm-publisher';
 import { TvmPublisher } from '@/blockchain/tvm-publisher';
+import { PortalHashUtils } from '@/commons/utils/portal-hash.utils';
 import { serialize } from '@/commons/utils/serialize';
 import { ChainConfig, getChainById, getChainByName, listChains } from '@/config/chains';
 import { loadEnvConfig } from '@/config/env';
@@ -32,6 +33,7 @@ import { UniversalAddress } from '@/core/types/universal-address';
 import { AddressNormalizer } from '@/core/utils/address-normalizer';
 import { PortalEncoder } from '@/core/utils/portal-encoder';
 import { getQuote, QuoteResponse } from '@/core/utils/quote';
+import { IntentStorage } from '@/storage/intent-storage';
 import { logger } from '@/utils/logger';
 
 interface PublishCommandOptions {
@@ -111,6 +113,34 @@ export function createPublishCommand(): Command {
 
         if (result.success) {
           logger.displayTransactionResult(result);
+
+          // Store intent data for future refunds
+          try {
+            const storage = new IntentStorage();
+            storage.saveIntent({
+              intentHash: result.intentHash! as Hex,
+              sourceChainId: sourceChain.id,
+              destinationChainId: destChain.id,
+              reward,
+              encodedRoute,
+              routeHash: PortalHashUtils.getIntentHashFromReward(
+                sourceChain.id,
+                destChain.id,
+                encodedRoute,
+                reward
+              ).routeHash,
+              publishedAt: new Date().toISOString(),
+              transactionHash: result.transactionHash,
+            });
+            logger.info('Intent data saved locally for future refunds');
+          } catch (storageError) {
+            logger.warning(
+              'Failed to save intent data locally. You may need to provide parameters manually for refunds.'
+            );
+            if (process.env.DEBUG) {
+              logger.error(`Storage error: ${storageError}`);
+            }
+          }
         } else {
           logger.fail('Publishing failed');
           throw new Error(result.error || 'Publishing failed');

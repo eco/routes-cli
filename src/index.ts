@@ -10,6 +10,7 @@ import { Command } from 'commander';
 
 import { createConfigCommand } from '@/commands/config';
 import { createPublishCommand } from '@/commands/publish';
+import { createRefundCommand } from '@/commands/refund';
 import { createStatusCommand } from '@/commands/status';
 import { type ChainConfig, updatePortalAddresses } from '@/config/chains';
 import { type TokenConfig } from '@/config/tokens';
@@ -37,6 +38,7 @@ program
 // Add commands
 program.addCommand(createPublishCommand());
 program.addCommand(createStatusCommand());
+program.addCommand(createRefundCommand());
 program.addCommand(createConfigCommand());
 
 // List chains command

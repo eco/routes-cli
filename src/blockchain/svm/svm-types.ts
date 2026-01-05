@@ -74,6 +74,16 @@ export interface PublishContext {
   portalProgramId: PublicKey;
 }
 
+export interface RefundContext {
+  source: bigint;
+  destination: bigint;
+  reward: Intent['reward'];
+  routeHash: Hex;
+  intentHash: Hex;
+  keypair: Keypair;
+  portalProgramId: PublicKey;
+}
+
 /**
  * Token account creation result
  */

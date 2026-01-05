@@ -42,7 +42,9 @@ export const SVM_CONFIRMATION_CONFIG = {
  */
 export const SVM_PDA_SEEDS = {
   VAULT: 'vault',
-};
+  PROOF: 'proof',
+  WITHDRAWN_MARKER: 'claimed_marker',
+} as const;
 
 /**
  * Error messages
@@ -52,6 +54,7 @@ export const SVM_ERROR_MESSAGES = {
   NO_REWARD_TOKENS: 'No reward tokens to fund',
   FUNDING_FAILED: 'Intent funding failed',
   PUBLISH_FAILED: 'Intent publishing failed',
+  REFUND_FAILED: 'Failed to refund intent',
   CONFIRMATION_TIMEOUT: (seconds: number) =>
     `Transaction confirmation timeout after ${seconds} seconds`,
   INVALID_PRIVATE_KEY: 'Invalid private key format',
@@ -72,6 +75,7 @@ export const SVM_LOG_MESSAGES = {
   BUILD_FUNDING_TX: 'Building funding transaction...',
   PUBLISHING_INTENT: 'Publishing intent to Solana network...',
   FUNDING_INTENT: 'Funding intent on Solana network...',
+  REFUNDING_INTENT: 'Refunding intent on Solana',
   SENDING_TX: 'Sending transaction...',
   TX_SIGNATURE: (signature: string) => `Transaction signature: ${signature}`,
   TX_CONFIRMED: (status: string) => `Transaction confirmed with ${status} commitment`,

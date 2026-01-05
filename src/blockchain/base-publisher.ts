@@ -21,6 +21,8 @@
  * ```
  */
 
+import { Hex } from 'viem';
+
 import { UniversalAddress } from '@/core/types/universal-address';
 
 import { Intent } from '../core/interfaces/intent';
@@ -114,4 +116,29 @@ export abstract class BasePublisher {
    * ```
    */
   abstract getBalance(address: string, chainId?: bigint): Promise<bigint>;
+
+  /**
+   * Refunds an expired intent, returning funds to the creator.
+   *
+   * Refunds are only allowed after the reward deadline has passed and the intent
+   * has not been fulfilled. The transaction returns all reward tokens from the
+   * intent vault to the creator's address.
+   *
+   * @param source - Source chain ID
+   * @param destination - Destination chain ID
+   * @param routeHash - Hash of the route data (bytes32)
+   * @param reward - Full reward structure matching the published intent
+   * @param privateKey - Private key for transaction signing
+   * @param portalAddress - Optional portal contract address (uses config if not provided)
+   * @returns Promise resolving to PublishResult with transaction details
+   * @throws {Error} When refund fails (deadline not passed, already refunded, etc.)
+   */
+  abstract refund(
+    source: bigint,
+    destination: bigint,
+    routeHash: Hex,
+    reward: Intent['reward'],
+    privateKey: string,
+    portalAddress?: UniversalAddress
+  ): Promise<PublishResult>;
 }

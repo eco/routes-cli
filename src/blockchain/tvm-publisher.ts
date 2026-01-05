@@ -141,6 +141,17 @@ export class TvmPublisher extends BasePublisher {
     }
   }
 
+  async refund(
+    _source: bigint,
+    _destination: bigint,
+    _routeHash: Hex,
+    _reward: Intent['reward'],
+    _privateKey: string,
+    _portalAddress?: UniversalAddress
+  ): Promise<PublishResult> {
+    throw new Error('TVM refunds not yet supported');
+  }
+
   /**
    * Waits for a transaction to be confirmed on the blockchain
    * @param txId - Transaction ID to wait for
