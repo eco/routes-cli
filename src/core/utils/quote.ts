@@ -83,7 +83,7 @@ function getQuoteUrl(): string {
   // Priority 1: Use solver-v2 if SOLVER_URL is set
   if (process.env.SOLVER_URL) {
     const baseUrl = process.env.SOLVER_URL.replace(/\/$/, ''); // Remove trailing slash
-    return `${baseUrl}/api/v1/quotes`;
+    return `${baseUrl}/api/v2/quote/reverse`;
   }
 
   // Priority 2: Use preprod quote service if flags are set
@@ -104,7 +104,7 @@ export async function getQuote(requestOpts: QuoteRequest) {
   const quoteUrl = getQuoteUrl();
   const usingSolverV2 = isSolverV2();
 
-  const request = {
+  const request: any = {
     dAppID: 'eco-routes-cli',
     quoteRequest: {
       // For solver-v2, keep as string; for quote service, convert to number
@@ -119,6 +119,11 @@ export async function getQuote(requestOpts: QuoteRequest) {
       recipient: requestOpts.recipient,
     },
   };
+
+  if (usingSolverV2) {
+    request.quoteID = crypto.randomUUID();
+    request.intentExecutionTypes = ['SELF_PUBLISH'];
+  }
 
   if (process.env.DEBUG) {
     logger.log(`Calling quoting service: ${quoteUrl}`);

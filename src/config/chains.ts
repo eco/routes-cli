@@ -2,7 +2,7 @@
  * Chain Configuration
  */
 
-import { arbitrum, polygon, ronin } from 'viem/chains';
+import { arbitrum, mainnet, polygon, ronin, sonic } from 'viem/chains';
 
 import { ChainType } from '@/core/interfaces/intent';
 import { BlockchainAddress } from '@/core/types/blockchain-addresses';
@@ -39,6 +39,15 @@ const chains: Record<string, ChainConfig> = {
       symbol: 'ETH',
       decimals: 18,
     },
+  },
+  // EVM Chains
+  ethereum: {
+    id: 1n,
+    name: 'Ethereum',
+    type: ChainType.EVM,
+    env: 'production',
+    rpcUrl: mainnet.rpcUrls.default.http[0],
+    nativeCurrency: mainnet.nativeCurrency,
   },
   base: {
     id: 8453n,
@@ -79,6 +88,15 @@ const chains: Record<string, ChainConfig> = {
     env: 'production',
     rpcUrl: ronin.rpcUrls.default.http[0],
     nativeCurrency: ronin.nativeCurrency,
+  },
+
+  sonic: {
+    id: BigInt(sonic.id),
+    name: sonic.name,
+    type: ChainType.EVM,
+    env: 'production',
+    rpcUrl: sonic.rpcUrls.default.http[0],
+    nativeCurrency: sonic.nativeCurrency,
   },
 
   hyperevm: {

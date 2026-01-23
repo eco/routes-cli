@@ -46,6 +46,10 @@ export const TOKEN_CONFIGS: Record<string, TokenConfig> = {
         '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
         ChainType.EVM
       ), // Base
+      '146': AddressNormalizer.normalize(
+        '0x29219dd400f2bf60e5a23d13be72b486d4038894',
+        ChainType.EVM
+      ), // Sonic
       '84532': AddressNormalizer.normalize(
         '0x036cbd53842c5426634e7929541ec2318f3dcf7e',
         ChainType.EVM

@@ -59,7 +59,7 @@ describe('Quote Service', () => {
       });
 
       expect(global.fetch).toHaveBeenCalledWith(
-        'https://solver.example.com/api/v1/quotes',
+        'https://solver.example.com/api/v2/quote/reverse',
         expect.any(Object)
       );
     });
@@ -167,7 +167,7 @@ describe('Quote Service', () => {
       });
 
       expect(global.fetch).toHaveBeenCalledWith(
-        'https://solver.example.com/api/v1/quotes',
+        'https://solver.example.com/api/v2/quote/reverse',
         expect.any(Object)
       );
     });
