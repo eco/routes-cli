@@ -35,8 +35,18 @@ export interface EnvConfig {
   evmRpcUrl?: string;
   /** TVM RPC URL. Defaults to `https://api.trongrid.io` when `TVM_RPC_URL` is not set. */
   tvmRpcUrl?: string;
+  /**
+   * Secondary TVM RPC URL used by `withFallback` when the primary endpoint is unreachable.
+   * Defaults to `https://tron.publicnode.com` when `TVM_RPC_URL_2` is not set.
+   */
+  tvmFallbackRpcUrl?: string;
   /** SVM RPC URL. Defaults to `https://api.mainnet-beta.solana.com` when `SVM_RPC_URL` is not set. */
   svmRpcUrl?: string;
+  /**
+   * Secondary SVM RPC URL used by `withFallback` when the primary endpoint is unreachable.
+   * Defaults to `https://solana.publicnode.com` when `SVM_RPC_URL_2` is not set.
+   */
+  svmFallbackRpcUrl?: string;
   /** Optional solver URL for route quote resolution (`SOLVER_URL` env var). */
   solverUrl?: string;
 }
@@ -58,7 +68,9 @@ const EnvSchema = z.object({
   SVM_PRIVATE_KEY: z.string().min(1, { message: 'SVM_PRIVATE_KEY must not be empty' }).optional(),
   EVM_RPC_URL: z.string().url({ message: 'EVM_RPC_URL must be a valid URL' }).optional(),
   TVM_RPC_URL: z.string().url({ message: 'TVM_RPC_URL must be a valid URL' }).optional(),
+  TVM_RPC_URL_2: z.string().url({ message: 'TVM_RPC_URL_2 must be a valid URL' }).optional(),
   SVM_RPC_URL: z.string().url({ message: 'SVM_RPC_URL must be a valid URL' }).optional(),
+  SVM_RPC_URL_2: z.string().url({ message: 'SVM_RPC_URL_2 must be a valid URL' }).optional(),
   SOLVER_URL: z.string().url({ message: 'SOLVER_URL must be a valid URL' }).optional(),
   // Flag variables: any non-empty value enables the preprod quote service (value is ignored)
   QUOTES_API_URL: z.string().optional(),
@@ -100,7 +112,9 @@ export function loadEnvConfig(): EnvConfig {
     svmPrivateKey: env.SVM_PRIVATE_KEY,
     evmRpcUrl: env.EVM_RPC_URL,
     tvmRpcUrl: env.TVM_RPC_URL || 'https://api.trongrid.io',
+    tvmFallbackRpcUrl: env.TVM_RPC_URL_2 || 'https://tron.publicnode.com',
     svmRpcUrl: env.SVM_RPC_URL || 'https://api.mainnet-beta.solana.com',
+    svmFallbackRpcUrl: env.SVM_RPC_URL_2 || 'https://solana.publicnode.com',
     solverUrl: env.SOLVER_URL,
   };
 }

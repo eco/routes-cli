@@ -37,7 +37,7 @@
 | TASK-045  | COMPLETE | |
 | TASK-046  | COMPLETE | |
 | TASK-050  | COMPLETE | |
-| TASK-051  | PENDING  | |
+| TASK-051  | COMPLETE | |
 | TASK-052  | PENDING  | |
 | TASK-053  | PENDING  | |
 
