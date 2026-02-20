@@ -62,6 +62,10 @@ const chains: Record<string, ChainConfig> = {
     type: ChainType.EVM,
     env: 'production',
     rpcUrl: 'https://mainnet.base.org',
+    portalAddress: AddressNormalizer.normalize(
+      '0x399Dbd5DF04f83103F77A58cBa2B7c4d3cdede97' as BlockchainAddress,
+      ChainType.EVM
+    ),
     nativeCurrency: {
       name: 'Ether',
       symbol: 'ETH',
