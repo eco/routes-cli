@@ -20,15 +20,35 @@ import { IntentService } from '@/core/services/intent-service';
 import { AddressNormalizer } from '@/core/utils/address-normalizer';
 import { logger } from '@/utils/logger';
 
+/** Options accepted by the `publish` CLI command. */
 interface PublishCommandOptions {
+  /** Source chain name or numeric ID (e.g. `"base"` or `"8453"`). */
   source?: string;
+  /** Destination chain name or numeric ID. */
   destination?: string;
+  /** Private key override — takes precedence over the corresponding env variable. */
   privateKey?: string;
+  /** RPC URL override — takes precedence over the chain's default endpoint. */
   rpc?: string;
+  /** Recipient address on the destination chain in chain-native format. */
   recipient?: string;
+  /** When true, validates intent parameters but does not broadcast a transaction. */
   dryRun?: boolean;
 }
 
+/**
+ * Creates the `publish` Commander command.
+ *
+ * Interactively collects chain selection, token configuration, and reward
+ * parameters, then publishes an intent to the source-chain Portal contract.
+ *
+ * @returns A configured {@link Command} instance ready to be registered with the CLI.
+ *
+ * @example
+ * ```ts
+ * program.addCommand(createPublishCommand());
+ * ```
+ */
 export function createPublishCommand(): Command {
   const command = new Command('publish');
 

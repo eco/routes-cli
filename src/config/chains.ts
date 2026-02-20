@@ -10,14 +10,33 @@ import { UniversalAddress } from '@/core/types/universal-address';
 import { AddressNormalizer } from '@/core/utils/address-normalizer';
 import { logger } from '@/utils/logger';
 
+/** Describes a supported blockchain and the configuration needed to interact with it. */
 export interface ChainConfig {
+  /** Numeric chain identifier (e.g. `1n` for Ethereum, `8453n` for Base). */
   id: bigint;
+  /** Human-readable chain name (e.g. `"Ethereum"`, `"Base"`). */
   name: string;
+  /**
+   * Deployment environment filter.
+   * `"production"` chains are loaded by default; `"development"` chains
+   * are only included when `NODE_CHAINS_ENV=development`.
+   */
   env: 'production' | 'development';
+  /** VM model category: EVM, TVM (Tron), or SVM (Solana). */
   type: ChainType;
+  /** Default RPC endpoint used when no override is supplied. */
   rpcUrl: string;
+  /**
+   * Universal-format address of the Eco Portal contract on this chain.
+   * Required for publishing intents; omitted for chains where no Portal is deployed.
+   */
   portalAddress?: UniversalAddress;
+  /**
+   * Universal-format address of the default prover contract.
+   * Used when the caller does not supply an explicit `proverAddress` to a publisher.
+   */
   proverAddress?: UniversalAddress;
+  /** Metadata for the chain's native gas token. */
   nativeCurrency: {
     name: string;
     symbol: string;
@@ -260,22 +279,72 @@ export const CHAIN_CONFIGS: typeof chains = Object.fromEntries(
   Object.entries(chains).filter(([, chain]) => chain.env === ENV)
 );
 
-// Helper function to get chain by ID
+/**
+ * Finds a chain configuration by its numeric chain ID.
+ *
+ * Only searches chains included in the active {@link CHAIN_CONFIGS} set,
+ * which is determined by `NODE_CHAINS_ENV` (default: `"production"`).
+ *
+ * @param chainId - The BigInt chain ID to look up.
+ * @returns The matching {@link ChainConfig}, or `undefined` if not found.
+ *
+ * @example
+ * ```ts
+ * const base = getChainById(8453n);
+ * // base?.name === 'Base'
+ * ```
+ */
 export function getChainById(chainId: bigint): ChainConfig | undefined {
   return Object.values(CHAIN_CONFIGS).find(chain => chain.id.toString() === chainId.toString());
 }
 
-// Helper function to get chain by name
+/**
+ * Finds a chain configuration by its key name (case-insensitive).
+ *
+ * @param name - The chain key, e.g. `"base"`, `"optimism"`, `"solana"`.
+ * @returns The matching {@link ChainConfig}, or `undefined` if not found.
+ *
+ * @example
+ * ```ts
+ * const chain = getChainByName('Optimism');
+ * // chain?.id === 10n
+ * ```
+ */
 export function getChainByName(name: string): ChainConfig | undefined {
   return CHAIN_CONFIGS[name.toLowerCase()];
 }
 
-// Helper function to list all supported chains
+/**
+ * Returns all chains in the active configuration set.
+ *
+ * @returns An array of every {@link ChainConfig} currently loaded.
+ *
+ * @example
+ * ```ts
+ * listChains().forEach(c => console.log(c.name, c.id));
+ * ```
+ */
 export function listChains(): ChainConfig[] {
   return Object.values(CHAIN_CONFIGS);
 }
 
-// Update Portal address from environment if available
+/**
+ * Applies `PORTAL_ADDRESS_*` environment variable overrides to {@link CHAIN_CONFIGS}.
+ *
+ * Supported variables: `PORTAL_ADDRESS_ETH`, `PORTAL_ADDRESS_OPTIMISM`,
+ * `PORTAL_ADDRESS_BASE`, `PORTAL_ADDRESS_TRON`, `PORTAL_ADDRESS_SOLANA`.
+ *
+ * Invalid addresses are logged as warnings and skipped rather than throwing.
+ *
+ * @param env - An env-variable map (typically `process.env`).
+ *
+ * @example
+ * ```ts
+ * process.env.PORTAL_ADDRESS_BASE = '0x399Dbd5DF04f83103F77A58cBa2B7c4d3cdede97';
+ * updatePortalAddresses(process.env);
+ * // CHAIN_CONFIGS.base.portalAddress is now updated
+ * ```
+ */
 export function updatePortalAddresses(env: Record<string, string | undefined>): void {
   const addressMappings: Record<string, string> = {
     PORTAL_ADDRESS_ETH: 'ethereum',

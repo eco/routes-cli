@@ -7,11 +7,27 @@ import { SvmAddress } from '@/core/types/blockchain-addresses';
 import { UniversalAddress } from '@/core/types/universal-address';
 import { AddressNormalizer } from '@/core/utils/address-normalizer';
 
+/** Describes a cross-chain token and its deployed contract addresses. */
 export interface TokenConfig {
+  /** Ticker symbol, e.g. `"USDC"`, `"USDT"`. */
   symbol: string;
+  /** Human-readable name, e.g. `"USD Coin"`. */
   name: string;
+  /**
+   * Number of decimal places for the smallest unit.
+   * Used to convert between human-readable amounts and on-chain integers
+   * (e.g. `6` for USDC: `1 USDC = 1_000_000` base units).
+   */
   decimals: number;
-  addresses: Record<string, UniversalAddress>; // chainId (as string) -> address
+  /**
+   * Map of chain ID (as decimal string) to Universal-format token address.
+   *
+   * String keys are required because `bigint` cannot be a JavaScript object key.
+   * Lookup pattern: `token.addresses[chainId.toString()]`
+   *
+   * @example `{ "8453": "0x000...abc", "1": "0x000...def" }`
+   */
+  addresses: Record<string, UniversalAddress>;
 }
 
 // Common token configurations
@@ -128,12 +144,35 @@ export const TOKEN_CONFIGS: Record<string, TokenConfig> = {
   },
 };
 
-// Helper function to get token by symbol
+/**
+ * Looks up a token configuration by ticker symbol (case-sensitive).
+ *
+ * @param symbol - Ticker symbol, e.g. `"USDC"`.
+ * @returns The matching {@link TokenConfig}, or `undefined` if not found.
+ *
+ * @example
+ * ```ts
+ * const usdc = getTokenBySymbol('USDC');
+ * // usdc?.decimals === 6
+ * ```
+ */
 export function getTokenBySymbol(symbol: string): TokenConfig | undefined {
   return TOKEN_CONFIGS[symbol];
 }
 
-// Helper function to get token address on a specific chain
+/**
+ * Returns the Universal-format address of a token on a specific chain.
+ *
+ * @param symbol - Ticker symbol, e.g. `"USDC"`.
+ * @param chainId - The target chain ID.
+ * @returns The Universal-format token address, or `undefined` if the token
+ *   does not have a deployment on the given chain.
+ *
+ * @example
+ * ```ts
+ * const addr = getTokenAddress('USDC', 8453n); // Base mainnet USDC
+ * ```
+ */
 export function getTokenAddress(symbol: string, chainId: bigint): UniversalAddress | undefined {
   const token = getTokenBySymbol(symbol);
   if (!token) return undefined;
@@ -142,12 +181,33 @@ export function getTokenAddress(symbol: string, chainId: bigint): UniversalAddre
   return token.addresses[chainId.toString()];
 }
 
-// Helper function to list all tokens
+/**
+ * Returns all token configurations registered in {@link TOKEN_CONFIGS}.
+ *
+ * @returns An array of every {@link TokenConfig}.
+ *
+ * @example
+ * ```ts
+ * listTokens().forEach(t => console.log(t.symbol));
+ * ```
+ */
 export function listTokens(): TokenConfig[] {
   return Object.values(TOKEN_CONFIGS);
 }
 
-// Helper function to add a custom token
+/**
+ * Registers a custom token in the global {@link TOKEN_CONFIGS} map.
+ *
+ * The symbol is normalised to uppercase before insertion, so `"usdc"` and
+ * `"USDC"` resolve to the same key.
+ *
+ * @param config - The token configuration to register.
+ *
+ * @example
+ * ```ts
+ * addCustomToken({ symbol: 'MYTOKEN', name: 'My Token', decimals: 18, addresses: {} });
+ * ```
+ */
 export function addCustomToken(config: TokenConfig): void {
   TOKEN_CONFIGS[config.symbol.toUpperCase()] = config;
 }

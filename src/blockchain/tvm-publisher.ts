@@ -17,14 +17,45 @@ import { logger } from '@/utils/logger';
 import { DefaultTvmClientFactory, TvmClientFactory } from './tvm/tvm-client-factory';
 import { BasePublisher, PublishResult, ValidationResult } from './base-publisher';
 
+/**
+ * Publisher for the Tron blockchain (TVM).
+ *
+ * Uses TronWeb for all chain interactions. The TronWeb instance is created once
+ * in the constructor and reused; the private key is set immediately before signing
+ * and always cleared in a `finally` block to minimise in-memory key exposure.
+ *
+ * Inject a custom {@link TvmClientFactory} to unit-test without live RPC access.
+ */
 export class TvmPublisher extends BasePublisher {
   private tronWeb: TronWeb;
 
+  /**
+   * @param rpcUrl - TronGrid (or compatible) RPC endpoint,
+   *   e.g. `https://api.trongrid.io`.
+   * @param factory - Optional TronWeb factory; defaults to {@link DefaultTvmClientFactory}.
+   */
   constructor(rpcUrl: string, factory: TvmClientFactory = new DefaultTvmClientFactory()) {
     super(rpcUrl);
     this.tronWeb = factory.createClient(rpcUrl);
   }
 
+  /**
+   * Publishes a cross-chain intent to the Tron Portal contract (`publishAndFund`).
+   *
+   * Steps:
+   * 1. Sets private key on TronWeb (always cleared in `finally`).
+   * 2. Approves all `reward.tokens` via TRC-20 `approve` calls (loop matches EVM).
+   * 3. Calls `publishAndFund` on the Portal contract.
+   * 4. Returns the intent hash computed locally (TVM events are not parsed on-chain).
+   *
+   * @param source - Source chain ID (Tron mainnet: `728126428n`).
+   * @param destination - Destination chain ID.
+   * @param reward - Reward struct with creator, prover, tokens, and deadline.
+   * @param encodedRoute - ABI-encoded route bytes.
+   * @param privateKey - Tron private key (64 hex chars, no `0x` prefix).
+   * @param _portalAddress - Optional Universal Address of the Portal. Falls back to chain config.
+   * @returns A {@link PublishResult} with `transactionHash` and `intentHash` on success.
+   */
   override async publish(
     source: bigint,
     destination: bigint,
@@ -124,6 +155,13 @@ export class TvmPublisher extends BasePublisher {
     });
   }
 
+  /**
+   * Returns the native TRX balance of an address in sun (1 TRX = 1 000 000 sun).
+   *
+   * @param address - Tron base58 address.
+   * @param _chainId - Unused; present to satisfy the {@link BasePublisher} signature.
+   * @returns Balance in sun as a `bigint`, or `0n` on RPC error.
+   */
   override async getBalance(address: string, _chainId?: bigint): Promise<bigint> {
     try {
       const balance = await this.tronWeb.trx.getBalance(address);
@@ -133,6 +171,16 @@ export class TvmPublisher extends BasePublisher {
     }
   }
 
+  /**
+   * Pre-publish validation: checks TRX (native) and TRC-20 token balances.
+   *
+   * Also enforces the TVM-specific invariant that at least one reward token must
+   * be present (Tron Portal requires token-funded intents).
+   *
+   * @param reward - Reward struct specifying required amounts.
+   * @param senderAddress - Tron base58 sender address.
+   * @returns A {@link ValidationResult} with an `errors` array (empty = valid).
+   */
   override async validate(
     reward: Intent['reward'],
     senderAddress: string

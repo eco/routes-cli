@@ -19,17 +19,43 @@ import { PublishContext, SvmError, SvmErrorType } from './svm/svm-types';
 import { executeFunding } from './svm/transaction-builder';
 import { BasePublisher, PublishResult, ValidationResult } from './base-publisher';
 
+/**
+ * Publisher for the Solana blockchain (SVM).
+ *
+ * Uses `@solana/web3.js` and the Anchor framework for Portal program interactions.
+ * Supports three private key formats: Base58, JSON byte array (`[1,2,...]`), and
+ * comma-separated bytes.
+ *
+ * Inject a custom {@link SvmClientFactory} to unit-test without live RPC access.
+ */
 export class SvmPublisher extends BasePublisher {
   private connection: Connection;
 
+  /**
+   * @param rpcUrl - Solana cluster RPC endpoint,
+   *   e.g. `https://api.mainnet-beta.solana.com`.
+   * @param factory - Optional connection factory; defaults to {@link DefaultSvmClientFactory}.
+   */
   constructor(rpcUrl: string, factory: SvmClientFactory = new DefaultSvmClientFactory()) {
     super(rpcUrl);
     this.connection = factory.createConnection(rpcUrl);
   }
 
   /**
-   * Publishes an intent to the Solana blockchain
-   * Simplified main method that delegates to helper functions
+   * Publishes an intent to the Solana Portal program and funds it with SPL tokens.
+   *
+   * Builds a {@link PublishContext} and delegates execution to {@link executeFunding}.
+   * The `proverAddress` is forwarded to the context for proof PDA derivation.
+   *
+   * @param source - Source chain ID (Solana mainnet: `1399811149n`).
+   * @param destination - Destination chain ID.
+   * @param reward - Reward struct; must contain at least one token.
+   * @param encodedRoute - Borsh-encoded route bytes produced by {@link PortalEncoder}.
+   * @param privateKey - Solana private key in Base58, JSON array, or comma-separated format.
+   * @param portalAddress - Optional Universal Address of the Portal program.
+   *   Falls back to the chain config's `portalAddress`.
+   * @param proverAddress - Optional Universal Address of the prover.
+   * @returns A {@link PublishResult} with `transactionHash` on success.
    */
   override async publish(
     source: bigint,
@@ -119,7 +145,11 @@ export class SvmPublisher extends BasePublisher {
   }
 
   /**
-   * Gets the native SOL balance for an address
+   * Returns the native SOL balance of an address in lamports (1 SOL = 1 000 000 000 lamports).
+   *
+   * @param address - Base58 Solana public key.
+   * @param _chainId - Unused; present to satisfy the {@link BasePublisher} signature.
+   * @returns Balance in lamports as a `bigint`, or `0n` on RPC error.
    */
   override async getBalance(address: string, _chainId?: bigint): Promise<bigint> {
     try {
@@ -183,6 +213,14 @@ export class SvmPublisher extends BasePublisher {
     logger.info(`Destination Chain: ${destination}`);
   }
 
+  /**
+   * Pre-publish validation: checks SOL (lamport) balance and SPL token balances
+   * via Associated Token Accounts.
+   *
+   * @param reward - Reward struct specifying required amounts.
+   * @param senderAddress - Base58 Solana public key of the sender.
+   * @returns A {@link ValidationResult} with an `errors` array (empty = valid).
+   */
   override async validate(
     reward: Intent['reward'],
     senderAddress: string

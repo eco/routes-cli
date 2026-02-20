@@ -28,6 +28,16 @@ import { logger } from '@/utils/logger';
 import { DefaultEvmClientFactory, EvmClientFactory } from './evm/evm-client-factory';
 import { BasePublisher, PublishResult, ValidationResult } from './base-publisher';
 
+/**
+ * Publisher for EVM-compatible chains (Ethereum, Base, Optimism, Arbitrum, …).
+ *
+ * Uses viem under the hood. A single {@link PublicClient} is created lazily and
+ * reused across all read operations to avoid unnecessary connection overhead.
+ * A fresh {@link WalletClient} is created per {@link publish} call because the
+ * signing account may differ between calls.
+ *
+ * Inject a custom {@link EvmClientFactory} to unit-test without live RPC access.
+ */
 export class EvmPublisher extends BasePublisher {
   private readonly clientFactory: EvmClientFactory;
   /**
@@ -36,6 +46,11 @@ export class EvmPublisher extends BasePublisher {
    */
   private _publicClient?: PublicClient;
 
+  /**
+   * @param rpcUrl - HTTP or WebSocket RPC endpoint for the source chain.
+   * @param clientFactory - Optional viem client factory; defaults to
+   *   {@link DefaultEvmClientFactory}. Override in tests to inject mocks.
+   */
   constructor(rpcUrl: string, clientFactory: EvmClientFactory = new DefaultEvmClientFactory()) {
     super(rpcUrl);
     this.clientFactory = clientFactory;
@@ -56,6 +71,27 @@ export class EvmPublisher extends BasePublisher {
     return this._publicClient;
   }
 
+  /**
+   * Publishes a cross-chain intent to the EVM Portal contract (`publishAndFund`).
+   *
+   * Steps:
+   * 1. Checks native ETH balance (if `reward.nativeAmount > 0`).
+   * 2. Checks ERC-20 balances and approves the Portal for each reward token.
+   * 3. ABI-encodes and broadcasts the `publishAndFund` transaction.
+   * 4. Waits for confirmation and parses the `IntentPublished` event.
+   *
+   * @param source - Source chain ID.
+   * @param destination - Destination chain ID.
+   * @param reward - Reward struct with creator, prover, tokens, and deadline.
+   * @param encodedRoute - ABI-encoded route bytes produced by {@link PortalEncoder}.
+   * @param privateKey - Signing key in `0x` + 64 hex format.
+   * @param portalAddress - Optional Universal Address of the Portal contract.
+   *   Falls back to `CHAIN_CONFIGS[source].portalAddress`.
+   * @param proverAddress - Optional Universal Address override for the prover.
+   *   Falls back to `reward.prover`.
+   * @returns A {@link PublishResult} with `success`, `transactionHash`, and `intentHash`
+   *   on success, or `success: false` with an `error` message on failure.
+   */
   override async publish(
     source: bigint,
     destination: bigint,
@@ -235,10 +271,33 @@ export class EvmPublisher extends BasePublisher {
     });
   }
 
+  /**
+   * Returns the native ETH balance of an address in wei.
+   *
+   * @param address - EVM checksummed or lowercase hex address.
+   * @param _chainId - Unused; present to satisfy the {@link BasePublisher} signature.
+   * @returns Balance in wei as a `bigint`.
+   */
   override async getBalance(address: string, _chainId?: bigint): Promise<bigint> {
     return await this.getPublicClient().getBalance({ address: address as Address });
   }
 
+  /**
+   * Pre-publish validation: checks native ETH and ERC-20 token balances.
+   *
+   * Does not submit any transaction. Safe to call multiple times.
+   *
+   * @param reward - Reward struct specifying required amounts.
+   * @param senderAddress - EVM address that will sign the publish transaction.
+   * @returns A {@link ValidationResult} with `valid: true` when all balances are
+   *   sufficient, or `valid: false` with a descriptive `errors` array.
+   *
+   * @example
+   * ```ts
+   * const result = await publisher.validate(reward, walletAddress);
+   * if (!result.valid) console.error(result.errors);
+   * ```
+   */
   override async validate(
     reward: Intent['reward'],
     senderAddress: string
