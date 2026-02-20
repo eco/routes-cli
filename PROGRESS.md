@@ -23,7 +23,7 @@
 | TASK-016 | 3     | Create publisher-factory.service.ts                  | COMPLETE |      |
 | TASK-017 | 3     | Migrate encoding services                            | COMPLETE |      |
 | TASK-018 | 3     | Create blockchain.module.ts                          | COMPLETE |      |
-| TASK-019 | 4     | Create quote/quote.service.ts + QuoteModule          | PENDING |       |
+| TASK-019 | 4     | Create quote/quote.service.ts + QuoteModule          | COMPLETE |      |
 | TASK-020 | 5     | Create intent/intent-builder.service.ts              | PENDING |       |
 | TASK-021 | 5     | Create intent/intent-storage.service.ts + IntentModule | PENDING |     |
 | TASK-022 | 6     | Create status/status.service.ts + StatusModule       | PENDING |       |
