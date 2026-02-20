@@ -19,13 +19,13 @@ import { serialize } from '@/commons/utils/serialize';
 import { ChainConfig, getChainById, getChainByName, listChains } from '@/config/chains';
 import { loadEnvConfig } from '@/config/env';
 import { getTokenAddress, getTokenBySymbol, listTokens } from '@/config/tokens';
+import { chainRegistry } from '@/core/chain';
 import { ChainType, Intent } from '@/core/interfaces/intent';
 import { BlockchainAddress, SvmAddress, TronAddress } from '@/core/types/blockchain-addresses';
 import { UniversalAddress } from '@/core/types/universal-address';
 import { AddressNormalizer } from '@/core/utils/address-normalizer';
 import { PortalEncoder } from '@/core/utils/portal-encoder';
 import { getQuote, QuoteResponse } from '@/core/utils/quote';
-import { EvmAddressSchema, SvmAddressSchema, TvmAddressSchema } from '@/core/validation';
 import { logger } from '@/utils/logger';
 
 interface PublishCommandOptions {
@@ -236,33 +236,11 @@ async function buildIntentInteractively(
           return 'Recipient address is required';
         }
 
-        let schema;
-        switch (destChain.type) {
-          case ChainType.EVM:
-            schema = EvmAddressSchema;
-            break;
-          case ChainType.TVM:
-            schema = TvmAddressSchema;
-            break;
-          case ChainType.SVM:
-            schema = SvmAddressSchema;
-            break;
-          default:
-            return `Unsupported destination chain type: ${destChain.type}`;
+        if (!chainRegistry.get(destChain.type).validateAddress(input)) {
+          return `Invalid ${destChain.type} address — expected ${chainRegistry.get(destChain.type).getAddressFormat()}`;
         }
 
-        const result = schema.safeParse(input);
-        if (!result.success) {
-          return result.error.issues[0]?.message ?? 'Invalid address format';
-        }
-
-        try {
-          AddressNormalizer.normalize(input, destChain.type);
-          return true;
-        } catch (error: unknown) {
-          const errorMessage = error instanceof Error ? error.message : 'Invalid address format';
-          return `Invalid address: ${errorMessage}`;
-        }
+        return true;
       },
     },
   ]);

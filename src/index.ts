@@ -9,10 +9,20 @@ if (major < 18) {
 /**
  * Intent Publisher CLI
  * Main entry point
+ *
+ * Import ordering in this file is intentional and must not be changed by auto-sort.
+ * Chain handler side-effect imports MUST precede all @/ named imports because
+ * chains.ts / tokens.ts call AddressNormalizer.normalize() at module load time,
+ * which requires the chainRegistry to be populated first.
  */
 
+/* eslint-disable simple-import-sort/imports */
 import chalk from 'chalk';
 import { Command } from 'commander';
+
+import '@/blockchain/evm/evm-chain-handler';
+import '@/blockchain/tvm/tvm-chain-handler';
+import '@/blockchain/svm/svm-chain-handler';
 
 import { createConfigCommand } from '@/commands/config';
 import { createPublishCommand } from '@/commands/publish';
@@ -21,6 +31,7 @@ import { type ChainConfig, updatePortalAddresses } from '@/config/chains';
 import { type TokenConfig } from '@/config/tokens';
 import { handleCliError, setupGlobalErrorHandlers } from '@/utils/error-handler';
 import { logger } from '@/utils/logger';
+/* eslint-enable simple-import-sort/imports */
 
 // Setup global error handling
 setupGlobalErrorHandlers();

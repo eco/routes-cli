@@ -26,7 +26,7 @@ import { TronWeb } from 'tronweb';
 import { getAddress, isAddress as isViemAddress } from 'viem';
 
 import { getErrorMessage } from '@/commons/utils/error-handler';
-import { RoutesCliError } from '@/core/errors';
+import { chainRegistry } from '@/core/chain/chain-registry';
 import { ChainType } from '@/core/interfaces/intent';
 import {
   BlockchainAddress,
@@ -35,7 +35,6 @@ import {
   TronAddress,
 } from '@/core/types/blockchain-addresses';
 import { padTo32Bytes, UniversalAddress, unpadFrom32Bytes } from '@/core/types/universal-address';
-import { EvmAddressSchema, SvmAddressSchema, TvmAddressSchema } from '@/core/validation';
 
 export class AddressNormalizer {
   /**
@@ -71,31 +70,7 @@ export class AddressNormalizer {
    * ```
    */
   static normalize(address: BlockchainAddress, chainType: ChainType): UniversalAddress {
-    switch (chainType) {
-      case ChainType.EVM: {
-        const result = EvmAddressSchema.safeParse(address);
-        if (!result.success) {
-          throw RoutesCliError.invalidAddress(address, 'EVM');
-        }
-        return this.normalizeEvm(address as EvmAddress);
-      }
-      case ChainType.TVM: {
-        const result = TvmAddressSchema.safeParse(address);
-        if (!result.success) {
-          throw RoutesCliError.invalidAddress(address, 'TVM');
-        }
-        return this.normalizeTvm(address as TronAddress);
-      }
-      case ChainType.SVM: {
-        const result = SvmAddressSchema.safeParse(address);
-        if (!result.success) {
-          throw RoutesCliError.invalidAddress(address, 'SVM');
-        }
-        return this.normalizeSvm(address as SvmAddress);
-      }
-      default:
-        throw new Error(`Unsupported chain type: ${chainType}`);
-    }
+    return chainRegistry.get(chainType).normalize(address);
   }
 
   /**
@@ -133,16 +108,7 @@ export class AddressNormalizer {
           ? SvmAddress
           : never,
   >(address: UniversalAddress, chainType: chainType): Addr {
-    switch (chainType) {
-      case ChainType.EVM:
-        return this.denormalizeToEvm(address) as Addr;
-      case ChainType.TVM:
-        return this.denormalizeToTvm(address) as Addr;
-      case ChainType.SVM:
-        return this.denormalizeToSvm(address) as Addr;
-      default:
-        throw new Error(`Unsupported chain type: ${chainType}`);
-    }
+    return chainRegistry.get(chainType).denormalize(address) as Addr;
   }
 
   /**

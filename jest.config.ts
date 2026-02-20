@@ -13,7 +13,7 @@ const config: Config = {
     '^@/(.*)$': '<rootDir>/src/$1',
     '^ora$': '<rootDir>/tests/__mocks__/ora.ts',
   },
-  setupFilesAfterEnv: [],
+  setupFilesAfterEnv: ['<rootDir>/tests/setup/register-chain-handlers.ts'],
   transform: {
     '^.+\\.ts$': ['ts-jest', { tsconfig: 'tests/tsconfig.json' }],
   },
