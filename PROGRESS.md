@@ -9,7 +9,7 @@
 | TASK-003  | COMPLETE | |
 | TASK-010  | COMPLETE | |
 | TASK-011  | COMPLETE | |
-| TASK-012  | PENDING  | |
+| TASK-012  | COMPLETE | |
 | TASK-013  | PENDING  | |
 | TASK-014  | PENDING  | |
 | TASK-015  | PENDING  | |

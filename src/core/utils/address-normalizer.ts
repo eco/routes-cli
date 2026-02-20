@@ -26,6 +26,7 @@ import { TronWeb } from 'tronweb';
 import { getAddress, isAddress as isViemAddress } from 'viem';
 
 import { getErrorMessage } from '@/commons/utils/error-handler';
+import { RoutesCliError } from '@/core/errors';
 import { ChainType } from '@/core/interfaces/intent';
 import {
   BlockchainAddress,
@@ -34,6 +35,7 @@ import {
   TronAddress,
 } from '@/core/types/blockchain-addresses';
 import { padTo32Bytes, UniversalAddress, unpadFrom32Bytes } from '@/core/types/universal-address';
+import { EvmAddressSchema, SvmAddressSchema, TvmAddressSchema } from '@/core/validation';
 
 export class AddressNormalizer {
   /**
@@ -70,12 +72,27 @@ export class AddressNormalizer {
    */
   static normalize(address: BlockchainAddress, chainType: ChainType): UniversalAddress {
     switch (chainType) {
-      case ChainType.EVM:
+      case ChainType.EVM: {
+        const result = EvmAddressSchema.safeParse(address);
+        if (!result.success) {
+          throw RoutesCliError.invalidAddress(address, 'EVM');
+        }
         return this.normalizeEvm(address as EvmAddress);
-      case ChainType.TVM:
+      }
+      case ChainType.TVM: {
+        const result = TvmAddressSchema.safeParse(address);
+        if (!result.success) {
+          throw RoutesCliError.invalidAddress(address, 'TVM');
+        }
         return this.normalizeTvm(address as TronAddress);
-      case ChainType.SVM:
+      }
+      case ChainType.SVM: {
+        const result = SvmAddressSchema.safeParse(address);
+        if (!result.success) {
+          throw RoutesCliError.invalidAddress(address, 'SVM');
+        }
         return this.normalizeSvm(address as SvmAddress);
+      }
       default:
         throw new Error(`Unsupported chain type: ${chainType}`);
     }

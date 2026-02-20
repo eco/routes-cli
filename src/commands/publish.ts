@@ -4,18 +4,11 @@
 
 import * as crypto from 'crypto';
 
-import { Keypair, PublicKey } from '@solana/web3.js';
+import { Keypair } from '@solana/web3.js';
 import { Command } from 'commander';
 import inquirer from 'inquirer';
 import { TronWeb } from 'tronweb';
-import {
-  encodeFunctionData,
-  erc20Abi,
-  formatUnits,
-  Hex,
-  isAddress as isViemAddress,
-  parseUnits,
-} from 'viem';
+import { encodeFunctionData, erc20Abi, formatUnits, Hex, parseUnits } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 
 import { BasePublisher } from '@/blockchain/base-publisher';
@@ -32,6 +25,7 @@ import { UniversalAddress } from '@/core/types/universal-address';
 import { AddressNormalizer } from '@/core/utils/address-normalizer';
 import { PortalEncoder } from '@/core/utils/portal-encoder';
 import { getQuote, QuoteResponse } from '@/core/utils/quote';
+import { EvmAddressSchema, SvmAddressSchema, TvmAddressSchema } from '@/core/validation';
 import { logger } from '@/utils/logger';
 
 interface PublishCommandOptions {
@@ -232,31 +226,27 @@ async function buildIntentInteractively(options: PublishCommandOptions) {
           return 'Recipient address is required';
         }
 
-        try {
-          // Validate the address format based on destination chain type
-          switch (destChain.type) {
-            case ChainType.EVM:
-              if (!isViemAddress(input)) {
-                return `Invalid EVM address format. Expected format: 0x... (40 hex characters after 0x)`;
-              }
-              break;
-            case ChainType.TVM:
-              if (!TronWeb.isAddress(input)) {
-                return `Invalid Tron address format. Expected format: T... (base58) or 41... (hex)`;
-              }
-              break;
-            case ChainType.SVM:
-              try {
-                new PublicKey(input);
-              } catch {
-                return `Invalid Solana address format. Expected format: base58 encoded public key`;
-              }
-              break;
-            default:
-              return `Unsupported destination chain type: ${destChain.type}`;
-          }
+        let schema;
+        switch (destChain.type) {
+          case ChainType.EVM:
+            schema = EvmAddressSchema;
+            break;
+          case ChainType.TVM:
+            schema = TvmAddressSchema;
+            break;
+          case ChainType.SVM:
+            schema = SvmAddressSchema;
+            break;
+          default:
+            return `Unsupported destination chain type: ${destChain.type}`;
+        }
 
-          // Try to normalize the address to ensure it's fully valid
+        const result = schema.safeParse(input);
+        if (!result.success) {
+          return result.error.issues[0]?.message ?? 'Invalid address format';
+        }
+
+        try {
           AddressNormalizer.normalize(input, destChain.type);
           return true;
         } catch (error: unknown) {
