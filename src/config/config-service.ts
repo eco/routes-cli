@@ -20,7 +20,13 @@ export type TokenConfigs = Record<string, TokenConfig>;
 const PORTAL_ADDRESS_ENV_MAP: Record<string, string> = {
   PORTAL_ADDRESS_ETH: 'ethereum',
   PORTAL_ADDRESS_OPTIMISM: 'optimism',
+  PORTAL_ADDRESS_BSC: 'bsc',
   PORTAL_ADDRESS_BASE: 'base',
+  PORTAL_ADDRESS_ARBITRUM: 'arbitrum',
+  PORTAL_ADDRESS_POLYGON: 'polygon',
+  PORTAL_ADDRESS_RONIN: 'ronin',
+  PORTAL_ADDRESS_SONIC: 'sonic',
+  PORTAL_ADDRESS_HYPEREVM: 'hyperevm',
   PORTAL_ADDRESS_TRON: 'tron',
   PORTAL_ADDRESS_SOLANA: 'solana',
 };

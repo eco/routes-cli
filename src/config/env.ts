@@ -60,6 +60,9 @@ const EnvSchema = z.object({
   TVM_RPC_URL: z.string().url({ message: 'TVM_RPC_URL must be a valid URL' }).optional(),
   SVM_RPC_URL: z.string().url({ message: 'SVM_RPC_URL must be a valid URL' }).optional(),
   SOLVER_URL: z.string().url({ message: 'SOLVER_URL must be a valid URL' }).optional(),
+  // Flag variables: any non-empty value enables the preprod quote service (value is ignored)
+  QUOTES_API_URL: z.string().optional(),
+  QUOTES_PREPROD: z.string().optional(),
 });
 
 /**
