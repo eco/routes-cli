@@ -24,10 +24,10 @@ import { UniversalAddress } from '@/core/types/universal-address';
 import { AddressNormalizer } from '@/core/utils/address-normalizer';
 import { logger } from '@/utils/logger';
 
-import { BasePublisher, PublishResult } from './base-publisher';
+import { BasePublisher, PublishResult, ValidationResult } from './base-publisher';
 
 export class EvmPublisher extends BasePublisher {
-  async publish(
+  override async publish(
     source: bigint,
     destination: bigint,
     reward: Intent['reward'],
@@ -36,7 +36,7 @@ export class EvmPublisher extends BasePublisher {
     portalAddress?: UniversalAddress,
     proverAddress?: UniversalAddress
   ): Promise<PublishResult> {
-    try {
+    return this.runSafely(async () => {
       const account = privateKeyToAccount(privateKey as Hex);
       const chain = this.getChain(source);
 
@@ -203,17 +203,10 @@ export class EvmPublisher extends BasePublisher {
           error: 'Transaction failed',
         };
       }
-    } catch (error: unknown) {
-      logger.stopSpinner();
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      return {
-        success: false,
-        error: errorMessage,
-      };
-    }
+    });
   }
 
-  async getBalance(address: string, chainId?: bigint): Promise<bigint> {
+  override async getBalance(address: string, chainId?: bigint): Promise<bigint> {
     // Use the provided chainId to get the correct chain configuration
     // If no chainId is provided, default to mainnet (though this shouldn't happen in normal usage)
     const chain = chainId ? this.getChain(chainId) : chains.mainnet;
@@ -226,56 +219,46 @@ export class EvmPublisher extends BasePublisher {
     return await publicClient.getBalance({ address: address as Address });
   }
 
-  async validate(
-    intent: Intent,
+  override async validate(
+    reward: Intent['reward'],
     senderAddress: string
-  ): Promise<{ valid: boolean; error?: string }> {
+  ): Promise<ValidationResult> {
+    const errors: string[] = [];
     try {
-      const chain = this.getChain(intent.sourceChainId);
+      // Use mainnet chain as a placeholder for the client type; actual RPC calls go to this.rpcUrl
       const publicClient = createPublicClient({
-        chain,
+        chain: chains.mainnet,
         transport: http(this.rpcUrl),
       });
 
-      // Check if sender has enough balance for reward native amount on the source chain
-      if (intent.reward.nativeAmount > 0n) {
-        const balance = await this.getBalance(senderAddress, intent.sourceChainId);
-
-        if (balance < intent.reward.nativeAmount) {
-          return {
-            valid: false,
-            error: `Insufficient native balance. Required: ${intent.reward.nativeAmount}, Available: ${balance}`,
-          };
+      if (reward.nativeAmount > 0n) {
+        const balance = await publicClient.getBalance({ address: senderAddress as Address });
+        if (balance < reward.nativeAmount) {
+          errors.push(
+            `Insufficient native balance. Required: ${reward.nativeAmount}, Available: ${balance}`
+          );
         }
       }
 
-      // Check token balances
-      for (const token of intent.reward.tokens) {
+      for (const token of reward.tokens) {
         const tokenAddress = AddressNormalizer.denormalizeToEvm(token.token);
-
         const tokenBalance = await publicClient.readContract({
           address: tokenAddress,
           abi: erc20Abi,
           functionName: 'balanceOf',
           args: [senderAddress as Address],
         });
-
         if (tokenBalance < token.amount) {
-          return {
-            valid: false,
-            error: `Insufficient token balance for ${tokenAddress}. Required: ${token.amount}, Available: ${tokenBalance}`,
-          };
+          errors.push(
+            `Insufficient token balance for ${tokenAddress}. Required: ${token.amount}, Available: ${tokenBalance}`
+          );
         }
       }
-
-      return { valid: true };
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Validation failed';
-      return {
-        valid: false,
-        error: errorMessage,
-      };
+      const message = error instanceof Error ? error.message : 'Validation failed';
+      errors.push(message);
     }
+    return { valid: errors.length === 0, errors };
   }
 
   private getChain(chainId: bigint): Chain {

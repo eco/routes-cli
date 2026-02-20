@@ -3,6 +3,7 @@
  * Main publisher class that orchestrates Solana-specific intent publishing
  */
 
+import { getAccount, getAssociatedTokenAddressSync } from '@solana/spl-token';
 import { Connection, Keypair, PublicKey } from '@solana/web3.js';
 import { Hex } from 'viem';
 
@@ -16,7 +17,7 @@ import { logger } from '@/utils/logger';
 import { SVM_CONNECTION_CONFIG, SVM_ERROR_MESSAGES, SVM_LOG_MESSAGES } from './svm/svm-constants';
 import { executeFunding } from './svm/svm-transaction';
 import { PublishContext, SvmError, SvmErrorType } from './svm/svm-types';
-import { BasePublisher, PublishResult } from './base-publisher';
+import { BasePublisher, PublishResult, ValidationResult } from './base-publisher';
 
 export class SvmPublisher extends BasePublisher {
   private connection: Connection;
@@ -30,7 +31,7 @@ export class SvmPublisher extends BasePublisher {
    * Publishes an intent to the Solana blockchain
    * Simplified main method that delegates to helper functions
    */
-  async publish(
+  override async publish(
     source: bigint,
     destination: bigint,
     reward: Intent['reward'],
@@ -38,7 +39,7 @@ export class SvmPublisher extends BasePublisher {
     privateKey: string,
     portalAddress?: UniversalAddress
   ): Promise<PublishResult> {
-    try {
+    return this.runSafely(async () => {
       // Parse private key and validate configuration
       const keypair = this.parsePrivateKey(privateKey);
       const portalProgramId = portalAddress
@@ -77,9 +78,7 @@ export class SvmPublisher extends BasePublisher {
       }
 
       return fundingResult;
-    } catch (error: unknown) {
-      return this.handleError(error);
-    }
+    });
   }
 
   /**
@@ -120,7 +119,7 @@ export class SvmPublisher extends BasePublisher {
   /**
    * Gets the native SOL balance for an address
    */
-  async getBalance(address: string, _chainId?: bigint): Promise<bigint> {
+  override async getBalance(address: string, _chainId?: bigint): Promise<bigint> {
     try {
       const publicKey = new PublicKey(address);
       const balance = await this.connection.getBalance(publicKey);
@@ -186,10 +185,47 @@ export class SvmPublisher extends BasePublisher {
     logger.info(SVM_LOG_MESSAGES.DESTINATION_CHAIN(destination));
   }
 
+  override async validate(
+    reward: Intent['reward'],
+    senderAddress: string
+  ): Promise<ValidationResult> {
+    const errors: string[] = [];
+
+    if (reward.nativeAmount > 0n) {
+      const balance = await this.getBalance(senderAddress);
+      if (balance < reward.nativeAmount) {
+        errors.push(
+          `Insufficient SOL balance. Required: ${reward.nativeAmount} lamports, Available: ${balance}`
+        );
+      }
+    }
+
+    const walletPubkey = new PublicKey(senderAddress);
+    for (const token of reward.tokens) {
+      try {
+        const tokenMint = new PublicKey(AddressNormalizer.denormalize(token.token, ChainType.SVM));
+        const ata = getAssociatedTokenAddressSync(tokenMint, walletPubkey);
+        const tokenAccount = await getAccount(this.connection, ata);
+        if (tokenAccount.amount < token.amount) {
+          errors.push(
+            `Insufficient SPL token balance for ${tokenMint}. Required: ${token.amount}, Available: ${tokenAccount.amount}`
+          );
+        }
+      } catch {
+        errors.push(
+          `Could not verify SPL token balance for ${AddressNormalizer.denormalize(token.token, ChainType.SVM)}`
+        );
+      }
+    }
+
+    return { valid: errors.length === 0, errors };
+  }
+
   /**
-   * Handles errors with proper formatting and logging
+   * Handles errors with Solana-specific context (logs, err, details).
+   * Overrides the base handleError to add Solana program log output.
    */
-  private handleError(error: unknown): PublishResult {
+  protected override handleError(error: unknown): PublishResult {
     logger.stopSpinner();
 
     let errorMessage = error instanceof Error ? error.message : String(error);

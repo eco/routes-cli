@@ -22,6 +22,7 @@
  */
 
 import { UniversalAddress } from '@/core/types/universal-address';
+import { logger } from '@/utils/logger';
 
 import { Intent } from '../core/interfaces/intent';
 
@@ -44,6 +45,14 @@ export interface PublishResult {
   vaultAddress?: string;
   /** Decoded program data (SVM only) */
   decodedData?: unknown;
+}
+
+/**
+ * Result object returned by publisher pre-flight validation.
+ */
+export interface ValidationResult {
+  valid: boolean;
+  errors: string[];
 }
 
 /**
@@ -114,4 +123,35 @@ export abstract class BasePublisher {
    * ```
    */
   abstract getBalance(address: string, chainId?: bigint): Promise<bigint>;
+
+  /**
+   * Validates that the sender has sufficient balances before publishing.
+   *
+   * @param reward - The reward struct containing token and native amounts required
+   * @param senderAddress - Chain-native address of the sender
+   * @returns ValidationResult with valid flag and list of errors (empty = valid)
+   */
+  abstract validate(reward: Intent['reward'], senderAddress: string): Promise<ValidationResult>;
+
+  /**
+   * Shared error handler — converts any thrown error into a failed PublishResult.
+   * Subclasses may override to add chain-specific context before returning.
+   */
+  protected handleError(error: unknown): PublishResult {
+    const message = error instanceof Error ? error.message : String(error);
+    logger.stopSpinner();
+    return { success: false, error: message };
+  }
+
+  /**
+   * Wraps an async publish operation in a try-catch, delegating to handleError.
+   * Use this in all publisher publish() implementations to eliminate boilerplate.
+   */
+  protected async runSafely(fn: () => Promise<PublishResult>): Promise<PublishResult> {
+    try {
+      return await fn();
+    } catch (error: unknown) {
+      return this.handleError(error);
+    }
+  }
 }

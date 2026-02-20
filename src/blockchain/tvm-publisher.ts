@@ -13,7 +13,7 @@ import { UniversalAddress } from '@/core/types/universal-address';
 import { AddressNormalizer } from '@/core/utils/address-normalizer';
 import { logger } from '@/utils/logger';
 
-import { BasePublisher, PublishResult } from './base-publisher';
+import { BasePublisher, PublishResult, ValidationResult } from './base-publisher';
 
 export class TvmPublisher extends BasePublisher {
   private tronWeb: TronWeb;
@@ -25,7 +25,7 @@ export class TvmPublisher extends BasePublisher {
     });
   }
 
-  async publish(
+  override async publish(
     source: bigint,
     destination: bigint,
     reward: Intent['reward'],
@@ -33,7 +33,7 @@ export class TvmPublisher extends BasePublisher {
     privateKey: string,
     _portalAddress?: UniversalAddress
   ): Promise<PublishResult> {
-    try {
+    return this.runSafely(async () => {
       // Set private key
       this.tronWeb.setPrivateKey(privateKey);
       const senderAddress = this.tronWeb.address.fromPrivateKey(privateKey);
@@ -122,23 +122,53 @@ export class TvmPublisher extends BasePublisher {
           error: 'Transaction failed',
         };
       }
-    } catch (error: unknown) {
-      logger.stopSpinner();
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      return {
-        success: false,
-        error: errorMessage,
-      };
-    }
+    });
   }
 
-  async getBalance(address: string, _chainId?: bigint): Promise<bigint> {
+  override async getBalance(address: string, _chainId?: bigint): Promise<bigint> {
     try {
       const balance = await this.tronWeb.trx.getBalance(address);
       return BigInt(balance);
     } catch {
       return 0n;
     }
+  }
+
+  override async validate(
+    reward: Intent['reward'],
+    senderAddress: string
+  ): Promise<ValidationResult> {
+    const errors: string[] = [];
+
+    if (reward.tokens.length === 0) {
+      errors.push('TVM requires at least one reward token');
+    }
+
+    if (reward.nativeAmount > 0n) {
+      const balance = await this.getBalance(senderAddress);
+      if (balance < reward.nativeAmount) {
+        errors.push(
+          `Insufficient TRX balance. Required: ${reward.nativeAmount}, Available: ${balance}`
+        );
+      }
+    }
+
+    for (const token of reward.tokens) {
+      try {
+        const tokenAddr = AddressNormalizer.denormalizeToTvm(token.token);
+        const contract = this.tronWeb.contract(erc20Abi, tokenAddr);
+        const balance: bigint = await contract.balanceOf(senderAddress).call();
+        if (BigInt(balance) < token.amount) {
+          errors.push(
+            `Insufficient token balance for ${tokenAddr}. Required: ${token.amount}, Available: ${balance}`
+          );
+        }
+      } catch {
+        // Skip token balance check if contract read fails
+      }
+    }
+
+    return { valid: errors.length === 0, errors };
   }
 
   /**
