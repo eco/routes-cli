@@ -19,7 +19,7 @@
 | TASK-012 | 3     | Create rpc.service.ts                                | COMPLETE |      |
 | TASK-013 | 3     | Migrate publishers to injectable + useAsync()        | COMPLETE |      |
 | TASK-014 | 3     | Migrate SVM helpers                                  | COMPLETE |      |
-| TASK-015 | 3     | Migrate client factories                             | PENDING |       |
+| TASK-015 | 3     | Migrate client factories                             | COMPLETE | files already co-located with correct imports |
 | TASK-016 | 3     | Create publisher-factory.service.ts                  | PENDING |       |
 | TASK-017 | 3     | Migrate encoding services                            | PENDING |       |
 | TASK-018 | 3     | Create blockchain.module.ts                          | PENDING |       |
