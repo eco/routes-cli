@@ -16,7 +16,7 @@ import { AddressNormalizer } from '@/core/utils/address-normalizer';
 import { logger } from '@/utils/logger';
 
 import { DefaultTvmClientFactory, TvmClientFactory } from './tvm-client-factory';
-import { BasePublisher, PublishResult, ValidationResult } from '../base.publisher';
+import { BasePublisher, IntentStatus, PublishResult, ValidationResult } from '../base.publisher';
 import { ChainRegistryService } from '../chain-registry.service';
 
 @Injectable()
@@ -170,6 +170,10 @@ export class TvmPublisher extends BasePublisher {
     }
 
     return { valid: errors.length === 0, errors };
+  }
+
+  override async getStatus(_intentHash: string, _chainId: bigint): Promise<IntentStatus> {
+    throw new Error('getStatus not yet implemented for TVM');
   }
 
   private async waitForTransaction(tronWeb: TronWeb, txId: string): Promise<boolean> {

@@ -17,7 +17,7 @@ import { logger } from '@/utils/logger';
 import { DefaultSvmClientFactory, SvmClientFactory } from './solana-client';
 import { PublishContext, SvmError, SvmErrorType } from './svm-types';
 import { executeFunding } from './transaction-builder';
-import { BasePublisher, PublishResult, ValidationResult } from '../base.publisher';
+import { BasePublisher, IntentStatus, PublishResult, ValidationResult } from '../base.publisher';
 import { ChainRegistryService } from '../chain-registry.service';
 
 @Injectable()
@@ -196,6 +196,10 @@ export class SvmPublisher extends BasePublisher {
     } catch (error: unknown) {
       throw new SvmError(SvmErrorType.INVALID_CONFIG, 'Invalid private key format', error);
     }
+  }
+
+  override async getStatus(_intentHash: string, _chainId: bigint): Promise<IntentStatus> {
+    throw new Error('getStatus not yet implemented for SVM');
   }
 
   private getPortalProgramId(chainId: bigint): PublicKey {

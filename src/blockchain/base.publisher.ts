@@ -7,6 +7,14 @@ import { logger } from '@/utils/logger';
 
 import { ChainRegistryService } from './chain-registry.service';
 
+export interface IntentStatus {
+  fulfilled: boolean;
+  solver?: string;
+  fulfillmentTxHash?: string;
+  blockNumber?: bigint;
+  timestamp?: number;
+}
+
 export interface PublishResult {
   success: boolean;
   transactionHash?: string;
@@ -41,6 +49,8 @@ export abstract class BasePublisher {
   abstract getBalance(address: string, chainId?: bigint): Promise<bigint>;
 
   abstract validate(reward: Intent['reward'], senderAddress: string): Promise<ValidationResult>;
+
+  abstract getStatus(intentHash: string, chainId: bigint): Promise<IntentStatus>;
 
   protected handleError(error: unknown): PublishResult {
     const message = error instanceof Error ? error.message : String(error);

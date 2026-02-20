@@ -27,7 +27,7 @@ import { AddressNormalizer } from '@/core/utils/address-normalizer';
 import { logger } from '@/utils/logger';
 
 import { DefaultEvmClientFactory, EvmClientFactory } from './evm-client-factory';
-import { BasePublisher, PublishResult, ValidationResult } from '../base.publisher';
+import { BasePublisher, IntentStatus, PublishResult, ValidationResult } from '../base.publisher';
 import { ChainRegistryService } from '../chain-registry.service';
 
 @Injectable()
@@ -263,6 +263,42 @@ export class EvmPublisher extends BasePublisher {
       errors.push(message);
     }
     return { valid: errors.length === 0, errors };
+  }
+
+  override async getStatus(intentHash: string, chainId: bigint): Promise<IntentStatus> {
+    const chainConfig = getChainById(chainId);
+    if (!chainConfig?.portalAddress) {
+      throw new Error(`No portal address configured for chain ${chainId}`);
+    }
+
+    const portalAddress = AddressNormalizer.denormalizeToEvm(chainConfig.portalAddress);
+    const publicClient = this.getPublicClient();
+
+    const events = await publicClient.getContractEvents({
+      address: portalAddress,
+      abi: portalAbi,
+      eventName: 'IntentFulfilled',
+      args: { intentHash: intentHash as Hex },
+    });
+
+    const event = events[0];
+    if (!event) {
+      return { fulfilled: false };
+    }
+
+    const status: IntentStatus = {
+      fulfilled: true,
+      solver: event.args.claimant,
+      fulfillmentTxHash: event.transactionHash ?? undefined,
+      blockNumber: event.blockNumber ?? undefined,
+    };
+
+    if (event.blockNumber) {
+      const block = await publicClient.getBlock({ blockNumber: event.blockNumber });
+      status.timestamp = Number(block.timestamp);
+    }
+
+    return status;
   }
 
   private getChain(chainId: bigint): Chain {
