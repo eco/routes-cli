@@ -220,3 +220,49 @@ tests/
 - Push new commits to the same branch; do not force-push unless explicitly asked.
 - Mark conversations as resolved after addressing them.
 - If you disagree with feedback, explain your reasoning — discussion is welcome.
+
+---
+
+## 7. Release Process
+
+Routes CLI uses [Changesets](https://github.com/changesets/changesets) to manage versioning and `CHANGELOG.md` updates.
+
+### For contributors — describe your change
+
+When your PR includes a user-facing change, add a changeset file:
+
+```bash
+pnpm changeset
+```
+
+The CLI will prompt you to:
+1. Select the bump type — `major` (breaking), `minor` (new feature), or `patch` (bug fix).
+2. Write a short summary of the change for the CHANGELOG.
+
+This creates a `.changeset/<random-name>.md` file. **Commit this file with your PR.**
+
+> **When to skip changesets:** Pure documentation, test, or CI changes that have no impact on
+> CLI behaviour or the published package do not need a changeset file.
+
+### For maintainers — cutting a release
+
+1. Merge all PRs for the release into `main`. Each PR should include its `.changeset/*.md` file.
+2. Run the changeset version command to consume the changeset files and bump `package.json`:
+   ```bash
+   pnpm changeset version
+   ```
+   This updates `package.json`, aggregates all changeset summaries into `CHANGELOG.md`, and removes the consumed `.changeset/*.md` files.
+3. Review the diff — confirm `package.json` version and `CHANGELOG.md` look correct.
+4. Commit and push:
+   ```bash
+   git add package.json CHANGELOG.md pnpm-lock.yaml
+   git commit -m "chore(release): v$(node -p 'require(\"./package.json\").version')"
+   git push origin main
+   ```
+5. Tag the release — CI triggers the `release` job on tag push:
+   ```bash
+   VERSION=$(node -p 'require("./package.json").version')
+   git tag "v$VERSION"
+   git push origin "v$VERSION"
+   ```
+6. CI will publish to npm (`NPM_TOKEN` secret required) and create a GitHub Release automatically.

@@ -51,6 +51,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@changesets/cli": "^2.29.8",
     "@types/bn.js": "^5.2.0",
     "@types/inquirer": "^9.0.7",
     "@types/jest": "^30.0.0",
