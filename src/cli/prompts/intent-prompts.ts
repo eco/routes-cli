@@ -11,6 +11,7 @@ import { getPrivateKey, getWalletAddress } from '@/cli/key-provider';
 import { ChainConfig, getChainById, getChainByName, listChains } from '@/config/chains';
 import { getTokenAddress, getTokenBySymbol, listTokens, TokenConfig } from '@/config/tokens';
 import { chainRegistry } from '@/core/chain';
+import { RoutesCliError } from '@/core/errors';
 import { BlockchainAddress } from '@/core/types/blockchain-addresses';
 import { UniversalAddress } from '@/core/types/universal-address';
 import { AddressNormalizer } from '@/core/utils/address-normalizer';
@@ -32,7 +33,7 @@ export interface RewardConfig {
 export async function selectSourceChain(options: PromptOptions): Promise<ChainConfig> {
   if (options.source) {
     const chain = getChainByName(options.source) || getChainById(BigInt(options.source));
-    if (!chain) throw new Error(`Unknown source chain: ${options.source}`);
+    if (!chain) throw RoutesCliError.unsupportedChain(options.source);
     return chain;
   }
 
@@ -55,7 +56,7 @@ export async function selectDestinationChain(
 ): Promise<ChainConfig> {
   if (options.destination) {
     const chain = getChainByName(options.destination) || getChainById(BigInt(options.destination));
-    if (!chain) throw new Error(`Unknown destination chain: ${options.destination}`);
+    if (!chain) throw RoutesCliError.unsupportedChain(options.destination);
     return chain;
   }
 

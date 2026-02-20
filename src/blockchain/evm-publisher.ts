@@ -102,6 +102,7 @@ export class EvmPublisher extends BasePublisher {
     portalAddress?: UniversalAddress,
     proverAddress?: UniversalAddress
   ): Promise<PublishResult> {
+    this.runPreflightChecks(source);
     // Derive account synchronously; buffer is zeroized immediately after use()
     const account = keyHandle.use(key => privateKeyToAccount(key as Hex));
     return this.runSafely(async () => {

@@ -65,6 +65,7 @@ export class TvmPublisher extends BasePublisher {
     keyHandle: KeyHandle,
     _portalAddress?: UniversalAddress
   ): Promise<PublishResult> {
+    this.runPreflightChecks(source);
     return this.runSafely(async () => {
       // Set key on TronWeb and capture sender address; buffer zeroized after use()
       const senderAddress = keyHandle.use(key => {

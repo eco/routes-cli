@@ -21,6 +21,8 @@
  * ```
  */
 
+import { getChainById } from '@/config/chains';
+import { RoutesCliError } from '@/core/errors';
 import { KeyHandle } from '@/core/security';
 import { UniversalAddress } from '@/core/types/universal-address';
 import { logger } from '@/utils/logger';
@@ -153,6 +155,18 @@ export abstract class BasePublisher {
       return await fn();
     } catch (error: unknown) {
       return this.handleError(error);
+    }
+  }
+
+  /**
+   * Pre-flight check: validates that the source chain ID is in the supported chain list.
+   * Call this at the top of each publisher's `publish()` implementation, before any RPC call.
+   *
+   * @throws {RoutesCliError} (UNSUPPORTED_CHAIN) when the chain ID is not configured.
+   */
+  protected runPreflightChecks(sourceChainId: bigint): void {
+    if (!getChainById(sourceChainId)) {
+      throw RoutesCliError.unsupportedChain(sourceChainId);
     }
   }
 }

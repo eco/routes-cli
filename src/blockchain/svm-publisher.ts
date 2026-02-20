@@ -67,6 +67,7 @@ export class SvmPublisher extends BasePublisher {
     portalAddress?: UniversalAddress,
     proverAddress?: UniversalAddress
   ): Promise<PublishResult> {
+    this.runPreflightChecks(source);
     return this.runSafely(async () => {
       // Parse keypair from key synchronously; buffer zeroized after use()
       const keypair = keyHandle.use(key => this.parsePrivateKey(key));

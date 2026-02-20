@@ -9,9 +9,13 @@ import { ChainHandler } from './chain-handler.interface';
  * New chain types can be added at runtime by calling `register()` with a `ChainHandler`
  * implementation. All address validation, normalization, and denormalization is dispatched
  * through this registry — no switch statements required in consuming code.
+ *
+ * Chain IDs can also be registered via `registerChainId()` to build an explicit allowlist.
+ * Use `isRegistered(chainId)` to check whether a numeric chain ID is on the allowlist.
  */
 export class ChainRegistry {
   private readonly handlers = new Map<ChainType, ChainHandler>();
+  private readonly registeredChainIds = new Set<bigint>();
 
   /** Register a handler for the chain type it declares. */
   register(handler: ChainHandler): void {
@@ -33,6 +37,22 @@ export class ChainRegistry {
   /** Returns all registered handlers. */
   getAll(): ChainHandler[] {
     return [...this.handlers.values()];
+  }
+
+  /**
+   * Adds a chain ID to the allowlist.
+   * Call this once at startup for each chain in your configuration.
+   */
+  registerChainId(chainId: bigint): void {
+    this.registeredChainIds.add(chainId);
+  }
+
+  /**
+   * Returns true if the chain ID has been added to the allowlist via `registerChainId()`.
+   * Returns false when no chain IDs have been registered yet (empty allowlist).
+   */
+  isRegistered(chainId: bigint): boolean {
+    return this.registeredChainIds.has(chainId);
   }
 }
 

@@ -27,8 +27,9 @@ import '@/blockchain/svm/svm-chain-handler';
 import { createConfigCommand } from '@/commands/config';
 import { createPublishCommand } from '@/commands/publish';
 import { createStatusCommand } from '@/commands/status';
-import { type ChainConfig } from '@/config/chains';
+import { listChains, type ChainConfig } from '@/config/chains';
 import { ConfigService } from '@/config/config-service';
+import { chainRegistry } from '@/core/chain';
 import { type TokenConfig } from '@/config/tokens';
 import { handleCliError, setupGlobalErrorHandlers } from '@/utils/error-handler';
 import { logger } from '@/utils/logger';
@@ -43,6 +44,9 @@ try {
 } catch (error) {
   handleCliError(error);
 }
+
+// Register all configured chain IDs in the allowlist
+listChains().forEach(chain => chainRegistry.registerChainId(chain.id));
 
 // Create main program
 const program = new Command();
