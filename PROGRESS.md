@@ -38,7 +38,7 @@
 | TASK-046  | COMPLETE | |
 | TASK-050  | COMPLETE | |
 | TASK-051  | COMPLETE | |
-| TASK-052  | PENDING  | |
+| TASK-052  | COMPLETE | |
 | TASK-053  | PENDING  | |
 
 ## Skipped Tasks Report
