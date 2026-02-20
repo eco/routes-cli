@@ -1,20 +1,5 @@
 /**
- * SVM Client Factory
- *
- * Injectable factory for creating Solana Connection instances, enabling dependency
- * injection in SvmPublisher for testability without live RPC connections.
+ * @deprecated Import directly from './solana-client' for new code.
+ * Re-exported here for backward compatibility with publisher-factory.ts and test mocks.
  */
-
-import { Connection } from '@solana/web3.js';
-
-import { SVM_CONNECTION_CONFIG } from './svm-constants';
-
-export interface SvmClientFactory {
-  createConnection(rpcUrl: string): Connection;
-}
-
-export class DefaultSvmClientFactory implements SvmClientFactory {
-  createConnection(rpcUrl: string): Connection {
-    return new Connection(rpcUrl, SVM_CONNECTION_CONFIG);
-  }
-}
+export { DefaultSvmClientFactory, SvmClientFactory } from './solana-client';

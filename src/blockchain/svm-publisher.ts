@@ -14,10 +14,9 @@ import { UniversalAddress } from '@/core/types/universal-address';
 import { AddressNormalizer } from '@/core/utils/address-normalizer';
 import { logger } from '@/utils/logger';
 
-import { DefaultSvmClientFactory, SvmClientFactory } from './svm/svm-client-factory';
-import { SVM_ERROR_MESSAGES, SVM_LOG_MESSAGES } from './svm/svm-constants';
-import { executeFunding } from './svm/svm-transaction';
+import { DefaultSvmClientFactory, SvmClientFactory } from './svm/solana-client';
 import { PublishContext, SvmError, SvmErrorType } from './svm/svm-types';
+import { executeFunding } from './svm/transaction-builder';
 import { BasePublisher, PublishResult, ValidationResult } from './base-publisher';
 
 export class SvmPublisher extends BasePublisher {
@@ -75,7 +74,7 @@ export class SvmPublisher extends BasePublisher {
       const fundingResult = await this.fundIntent(context);
 
       if (fundingResult.success) {
-        logger.info(SVM_LOG_MESSAGES.FUNDING_SUCCESS(fundingResult.transactionHash!));
+        logger.info(`Funding successful: ${fundingResult.transactionHash!}`);
       }
 
       return fundingResult;
@@ -104,7 +103,7 @@ export class SvmPublisher extends BasePublisher {
         return fundingResult;
       }
 
-      logger.info(SVM_LOG_MESSAGES.FUNDING_SUCCESS(fundingResult.transactionHash!));
+      logger.info(`Funding successful: ${fundingResult.transactionHash!}`);
       return fundingResult;
     } catch (error: unknown) {
       if (error instanceof SvmError) {
@@ -153,11 +152,7 @@ export class SvmPublisher extends BasePublisher {
       const bytes = bs58.decode(privateKey);
       return Keypair.fromSecretKey(bytes);
     } catch (error: unknown) {
-      throw new SvmError(
-        SvmErrorType.INVALID_CONFIG,
-        SVM_ERROR_MESSAGES.INVALID_PRIVATE_KEY,
-        error
-      );
+      throw new SvmError(SvmErrorType.INVALID_CONFIG, 'Invalid private key format', error);
     }
   }
 
@@ -170,7 +165,7 @@ export class SvmPublisher extends BasePublisher {
     if (!chainConfig?.portalAddress) {
       throw new SvmError(
         SvmErrorType.INVALID_CONFIG,
-        SVM_ERROR_MESSAGES.NO_PORTAL_ADDRESS(chainId)
+        `No Portal address configured for chain ${chainId}`
       );
     }
 
@@ -181,9 +176,9 @@ export class SvmPublisher extends BasePublisher {
    * Logs initial publishing information
    */
   private logPublishInfo(portalProgramId: PublicKey, keypair: Keypair, destination: bigint): void {
-    logger.info(SVM_LOG_MESSAGES.PORTAL_PROGRAM(portalProgramId.toString()));
-    logger.info(SVM_LOG_MESSAGES.CREATOR(keypair.publicKey.toString()));
-    logger.info(SVM_LOG_MESSAGES.DESTINATION_CHAIN(destination));
+    logger.info(`Using Portal Program: ${portalProgramId.toString()}`);
+    logger.info(`Creator: ${keypair.publicKey.toString()}`);
+    logger.info(`Destination Chain: ${destination}`);
   }
 
   override async validate(
