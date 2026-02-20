@@ -32,11 +32,32 @@ export function createStatusCommand(): Command {
 
   command
     .description('Check the fulfillment status of an intent')
-    .argument('<intentHash>', 'Intent hash to check (0x-prefixed hex string)')
-    .option('-c, --chain <chain>', 'Destination chain (name or ID)')
-    .option('-w, --watch', 'Watch for status updates (poll every 30 seconds)')
-    .option('--json', 'Output in JSON format')
-    .option('--verbose', 'Show detailed information')
+    .argument('<intentHash>', 'Intent hash to check (0x-prefixed 64-character hex string)')
+    .option('-c, --chain <chain>', 'Destination chain (name or ID, e.g. "optimism" or "10")')
+    .option('-w, --watch', 'Poll every 10 seconds until the intent is fulfilled')
+    .option('--json', 'Output result as JSON (useful for scripting)')
+    .option('--verbose', 'Show portal address and raw fulfillment transaction details')
+    .addHelpText(
+      'after',
+      `
+Examples:
+  # Check status on Optimism once
+  $ routes-cli status 0x1234…abcd --chain optimism
+
+  # Watch until fulfilled (polls every 10 seconds, Ctrl+C to stop)
+  $ routes-cli status 0x1234…abcd --chain base --watch
+
+  # JSON output for scripting / CI
+  $ routes-cli status 0x1234…abcd --chain arbitrum --json
+
+  # Show portal address and fulfillment transaction details
+  $ routes-cli status 0x1234…abcd --chain base --verbose
+
+Note:
+  <intentHash> is the 0x-prefixed 64-character hex hash returned by the "publish" command.
+  Run "routes-cli chains" to see all supported destination chains.
+`
+    )
     .action(async (intentHashArg: string, options) => {
       try {
         // Validate intent hash format

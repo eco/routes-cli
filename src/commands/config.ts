@@ -32,7 +32,27 @@ const PROFILES_DIR = path.join(CONFIG_DIR, 'profiles');
 export function createConfigCommand(): Command {
   const command = new Command('config');
 
-  command.description('Manage CLI configuration settings');
+  command.description('Manage CLI configuration settings').addHelpText(
+    'after',
+    `
+Examples:
+  # Show current configuration
+  $ routes-cli config list
+
+  # Set a default source chain
+  $ routes-cli config set defaultSourceChain base
+
+  # Interactive guided setup
+  $ routes-cli config set --interactive
+
+  # Create and switch to a named profile
+  $ routes-cli config profile create mainnet
+  $ routes-cli config profile switch mainnet
+
+  # List all available profiles
+  $ routes-cli config profile list
+`
+  );
 
   // List all configuration
   command

@@ -23,32 +23,61 @@ export class RoutesCliError extends Error {
 
   static invalidAddress(addr: string, chainType?: string): RoutesCliError {
     const chain = chainType ? ` for ${chainType}` : '';
+    const formats: Record<string, string> = {
+      EVM: '0x followed by 40 hex characters (e.g. 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045)',
+      TVM: 'T followed by 33 alphanumeric characters (e.g. TRXyyyy…)',
+      SVM: 'base58-encoded 32-byte public key (e.g. 11111111111111111111111111111111)',
+    };
+    const formatHint =
+      chainType && formats[chainType] ? `\n  Expected format: ${formats[chainType]}` : '';
     return new RoutesCliError(
       ErrorCode.INVALID_ADDRESS,
-      `Invalid address${chain}: "${addr}"`,
+      `Invalid address${chain}: "${addr}"${formatHint}`,
       true
     );
   }
 
   static invalidPrivateKey(chainType: string): RoutesCliError {
+    const formats: Record<string, string> = {
+      EVM: '0x followed by 64 hex characters (e.g. 0xac09…2ff80)',
+      TVM: '64 hex characters without 0x prefix (e.g. ac09…2ff80)',
+      SVM: 'base58 string, JSON byte array [1,2,…], or comma-separated bytes',
+    };
+    const envVars: Record<string, string> = {
+      EVM: 'EVM_PRIVATE_KEY',
+      TVM: 'TVM_PRIVATE_KEY',
+      SVM: 'SVM_PRIVATE_KEY',
+    };
+    const expected = formats[chainType] ?? 'see documentation for the chain-specific format';
+    const envVar = envVars[chainType] ?? `${chainType}_PRIVATE_KEY`;
     return new RoutesCliError(
       ErrorCode.INVALID_PRIVATE_KEY,
-      `Invalid private key for ${chainType}`,
+      `No private key configured for ${chainType}.\n` +
+        `  Expected format: ${expected}\n` +
+        `  Fix: set ${envVar} in your .env file, or pass --private-key <key> on the command line.`,
       true
     );
   }
 
   static insufficientBalance(required: bigint, available: bigint, token?: string): RoutesCliError {
-    const asset = token ? ` ${token}` : '';
+    const asset = token ?? 'native token';
     return new RoutesCliError(
       ErrorCode.INSUFFICIENT_BALANCE,
-      `Insufficient${asset} balance: required ${required}, available ${available}`,
+      `Insufficient ${asset} balance.\n` +
+        `  Required:  ${required}\n` +
+        `  Available: ${available}\n` +
+        `  Fix: fund the sender address with at least ${required} ${asset} before publishing.`,
       true
     );
   }
 
   static unsupportedChain(chainId: bigint | string): RoutesCliError {
-    return new RoutesCliError(ErrorCode.UNSUPPORTED_CHAIN, `Unsupported chain: ${chainId}`, true);
+    return new RoutesCliError(
+      ErrorCode.UNSUPPORTED_CHAIN,
+      `Unsupported chain: "${chainId}".\n` +
+        `  Run "routes-cli chains" to see all supported chains and their IDs.`,
+      true
+    );
   }
 
   static networkError(rpcUrl: string, cause: unknown): RoutesCliError {

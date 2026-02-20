@@ -56,10 +56,42 @@ export function createPublishCommand(): Command {
     .description('Publish an intent to the blockchain')
     .option('-s, --source <chain>', 'Source chain (name or ID)')
     .option('-d, --destination <chain>', 'Destination chain (name or ID)')
-    .option('-k, --private-key <key>', 'Private key (overrides env)')
+    .option(
+      '-k, --private-key <key>',
+      'Private key override (EVM: 0x+64hex, TVM: 64hex no prefix, SVM: base58 or [byte array])'
+    )
     .option('-r, --rpc <url>', 'RPC URL (overrides env)')
     .option('--recipient <address>', 'Recipient address on destination chain')
-    .option('--dry-run', 'Validate without publishing')
+    .option('--dry-run', 'Validate intent parameters without broadcasting a transaction')
+    .addHelpText(
+      'after',
+      `
+Examples:
+  # Fully interactive — prompts for all options
+  $ routes-cli publish
+
+  # Specify chains up front, prompts fill in the rest
+  $ routes-cli publish --source base --destination optimism
+
+  # Provide a custom RPC endpoint and validate before sending
+  $ routes-cli publish --source base --destination optimism \\
+      --rpc https://mainnet.base.org --dry-run
+
+  # Pass EVM private key inline (overrides EVM_PRIVATE_KEY env var)
+  # Format: 0x followed by exactly 64 hex characters
+  $ routes-cli publish --source ethereum --destination arbitrum \\
+      --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+
+  # Specify the recipient address on the destination chain
+  $ routes-cli publish --source base --destination optimism \\
+      --recipient 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045
+
+Private key formats:
+  EVM  — 0x + 64 hex characters  (set EVM_PRIVATE_KEY in .env)
+  TVM  — 64 hex characters, no 0x prefix  (set TVM_PRIVATE_KEY in .env)
+  SVM  — base58 string, JSON byte array [1,2,…], or comma-separated bytes  (set SVM_PRIVATE_KEY in .env)
+`
+    )
     .action(async (options: PublishCommandOptions) => {
       try {
         logger.title('🎨 Interactive Intent Publishing');

@@ -10,6 +10,7 @@ import { Hex } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 
 import { loadEnvConfig } from '@/config/env';
+import { RoutesCliError } from '@/core/errors';
 import { ChainType } from '@/core/interfaces/intent';
 import { BlockchainAddress, SvmAddress, TronAddress } from '@/core/types/blockchain-addresses';
 
@@ -34,7 +35,7 @@ export function getPrivateKey(chainType: ChainType, override?: string): string {
   }
 
   if (!key) {
-    throw new Error(`No private key configured for ${chainType} chain`);
+    throw RoutesCliError.invalidPrivateKey(chainType);
   }
 
   return key;
