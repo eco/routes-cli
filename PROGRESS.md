@@ -16,7 +16,7 @@
 | TASK-009 | 3     | Migrate EVM, TVM, SVM chain handlers                 | COMPLETE |      |
 | TASK-010 | 3     | Create address-normalizer.service.ts                 | COMPLETE |      |
 | TASK-011 | 3     | Create chains.config.ts + chains.service.ts          | COMPLETE |      |
-| TASK-012 | 3     | Create rpc.service.ts                                | PENDING |       |
+| TASK-012 | 3     | Create rpc.service.ts                                | COMPLETE |      |
 | TASK-013 | 3     | Migrate publishers to injectable + useAsync()        | PENDING |       |
 | TASK-014 | 3     | Migrate SVM helpers                                  | PENDING |       |
 | TASK-015 | 3     | Migrate client factories                             | PENDING |       |
