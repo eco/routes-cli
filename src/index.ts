@@ -27,7 +27,8 @@ import '@/blockchain/svm/svm-chain-handler';
 import { createConfigCommand } from '@/commands/config';
 import { createPublishCommand } from '@/commands/publish';
 import { createStatusCommand } from '@/commands/status';
-import { type ChainConfig, updatePortalAddresses } from '@/config/chains';
+import { type ChainConfig } from '@/config/chains';
+import { ConfigService } from '@/config/config-service';
 import { type TokenConfig } from '@/config/tokens';
 import { handleCliError, setupGlobalErrorHandlers } from '@/utils/error-handler';
 import { logger } from '@/utils/logger';
@@ -36,9 +37,9 @@ import { logger } from '@/utils/logger';
 // Setup global error handling
 setupGlobalErrorHandlers();
 
-// Load environment variables and update configuration
+// Initialize configuration — single initialization point for all config
 try {
-  updatePortalAddresses(process.env);
+  ConfigService.fromEnvironment();
 } catch (error) {
   handleCliError(error);
 }
