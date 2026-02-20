@@ -263,7 +263,7 @@ function displayStatus(status: IntentStatus, options: StatusCommandOptions): voi
     logger.log(
       JSON.stringify(
         status,
-        (key, value) => {
+        (_key, value) => {
           // Convert BigInt to string for JSON serialization
           return typeof value === 'bigint' ? value.toString() : value;
         },

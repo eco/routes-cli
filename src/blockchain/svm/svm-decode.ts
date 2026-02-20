@@ -138,8 +138,8 @@ function transformIntentPublishedEvent(eventData: any): DecodedIntentPublished {
  * Decodes instruction data from a transaction
  */
 export async function decodeInstructionData(
-  program: Program,
-  instructionData: Buffer,
+  _program: Program,
+  _instructionData: Buffer,
   instructionName: string
 ): Promise<any> {
   try {

@@ -106,7 +106,7 @@ export async function buildPublishTransaction(
  * Builds a funding transaction for Solana
  */
 export async function buildFundingTransaction(
-  connection: Connection,
+  _connection: Connection,
   program: Program<PortalIdl>,
   context: PublishContext
 ): Promise<Transaction> {
