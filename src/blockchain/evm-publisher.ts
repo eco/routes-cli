@@ -3,16 +3,17 @@
  */
 
 import {
+  Account,
   Address,
   Chain,
-  createPublicClient,
-  createWalletClient,
   encodeFunctionData,
   erc20Abi,
   Hex,
-  http,
   maxUint256,
   parseEventLogs,
+  type PublicClient,
+  Transport,
+  type WalletClient,
 } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import * as chains from 'viem/chains';
@@ -24,9 +25,37 @@ import { UniversalAddress } from '@/core/types/universal-address';
 import { AddressNormalizer } from '@/core/utils/address-normalizer';
 import { logger } from '@/utils/logger';
 
+import { DefaultEvmClientFactory, EvmClientFactory } from './evm/evm-client-factory';
 import { BasePublisher, PublishResult, ValidationResult } from './base-publisher';
 
 export class EvmPublisher extends BasePublisher {
+  private readonly clientFactory: EvmClientFactory;
+  /**
+   * Cached public client — initialized once and reused across getBalance/validate/publish calls.
+   * Uses chains.mainnet as a placeholder chain object; actual RPC calls go to this.rpcUrl.
+   */
+  private _publicClient?: PublicClient;
+
+  constructor(rpcUrl: string, clientFactory: EvmClientFactory = new DefaultEvmClientFactory()) {
+    super(rpcUrl);
+    this.clientFactory = clientFactory;
+  }
+
+  /**
+   * Returns the cached PublicClient, creating it on first call.
+   * All read-only RPC methods (eth_getBalance, eth_call, etc.) are transport-driven
+   * and don't depend on the chain metadata object.
+   */
+  private getPublicClient(): PublicClient {
+    if (!this._publicClient) {
+      this._publicClient = this.clientFactory.createPublicClient({
+        chain: chains.mainnet,
+        rpcUrl: this.rpcUrl,
+      });
+    }
+    return this._publicClient;
+  }
+
   override async publish(
     source: bigint,
     destination: bigint,
@@ -40,16 +69,16 @@ export class EvmPublisher extends BasePublisher {
       const account = privateKeyToAccount(privateKey as Hex);
       const chain = this.getChain(source);
 
-      const walletClient = createWalletClient({
-        account,
-        chain,
-        transport: http(this.rpcUrl),
-      });
+      // Wallet client is created fresh per publish (account may differ across calls)
+      const walletClient: WalletClient<Transport, Chain, Account> =
+        this.clientFactory.createWalletClient({
+          chain,
+          rpcUrl: this.rpcUrl,
+          account,
+        });
 
-      const publicClient = createPublicClient({
-        chain,
-        transport: http(this.rpcUrl),
-      });
+      // Reuse cached public client for all read operations
+      const publicClient = this.getPublicClient();
 
       // Get Portal address
       const sourceChainConfig = getChainById(source);
@@ -206,17 +235,8 @@ export class EvmPublisher extends BasePublisher {
     });
   }
 
-  override async getBalance(address: string, chainId?: bigint): Promise<bigint> {
-    // Use the provided chainId to get the correct chain configuration
-    // If no chainId is provided, default to mainnet (though this shouldn't happen in normal usage)
-    const chain = chainId ? this.getChain(chainId) : chains.mainnet;
-
-    const publicClient = createPublicClient({
-      chain,
-      transport: http(this.rpcUrl),
-    });
-
-    return await publicClient.getBalance({ address: address as Address });
+  override async getBalance(address: string, _chainId?: bigint): Promise<bigint> {
+    return await this.getPublicClient().getBalance({ address: address as Address });
   }
 
   override async validate(
@@ -225,11 +245,7 @@ export class EvmPublisher extends BasePublisher {
   ): Promise<ValidationResult> {
     const errors: string[] = [];
     try {
-      // Use mainnet chain as a placeholder for the client type; actual RPC calls go to this.rpcUrl
-      const publicClient = createPublicClient({
-        chain: chains.mainnet,
-        transport: http(this.rpcUrl),
-      });
+      const publicClient = this.getPublicClient();
 
       if (reward.nativeAmount > 0n) {
         const balance = await publicClient.getBalance({ address: senderAddress as Address });

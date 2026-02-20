@@ -14,7 +14,8 @@ import { UniversalAddress } from '@/core/types/universal-address';
 import { AddressNormalizer } from '@/core/utils/address-normalizer';
 import { logger } from '@/utils/logger';
 
-import { SVM_CONNECTION_CONFIG, SVM_ERROR_MESSAGES, SVM_LOG_MESSAGES } from './svm/svm-constants';
+import { DefaultSvmClientFactory, SvmClientFactory } from './svm/svm-client-factory';
+import { SVM_ERROR_MESSAGES, SVM_LOG_MESSAGES } from './svm/svm-constants';
 import { executeFunding } from './svm/svm-transaction';
 import { PublishContext, SvmError, SvmErrorType } from './svm/svm-types';
 import { BasePublisher, PublishResult, ValidationResult } from './base-publisher';
@@ -22,9 +23,9 @@ import { BasePublisher, PublishResult, ValidationResult } from './base-publisher
 export class SvmPublisher extends BasePublisher {
   private connection: Connection;
 
-  constructor(rpcUrl: string) {
+  constructor(rpcUrl: string, factory: SvmClientFactory = new DefaultSvmClientFactory()) {
     super(rpcUrl);
-    this.connection = new Connection(rpcUrl, SVM_CONNECTION_CONFIG);
+    this.connection = factory.createConnection(rpcUrl);
   }
 
   /**

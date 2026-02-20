@@ -13,16 +13,15 @@ import { UniversalAddress } from '@/core/types/universal-address';
 import { AddressNormalizer } from '@/core/utils/address-normalizer';
 import { logger } from '@/utils/logger';
 
+import { DefaultTvmClientFactory, TvmClientFactory } from './tvm/tvm-client-factory';
 import { BasePublisher, PublishResult, ValidationResult } from './base-publisher';
 
 export class TvmPublisher extends BasePublisher {
   private tronWeb: TronWeb;
 
-  constructor(rpcUrl: string) {
+  constructor(rpcUrl: string, factory: TvmClientFactory = new DefaultTvmClientFactory()) {
     super(rpcUrl);
-    this.tronWeb = new TronWeb({
-      fullHost: rpcUrl,
-    });
+    this.tronWeb = factory.createClient(rpcUrl);
   }
 
   override async publish(
