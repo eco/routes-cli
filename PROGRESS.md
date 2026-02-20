@@ -25,7 +25,7 @@
 | TASK-018 | 3     | Create blockchain.module.ts                          | COMPLETE |      |
 | TASK-019 | 4     | Create quote/quote.service.ts + QuoteModule          | COMPLETE |      |
 | TASK-020 | 5     | Create intent/intent-builder.service.ts              | COMPLETE |      |
-| TASK-021 | 5     | Create intent/intent-storage.service.ts + IntentModule | PENDING |     |
+| TASK-021 | 5     | Create intent/intent-storage.service.ts + IntentModule | COMPLETE |    |
 | TASK-022 | 6     | Create status/status.service.ts + StatusModule       | PENDING |       |
 | TASK-023 | 7     | Create cli/services/prompt.service.ts                | PENDING |       |
 | TASK-024 | 7     | Create cli/services/display.service.ts               | PENDING |       |
