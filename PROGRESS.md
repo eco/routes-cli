@@ -30,7 +30,7 @@
 | TASK-023 | 7     | Create cli/services/prompt.service.ts                | COMPLETE |      |
 | TASK-024 | 7     | Create cli/services/display.service.ts               | COMPLETE |      |
 | TASK-025 | 7     | Create cli/commands/publish.command.ts               | COMPLETE | swapped nestjs-commander→nest-commander (correct package name) |
-| TASK-026 | 7     | Create remaining CLI commands                        | PENDING |       |
+| TASK-026 | 7     | Create remaining CLI commands                        | COMPLETE |      |
 | TASK-027 | 7     | Create cli.module.ts                                 | PENDING |       |
 | TASK-028 | 8     | Create app.module.ts + main.ts                       | PENDING |       |
 | TASK-029 | 8     | Remove old source files                              | PENDING |       |
