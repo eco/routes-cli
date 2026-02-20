@@ -10,7 +10,7 @@
 | TASK-003 | 1     | Create shared/security/key-handle.ts                 | COMPLETE |      |
 | TASK-004 | 1     | Create shared/errors/                                | COMPLETE |      |
 | TASK-005 | 2     | Create config/validation/env.schema.ts               | COMPLETE |      |
-| TASK-006 | 2     | Create config/config.service.ts                      | PENDING |       |
+| TASK-006 | 2     | Create config/config.service.ts                      | COMPLETE |      |
 | TASK-007 | 2     | Create config/tokens.config.ts + ConfigModule        | PENDING |       |
 | TASK-008 | 3     | Create chain-handler.interface + chain-registry      | PENDING |       |
 | TASK-009 | 3     | Migrate EVM, TVM, SVM chain handlers                 | PENDING |       |
