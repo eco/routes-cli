@@ -45,7 +45,11 @@ export const TOKEN_CONFIGS: Record<string, TokenConfig> = {
       '42161': AddressNormalizer.normalize(
         '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
         ChainType.EVM
-      ), // Base
+      ), // Arbitrum
+      '56': AddressNormalizer.normalize(
+        '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d',
+        ChainType.EVM
+      ), // BSC
       '146': AddressNormalizer.normalize(
         '0x29219dd400f2bf60e5a23d13be72b486d4038894',
         ChainType.EVM
@@ -93,6 +97,10 @@ export const TOKEN_CONFIGS: Record<string, TokenConfig> = {
         '0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2',
         ChainType.EVM
       ), // Base
+      '56': AddressNormalizer.normalize(
+        '0x55d398326f99059fF775485246999027B3197955',
+        ChainType.EVM
+      ), // BSC
       '728126428': AddressNormalizer.normalize('TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t', ChainType.TVM), // Tron
       '2494104990': AddressNormalizer.normalize(
         'TG3XXyExBkPp9nzdajDZsozEu4BkaSJozs',

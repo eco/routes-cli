@@ -1,13 +1,15 @@
 {
   "compilerOptions": {
     "module": "commonjs",
+    "moduleResolution": "node",
     "declaration": true,
     "removeComments": true,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
-    "target": "ES2021",
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM"],
     "sourceMap": true,
     "outDir": "./dist",
     "baseUrl": "./",
@@ -34,6 +36,9 @@
       ]
     }
   },
+  "include": [
+    "src/**/*"
+  ],
   "exclude": [
     "node_modules",
     "dist"

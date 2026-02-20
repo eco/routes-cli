@@ -112,6 +112,19 @@ const chains: Record<string, ChainConfig> = {
     },
   },
 
+  bsc: {
+    id: 56n,
+    name: 'BNB Smart Chain',
+    type: ChainType.EVM,
+    env: 'production',
+    rpcUrl: 'https://bsc-rpc.publicnode.com',
+    nativeCurrency: {
+      decimals: 18,
+      name: 'BNB',
+      symbol: 'BNB',
+    },
+  },
+
   // Testnet Chains
   'base-sepolia': {
     id: 84532n,
