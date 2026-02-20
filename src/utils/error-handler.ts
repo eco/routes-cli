@@ -3,6 +3,7 @@
  */
 
 import { hasErrorCode } from '@/commons/utils/error-handler';
+import { RoutesCliError } from '@/core/errors';
 import { logger } from '@/utils/logger';
 
 export interface ErrorWithCode extends Error {
@@ -106,7 +107,20 @@ export function setupGlobalErrorHandlers(): void {
  * Handles CLI errors with appropriate logging and exit codes
  */
 export function handleCliError(error: unknown): never {
-  if (error instanceof CliError) {
+  if (error instanceof RoutesCliError) {
+    if (error.isUserError) {
+      // User-facing errors: show only the message, no stack trace
+      logger.error(error.message);
+    } else {
+      // System/technical errors: show message and optionally stack
+      logger.error(`[${error.code}] ${error.message}`);
+      if (process.env.DEBUG && error.stack) {
+        logger.error('Stack trace:');
+        logger.error(error.stack);
+      }
+    }
+    process.exit(1);
+  } else if (error instanceof CliError) {
     // Our custom CLI errors
     logger.error(error.message);
 
