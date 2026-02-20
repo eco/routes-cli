@@ -2,6 +2,8 @@
  * Tests for ChainTypeDetector utility
  */
 
+import { Network } from '@/commons/idls/portal.idl';
+import * as chainsModule from '@/config/chains';
 import { ChainType } from '@/core/interfaces/intent';
 import { ChainTypeDetector } from '@/core/utils/chain-detector';
 
@@ -135,6 +137,48 @@ describe('ChainTypeDetector', () => {
           ChainType.SVM
         )
       ).toBe(false);
+    });
+
+    it('should return false for unknown chain types', () => {
+      expect(
+        ChainTypeDetector.isValidAddressForChain(
+          '0x1234567890123456789012345678901234567890',
+          'UNKNOWN' as ChainType
+        )
+      ).toBe(false);
+    });
+  });
+
+  describe('getNetworkFromChainConfig', () => {
+    it('should return MAINNET for production chains', () => {
+      // Tron mainnet (env: 'production')
+      expect(ChainTypeDetector.getNetworkFromChainConfig(728126428n)).toBe(Network.MAINNET);
+      // Solana mainnet (env: 'production')
+      expect(ChainTypeDetector.getNetworkFromChainConfig(1399811149n)).toBe(Network.MAINNET);
+    });
+
+    it('should return DEVNET for development chains', () => {
+      // CHAIN_CONFIGS is filtered to production at module load time, so mock getChainById
+      // to return a development chain config for this test
+      const spy = jest.spyOn(chainsModule, 'getChainById').mockReturnValue({
+        id: 2494104990n,
+        name: 'Tron Shasta',
+        type: ChainType.TVM,
+        env: 'development',
+        rpcUrl: 'https://api.shasta.trongrid.io',
+        nativeCurrency: { name: 'Tron', symbol: 'TRX', decimals: 6 },
+      });
+      try {
+        expect(ChainTypeDetector.getNetworkFromChainConfig(2494104990n)).toBe(Network.DEVNET);
+      } finally {
+        spy.mockRestore();
+      }
+    });
+
+    it('should throw for unknown chain IDs', () => {
+      expect(() => {
+        ChainTypeDetector.getNetworkFromChainConfig(999999999999n);
+      }).toThrow('Unknown chain: 999999999999');
     });
   });
 });
