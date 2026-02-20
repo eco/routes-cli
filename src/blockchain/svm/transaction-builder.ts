@@ -108,7 +108,9 @@ export async function buildFundingTransaction(
       reward: {
         deadline: new BN(context.reward.deadline),
         creator: new PublicKey(AddressNormalizer.denormalizeToSvm(context.reward.creator)),
-        prover: new PublicKey(AddressNormalizer.denormalizeToSvm(context.reward.prover)),
+        prover: new PublicKey(
+          AddressNormalizer.denormalizeToSvm(context.proverAddress ?? context.reward.prover)
+        ),
         nativeAmount: new BN(context.reward.nativeAmount),
         tokens: context.reward.tokens.map(token => ({
           token: new PublicKey(AddressNormalizer.denormalizeToSvm(token.token)),

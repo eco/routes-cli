@@ -8,6 +8,7 @@ import { Commitment, Keypair, PublicKey, Transaction } from '@solana/web3.js';
 import { Hex } from 'viem';
 
 import { Intent } from '@/core/interfaces/intent';
+import { UniversalAddress } from '@/core/types/universal-address';
 
 /**
  * Solana-specific portal reward format
@@ -72,6 +73,8 @@ export interface PublishContext {
   routeHash: Hex;
   keypair: Keypair;
   portalProgramId: PublicKey;
+  /** Optional prover address override — uses reward.prover when absent */
+  proverAddress?: UniversalAddress;
 }
 
 /**

@@ -37,7 +37,8 @@ export class SvmPublisher extends BasePublisher {
     reward: Intent['reward'],
     encodedRoute: string,
     privateKey: string,
-    portalAddress?: UniversalAddress
+    portalAddress?: UniversalAddress,
+    proverAddress?: UniversalAddress
   ): Promise<PublishResult> {
     return this.runSafely(async () => {
       // Parse private key and validate configuration
@@ -68,6 +69,7 @@ export class SvmPublisher extends BasePublisher {
         routeHash,
         keypair,
         portalProgramId,
+        proverAddress,
       };
 
       // Execute funding (tokens must be present)

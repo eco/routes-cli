@@ -8,6 +8,7 @@ import { erc20Abi, Hex } from 'viem';
 import { portalAbi } from '@/commons/abis/portal.abi';
 import { PortalHashUtils } from '@/commons/utils/portal-hash.utils';
 import { getChainById } from '@/config/chains';
+import { ErrorCode, RoutesCliError } from '@/core/errors';
 import { ChainType, Intent } from '@/core/interfaces/intent';
 import { UniversalAddress } from '@/core/types/universal-address';
 import { AddressNormalizer } from '@/core/utils/address-normalizer';
@@ -33,93 +34,92 @@ export class TvmPublisher extends BasePublisher {
     _portalAddress?: UniversalAddress
   ): Promise<PublishResult> {
     return this.runSafely(async () => {
-      // Set private key
+      // Set private key — always cleared in finally block below
       this.tronWeb.setPrivateKey(privateKey);
-      const senderAddress = this.tronWeb.address.fromPrivateKey(privateKey);
+      try {
+        const senderAddress = this.tronWeb.address.fromPrivateKey(privateKey);
 
-      // Get Portal address
-      const chainConfig = getChainById(source);
-      const portalAddrUniversal = _portalAddress ?? chainConfig?.portalAddress;
-      if (!portalAddrUniversal) {
-        throw new Error(`No Portal address configured for chain ${source}`);
-      }
-      const portalAddress = AddressNormalizer.denormalize(portalAddrUniversal, ChainType.TVM);
+        // Get Portal address
+        const chainConfig = getChainById(source);
+        const portalAddrUniversal = _portalAddress ?? chainConfig?.portalAddress;
+        if (!portalAddrUniversal) {
+          throw new Error(`No Portal address configured for chain ${source}`);
+        }
+        const portalAddress = AddressNormalizer.denormalize(portalAddrUniversal, ChainType.TVM);
 
-      // Encode route for destination chain type
-      const destChainConfig = getChainById(BigInt(destination));
-      if (!destChainConfig) {
-        throw new Error(`Unknown destination chain: ${destination}`);
-      }
+        // Encode route for destination chain type
+        const destChainConfig = getChainById(BigInt(destination));
+        if (!destChainConfig) {
+          throw new Error(`Unknown destination chain: ${destination}`);
+        }
 
-      // Get Portal contract with ABI
-      const sourceToken = reward.tokens[0];
-      const tokenContract = this.tronWeb.contract(
-        erc20Abi,
-        AddressNormalizer.denormalizeToTvm(sourceToken.token)
-      );
+        // Approve all reward tokens (loop matches EVM behavior)
+        for (const rewardToken of reward.tokens) {
+          const tokenAddress = AddressNormalizer.denormalizeToTvm(rewardToken.token);
+          const tokenContract = this.tronWeb.contract(erc20Abi, tokenAddress);
+          logger.spinner(`Approving token ${tokenAddress}...`);
+          const approvalTxId = await tokenContract
+            .approve(portalAddress, rewardToken.amount)
+            .send({ from: senderAddress });
+          logger.updateSpinner('Waiting for approval confirmation...');
+          const approved = await this.waitForTransaction(approvalTxId);
+          if (!approved) {
+            throw new RoutesCliError(
+              ErrorCode.TRANSACTION_FAILED,
+              `Approval failed for ${tokenAddress}`
+            );
+          }
+          logger.succeed(`Token approved: ${tokenAddress}`);
+        }
 
-      logger.spinner('Approving tokens...');
+        const portalContract = this.tronWeb.contract(portalAbi, portalAddress);
 
-      const approvalTxId = await tokenContract
-        .approve(portalAddress, sourceToken.amount)
-        .send({ from: senderAddress });
+        // Prepare parameters - TronWeb expects strings for numbers
+        const tvmReward: Parameters<typeof portalContract.publishAndFund>[0][2] = [
+          reward.deadline,
+          AddressNormalizer.denormalize(reward.creator, ChainType.TVM),
+          AddressNormalizer.denormalize(reward.prover, ChainType.TVM),
+          reward.nativeAmount,
+          reward.tokens.map(
+            t => [AddressNormalizer.denormalize(t.token, ChainType.TVM), t.amount] as const
+          ),
+        ];
 
-      logger.updateSpinner('Waiting for approval confirmation...');
+        // Call publish function
+        logger.spinner('Publishing intent to Portal contract...');
+        const tx = await portalContract
+          .publishAndFund(destination, encodedRoute, tvmReward, false)
+          .send({
+            from: senderAddress,
+            callValue: Number(reward.nativeAmount), // TRX amount in sun
+          });
 
-      const approvalSuccessful = await this.waitForTransaction(approvalTxId);
+        logger.updateSpinner('Waiting for transaction confirmation...');
 
-      if (!approvalSuccessful) {
-        logger.fail('Token approval failed');
-        throw new Error('Approval failed');
-      }
+        const { intentHash } = PortalHashUtils.getIntentHashFromReward(
+          destination,
+          source,
+          encodedRoute as Hex,
+          reward
+        );
 
-      logger.succeed('Tokens approved');
-
-      const portalContract = this.tronWeb.contract(portalAbi, portalAddress);
-
-      // Prepare parameters - TronWeb expects strings for numbers
-      const tvmReward: Parameters<typeof portalContract.publishAndFund>[0][2] = [
-        reward.deadline,
-        AddressNormalizer.denormalize(reward.creator, ChainType.TVM),
-        AddressNormalizer.denormalize(reward.prover, ChainType.TVM),
-        reward.nativeAmount,
-        reward.tokens.map(
-          t => [AddressNormalizer.denormalize(t.token, ChainType.TVM), t.amount] as const
-        ),
-      ];
-
-      // Call publish function
-      // Pass parameters as separate arguments
-      logger.spinner('Publishing intent to Portal contract...');
-      const tx = await portalContract
-        .publishAndFund(destination, encodedRoute, tvmReward, false)
-        .send({
-          from: senderAddress,
-          callValue: Number(reward.nativeAmount), // TRX amount in sun
-        });
-
-      logger.updateSpinner('Waiting for transaction confirmation...');
-
-      const { intentHash } = PortalHashUtils.getIntentHashFromReward(
-        destination,
-        source,
-        encodedRoute as Hex,
-        reward
-      );
-
-      if (tx) {
-        logger.succeed('Transaction confirmed');
-        return {
-          success: true,
-          transactionHash: tx,
-          intentHash,
-        };
-      } else {
-        logger.fail('Transaction failed');
-        return {
-          success: false,
-          error: 'Transaction failed',
-        };
+        if (tx) {
+          logger.succeed('Transaction confirmed');
+          return {
+            success: true,
+            transactionHash: tx,
+            intentHash,
+          };
+        } else {
+          logger.fail('Transaction failed');
+          return {
+            success: false,
+            error: 'Transaction failed',
+          };
+        }
+      } finally {
+        // Clear key from TronWeb instance regardless of outcome
+        this.tronWeb.setPrivateKey('');
       }
     });
   }
