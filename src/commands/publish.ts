@@ -16,6 +16,7 @@ import {
   selectToken,
 } from '@/cli/prompts/intent-prompts';
 import { serialize } from '@/commons/utils/serialize';
+import { KeyHandle } from '@/core/security';
 import { IntentService } from '@/core/services/intent-service';
 import { AddressNormalizer } from '@/core/utils/address-normalizer';
 import { logger } from '@/utils/logger';
@@ -105,8 +106,12 @@ Private key formats:
         const rewardConfig = await configureReward(sourceChain, options);
         const recipient = await selectRecipient(destChain, options);
 
-        const privateKey = getPrivateKey(sourceChain.type, options.privateKey);
-        const senderNative = getWalletAddress(sourceChain.type, privateKey);
+        const keyHandle = getPrivateKey(sourceChain.type, options.privateKey);
+        // Derive wallet address and create a fresh handle for the publisher in one use() call
+        const { senderNative, publishKeyHandle } = keyHandle.use(rawKey => ({
+          senderNative: getWalletAddress(sourceChain.type, rawKey),
+          publishKeyHandle: new KeyHandle(rawKey),
+        }));
         const creator = AddressNormalizer.normalize(senderNative, sourceChain.type);
 
         logger.log(`Sender: ${senderNative}`);
@@ -143,7 +148,7 @@ Private key formats:
           destChain.id,
           reward,
           encodedRoute,
-          privateKey,
+          publishKeyHandle,
           sourcePortal
         );
 

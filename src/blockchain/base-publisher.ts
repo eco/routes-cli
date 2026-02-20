@@ -21,6 +21,7 @@
  * ```
  */
 
+import { KeyHandle } from '@/core/security';
 import { UniversalAddress } from '@/core/types/universal-address';
 import { logger } from '@/utils/logger';
 
@@ -100,7 +101,7 @@ export abstract class BasePublisher {
     destination: bigint,
     reward: Intent['reward'],
     encodedRoute: string,
-    privateKey: string,
+    keyHandle: KeyHandle,
     portalAddress?: UniversalAddress,
     proverAddress?: UniversalAddress
   ): Promise<PublishResult>;

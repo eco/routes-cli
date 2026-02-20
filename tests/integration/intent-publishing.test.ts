@@ -20,6 +20,7 @@ import { portalAbi } from '@/commons/abis/portal.abi';
 import { ChainConfig } from '@/config/chains';
 import { ErrorCode, RoutesCliError } from '@/core/errors';
 import { ChainType } from '@/core/interfaces/intent';
+import { KeyHandle } from '@/core/security';
 import { IntentConfig, IntentService } from '@/core/services/intent-service';
 import { BlockchainAddress } from '@/core/types/blockchain-addresses';
 import { AddressNormalizer } from '@/core/utils/address-normalizer';
@@ -228,7 +229,7 @@ describe('Intent publishing flow (integration)', () => {
         DEST_CHAIN.id,
         reward,
         encodedRoute,
-        TEST_PRIVATE_KEY,
+        new KeyHandle(TEST_PRIVATE_KEY),
         sourcePortal
       );
 
@@ -334,7 +335,7 @@ describe('Intent publishing flow (integration)', () => {
         DEST_CHAIN.id,
         largeReward(),
         '0x',
-        TEST_PRIVATE_KEY,
+        new KeyHandle(TEST_PRIVATE_KEY),
         portalUniversal
       );
 

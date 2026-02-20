@@ -10,6 +10,7 @@ import { PortalHashUtils } from '@/commons/utils/portal-hash.utils';
 import { getChainById } from '@/config/chains';
 import { ErrorCode, RoutesCliError } from '@/core/errors';
 import { ChainType, Intent } from '@/core/interfaces/intent';
+import { KeyHandle } from '@/core/security';
 import { UniversalAddress } from '@/core/types/universal-address';
 import { AddressNormalizer } from '@/core/utils/address-normalizer';
 import { logger } from '@/utils/logger';
@@ -61,15 +62,16 @@ export class TvmPublisher extends BasePublisher {
     destination: bigint,
     reward: Intent['reward'],
     encodedRoute: string,
-    privateKey: string,
+    keyHandle: KeyHandle,
     _portalAddress?: UniversalAddress
   ): Promise<PublishResult> {
     return this.runSafely(async () => {
-      // Set private key — always cleared in finally block below
-      this.tronWeb.setPrivateKey(privateKey);
+      // Set key on TronWeb and capture sender address; buffer zeroized after use()
+      const senderAddress = keyHandle.use(key => {
+        this.tronWeb.setPrivateKey(key);
+        return this.tronWeb.address.fromPrivateKey(key);
+      });
       try {
-        const senderAddress = this.tronWeb.address.fromPrivateKey(privateKey);
-
         // Get Portal address
         const chainConfig = getChainById(source);
         const portalAddrUniversal = _portalAddress ?? chainConfig?.portalAddress;

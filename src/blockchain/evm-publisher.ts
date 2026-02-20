@@ -21,6 +21,7 @@ import * as chains from 'viem/chains';
 import { portalAbi } from '@/commons/abis/portal.abi';
 import { getChainById } from '@/config/chains';
 import { Intent } from '@/core/interfaces/intent';
+import { KeyHandle } from '@/core/security';
 import { UniversalAddress } from '@/core/types/universal-address';
 import { AddressNormalizer } from '@/core/utils/address-normalizer';
 import { logger } from '@/utils/logger';
@@ -97,12 +98,13 @@ export class EvmPublisher extends BasePublisher {
     destination: bigint,
     reward: Intent['reward'],
     encodedRoute: string,
-    privateKey: string,
+    keyHandle: KeyHandle,
     portalAddress?: UniversalAddress,
     proverAddress?: UniversalAddress
   ): Promise<PublishResult> {
+    // Derive account synchronously; buffer is zeroized immediately after use()
+    const account = keyHandle.use(key => privateKeyToAccount(key as Hex));
     return this.runSafely(async () => {
-      const account = privateKeyToAccount(privateKey as Hex);
       const chain = this.getChain(source);
 
       // Wallet client is created fresh per publish (account may differ across calls)

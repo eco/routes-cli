@@ -12,10 +12,11 @@ import { privateKeyToAccount } from 'viem/accounts';
 import { loadEnvConfig } from '@/config/env';
 import { RoutesCliError } from '@/core/errors';
 import { ChainType } from '@/core/interfaces/intent';
+import { KeyHandle } from '@/core/security';
 import { BlockchainAddress, SvmAddress, TronAddress } from '@/core/types/blockchain-addresses';
 
-export function getPrivateKey(chainType: ChainType, override?: string): string {
-  if (override) return override;
+export function getPrivateKey(chainType: ChainType, override?: string): KeyHandle {
+  if (override) return new KeyHandle(override);
 
   const env = loadEnvConfig();
   let key: string | undefined;
@@ -38,7 +39,7 @@ export function getPrivateKey(chainType: ChainType, override?: string): string {
     throw RoutesCliError.invalidPrivateKey(chainType);
   }
 
-  return key;
+  return new KeyHandle(key);
 }
 
 export function getWalletAddress(chainType: ChainType, privateKey: string): BlockchainAddress {

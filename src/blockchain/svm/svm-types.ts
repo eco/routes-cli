@@ -68,7 +68,6 @@ export interface PublishContext {
   destination: bigint;
   reward: Intent['reward'];
   encodedRoute: string;
-  privateKey: string;
   intentHash: string;
   routeHash: Hex;
   keypair: Keypair;

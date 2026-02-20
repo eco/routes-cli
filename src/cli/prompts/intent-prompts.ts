@@ -181,7 +181,7 @@ export async function selectRecipient(
   if (!defaultRecipient) {
     try {
       const destPrivKey = getPrivateKey(destChain.type, options.privateKey);
-      defaultRecipient = getWalletAddress(destChain.type, destPrivKey);
+      defaultRecipient = destPrivKey.use(key => getWalletAddress(destChain.type, key));
     } catch {
       // No default available
     }

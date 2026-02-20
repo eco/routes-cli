@@ -12,6 +12,7 @@ import { EvmPublisher } from '@/blockchain/evm-publisher';
 import { portalAbi } from '@/commons/abis/portal.abi';
 import type { Intent } from '@/core/interfaces/intent';
 import { ChainType } from '@/core/interfaces/intent';
+import { KeyHandle } from '@/core/security';
 import { AddressNormalizer } from '@/core/utils/address-normalizer';
 
 import {
@@ -146,7 +147,7 @@ describe('EvmPublisher (integration — mocked clients)', () => {
         DEST_CHAIN_ID,
         reward,
         '0x',
-        TEST_PRIVATE_KEY,
+        new KeyHandle(TEST_PRIVATE_KEY),
         portalUniversal
       );
 
@@ -169,7 +170,7 @@ describe('EvmPublisher (integration — mocked clients)', () => {
         DEST_CHAIN_ID,
         reward,
         '0x',
-        TEST_PRIVATE_KEY,
+        new KeyHandle(TEST_PRIVATE_KEY),
         portalUniversal
       );
 
@@ -200,7 +201,7 @@ describe('EvmPublisher (integration — mocked clients)', () => {
         DEST_CHAIN_ID,
         reward,
         encodedRoute,
-        TEST_PRIVATE_KEY,
+        new KeyHandle(TEST_PRIVATE_KEY),
         portalUniversal
       );
 
@@ -239,7 +240,7 @@ describe('EvmPublisher (integration — mocked clients)', () => {
         DEST_CHAIN_ID,
         reward,
         '0x',
-        TEST_PRIVATE_KEY,
+        new KeyHandle(TEST_PRIVATE_KEY),
         portalUniversal
       );
 
