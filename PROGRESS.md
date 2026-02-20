@@ -6,7 +6,7 @@
 |-----------|----------|-------------|
 | TASK-001  | MANUAL   | Requires human: git history audit + key rotation + optional BFG rewrite. See IMPROVEMENT_PLAN.md §TASK-001. Do NOT let ralph attempt this. |
 | TASK-002  | COMPLETE | |
-| TASK-003  | PENDING  | |
+| TASK-003  | COMPLETE | |
 | TASK-010  | PENDING  | |
 | TASK-011  | PENDING  | |
 | TASK-012  | PENDING  | |

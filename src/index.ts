@@ -1,5 +1,11 @@
 #!/usr/bin/env node
 
+const [major] = process.versions.node.split('.').map(Number);
+if (major < 18) {
+  console.error('routes-cli requires Node.js >= 18.0.0');
+  process.exit(1);
+}
+
 /**
  * Intent Publisher CLI
  * Main entry point
