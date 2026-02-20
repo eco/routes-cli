@@ -18,7 +18,7 @@
 | TASK-011 | 3     | Create chains.config.ts + chains.service.ts          | COMPLETE |      |
 | TASK-012 | 3     | Create rpc.service.ts                                | COMPLETE |      |
 | TASK-013 | 3     | Migrate publishers to injectable + useAsync()        | COMPLETE |      |
-| TASK-014 | 3     | Migrate SVM helpers                                  | PENDING |       |
+| TASK-014 | 3     | Migrate SVM helpers                                  | COMPLETE |      |
 | TASK-015 | 3     | Migrate client factories                             | PENDING |       |
 | TASK-016 | 3     | Create publisher-factory.service.ts                  | PENDING |       |
 | TASK-017 | 3     | Migrate encoding services                            | PENDING |       |

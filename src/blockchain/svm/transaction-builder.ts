@@ -8,7 +8,7 @@ import { BN, Program } from '@coral-xyz/anchor';
 import { getAssociatedTokenAddress } from '@solana/spl-token';
 import { Connection, Keypair, PublicKey, Transaction } from '@solana/web3.js';
 
-import { ChainType, Intent } from '@/core/interfaces/intent';
+import { ChainType, Intent } from '@/shared/types';
 import { AddressNormalizer } from '@/core/utils/address-normalizer';
 import { logger } from '@/utils/logger';
 
