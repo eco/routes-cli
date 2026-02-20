@@ -335,5 +335,109 @@ describe('Quote Service', () => {
         })
       ).rejects.toThrow('Invalid solver-v2 response: no quotes returned');
     });
+
+    it('should throw error if solver-v2 response has no quoteResponses field', async () => {
+      process.env.SOLVER_URL = 'https://solver.example.com';
+
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: () => ({
+          contracts: {
+            sourcePortal: '0x1234567890123456789012345678901234567890',
+            prover: '0x1234567890123456789012345678901234567890',
+            destinationPortal: '0x1234567890123456789012345678901234567890',
+          },
+        }),
+      });
+
+      await expect(
+        getQuote({
+          source: 1n,
+          destination: 10n,
+          amount: 1000000000000000000n,
+          funder: '0x1234567890123456789012345678901234567890',
+          recipient: '0x1234567890123456789012345678901234567890',
+          routeToken: '0x1234567890123456789012345678901234567890',
+          rewardToken: '0x1234567890123456789012345678901234567890',
+        })
+      ).rejects.toThrow('Invalid solver-v2 response: no quotes returned');
+    });
+
+    it('should throw error on non-200 response', async () => {
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: false,
+        json: () => ({ error: 'Bad Request', message: 'Invalid parameters' }),
+      });
+
+      await expect(
+        getQuote({
+          source: 1n,
+          destination: 10n,
+          amount: 1000000000000000000n,
+          funder: '0x1234567890123456789012345678901234567890',
+          recipient: '0x1234567890123456789012345678901234567890',
+          routeToken: '0x1234567890123456789012345678901234567890',
+          rewardToken: '0x1234567890123456789012345678901234567890',
+        })
+      ).rejects.toThrow();
+    });
+
+    it('should throw error on non-200 response from solver-v2', async () => {
+      process.env.SOLVER_URL = 'https://solver.example.com';
+
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: false,
+        json: () => ({ error: 'Unauthorized', message: 'Invalid API key' }),
+      });
+
+      await expect(
+        getQuote({
+          source: 1n,
+          destination: 10n,
+          amount: 1000000000000000000n,
+          funder: '0x1234567890123456789012345678901234567890',
+          recipient: '0x1234567890123456789012345678901234567890',
+          routeToken: '0x1234567890123456789012345678901234567890',
+          rewardToken: '0x1234567890123456789012345678901234567890',
+        })
+      ).rejects.toThrow();
+    });
+  });
+
+  describe('URL Selection (additional)', () => {
+    it('should use preprod quote service when QUOTES_API_URL is set', async () => {
+      process.env.QUOTES_API_URL = 'https://custom.quotes.example.com';
+
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: () => ({
+          data: {
+            quoteResponse: {
+              encodedRoute: '0xabcd',
+            },
+            contracts: {
+              sourcePortal: '0x1234567890123456789012345678901234567890',
+              prover: '0x1234567890123456789012345678901234567890',
+              destinationPortal: '0x1234567890123456789012345678901234567890',
+            },
+          },
+        }),
+      });
+
+      await getQuote({
+        source: 1n,
+        destination: 10n,
+        amount: 1000000000000000000n,
+        funder: '0x1234567890123456789012345678901234567890',
+        recipient: '0x1234567890123456789012345678901234567890',
+        routeToken: '0x1234567890123456789012345678901234567890',
+        rewardToken: '0x1234567890123456789012345678901234567890',
+      });
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        'https://quotes-preprod.eco.com/api/v3/quotes/single',
+        expect.any(Object)
+      );
+    });
   });
 });
