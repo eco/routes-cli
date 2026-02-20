@@ -1,9 +1,6 @@
-import type { ChainHandler } from '@/core/chain/chain-handler.interface';
-import { chainRegistry } from '@/core/chain/chain-registry';
-import { RoutesCliError } from '@/core/errors';
-import { ChainType } from '@/core/interfaces/intent';
-import { BlockchainAddress, SvmAddress } from '@/core/types/blockchain-addresses';
-import { UniversalAddress } from '@/core/types/universal-address';
+import type { ChainHandler } from '@/blockchain/chain-handler.interface';
+import { RoutesCliError } from '@/shared/errors';
+import { ChainType, BlockchainAddress, SvmAddress, UniversalAddress } from '@/shared/types';
 import { AddressNormalizer } from '@/core/utils/address-normalizer';
 import { SvmAddressSchema } from '@/core/validation';
 
@@ -30,6 +27,3 @@ export class SvmChainHandler implements ChainHandler {
     return 'Base58 public key, 32–44 characters (e.g., So11111111111111111111111111111111111111112)';
   }
 }
-
-// Self-register so that importing this module populates the chainRegistry.
-chainRegistry.register(new SvmChainHandler());
