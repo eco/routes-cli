@@ -13,6 +13,8 @@
     "start": "node -r tsconfig-paths/register dist/index.js",
     "clean": "rm -rf dist",
     "test": "jest",
+    "test:unit": "jest --testPathPattern='tests/(core|config|blockchain)'",
+    "test:integration": "jest --testPathPattern='tests/integration'",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "lint": "eslint src tests --ext .ts",

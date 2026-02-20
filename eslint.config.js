@@ -21,7 +21,7 @@ module.exports = defineConfig([
       sourceType: 'module',
 
       parserOptions: {
-        project: 'tsconfig.json',
+        projectService: true,
         tsconfigRootDir: __dirname,
       },
 
