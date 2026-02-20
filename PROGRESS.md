@@ -1,69 +1,45 @@
-# Ralph Progress — routes-cli Improvement Plan
+## Architecture Improvement Progress
 
-## Status
+> Source: docs/plans/2026-02-20-architecture-improvement.md
+> Started: 2026-02-20
 
-| Task      | Status   | Skip Reason |
-|-----------|----------|-------------|
-| TASK-001  | MANUAL   | Requires human: git history audit + key rotation + optional BFG rewrite. See IMPROVEMENT_PLAN.md §TASK-001. Do NOT let ralph attempt this. |
-| TASK-002  | COMPLETE | |
-| TASK-003  | COMPLETE | |
-| TASK-010  | COMPLETE | |
-| TASK-011  | COMPLETE | |
-| TASK-012  | COMPLETE | |
-| TASK-013  | COMPLETE | |
-| TASK-014  | COMPLETE | |
-| TASK-015  | COMPLETE | |
-| TASK-016  | COMPLETE | |
-| TASK-020  | COMPLETE | |
-| TASK-021  | COMPLETE | |
-| TASK-022  | COMPLETE | |
-| TASK-023  | COMPLETE | |
-| TASK-024  | COMPLETE | |
-| TASK-025  | COMPLETE | |
-| TASK-026  | COMPLETE | |
-| TASK-030  | COMPLETE | |
-| TASK-031  | COMPLETE | |
-| TASK-032  | COMPLETE | |
-| TASK-033  | COMPLETE | |
-| TASK-034  | COMPLETE | |
-| TASK-035  | COMPLETE | |
-| TASK-036  | COMPLETE | |
-| TASK-037  | COMPLETE | |
-| TASK-040  | COMPLETE | |
-| TASK-041  | COMPLETE | |
-| TASK-042  | COMPLETE | |
-| TASK-043  | COMPLETE | |
-| TASK-044  | COMPLETE | |
-| TASK-045  | COMPLETE | |
-| TASK-046  | COMPLETE | |
-| TASK-050  | COMPLETE | |
-| TASK-051  | COMPLETE | |
-| TASK-052  | COMPLETE | |
-| TASK-053  | COMPLETE | |
+| Task     | Phase | Description                                          | Status  | Notes |
+|----------|-------|------------------------------------------------------|---------|-------|
+| TASK-001 | 1     | Install NestJS dependencies                          | COMPLETE |      |
+| TASK-002 | 1     | Create shared/types/                                 | PENDING |       |
+| TASK-003 | 1     | Create shared/security/key-handle.ts                 | PENDING |       |
+| TASK-004 | 1     | Create shared/errors/                                | PENDING |       |
+| TASK-005 | 2     | Create config/validation/env.schema.ts               | PENDING |       |
+| TASK-006 | 2     | Create config/config.service.ts                      | PENDING |       |
+| TASK-007 | 2     | Create config/tokens.config.ts + ConfigModule        | PENDING |       |
+| TASK-008 | 3     | Create chain-handler.interface + chain-registry      | PENDING |       |
+| TASK-009 | 3     | Migrate EVM, TVM, SVM chain handlers                 | PENDING |       |
+| TASK-010 | 3     | Create address-normalizer.service.ts                 | PENDING |       |
+| TASK-011 | 3     | Create chains.config.ts + chains.service.ts          | PENDING |       |
+| TASK-012 | 3     | Create rpc.service.ts                                | PENDING |       |
+| TASK-013 | 3     | Migrate publishers to injectable + useAsync()        | PENDING |       |
+| TASK-014 | 3     | Migrate SVM helpers                                  | PENDING |       |
+| TASK-015 | 3     | Migrate client factories                             | PENDING |       |
+| TASK-016 | 3     | Create publisher-factory.service.ts                  | PENDING |       |
+| TASK-017 | 3     | Migrate encoding services                            | PENDING |       |
+| TASK-018 | 3     | Create blockchain.module.ts                          | PENDING |       |
+| TASK-019 | 4     | Create quote/quote.service.ts + QuoteModule          | PENDING |       |
+| TASK-020 | 5     | Create intent/intent-builder.service.ts              | PENDING |       |
+| TASK-021 | 5     | Create intent/intent-storage.service.ts + IntentModule | PENDING |     |
+| TASK-022 | 6     | Create status/status.service.ts + StatusModule       | PENDING |       |
+| TASK-023 | 7     | Create cli/services/prompt.service.ts                | PENDING |       |
+| TASK-024 | 7     | Create cli/services/display.service.ts               | PENDING |       |
+| TASK-025 | 7     | Create cli/commands/publish.command.ts               | PENDING |       |
+| TASK-026 | 7     | Create remaining CLI commands                        | PENDING |       |
+| TASK-027 | 7     | Create cli.module.ts                                 | PENDING |       |
+| TASK-028 | 8     | Create app.module.ts + main.ts                       | PENDING |       |
+| TASK-029 | 8     | Remove old source files                              | PENDING |       |
+| TASK-030 | 8     | Update tsconfig.json                                 | PENDING |       |
 
 ## Skipped Tasks Report
 
-No tasks were SKIPPED. All 32 automated tasks completed successfully.
+_(populated at completion)_
 
-### TASK-001 — Required Manual Step
+## Final Report
 
-**Status:** MANUAL — Must be performed by the repository owner.
-
-**Why:** TASK-001 involves auditing and potentially rewriting git history to remove
-any committed `.env` files that may contain private keys. Git history rewriting
-requires coordination with all collaborators (they must re-clone), and the force-push
-to the remote must be performed by someone with direct repository access.
-
-**Steps required:**
-1. Run `git log --all --full-history -- .env` to check if `.env` was ever tracked
-2. If commits contain `.env`, rewrite history using BFG Repo Cleaner or `git filter-repo`
-3. Rotate ALL private keys that were ever stored in `.env`
-4. Confirm `.env` is in `.gitignore` (`git check-ignore -v .env`)
-5. Add pre-commit hook to block future `.env` commits (see IMPROVEMENT_PLAN.md §TASK-001)
-6. Coordinate with collaborators to re-clone after force-push
-
-See `IMPROVEMENT_PLAN.md §TASK-001` for the complete procedure and exact commands.
-
-## Notes
-
-_(ralph scratch space)_
+_(populated at completion)_
