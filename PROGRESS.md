@@ -14,7 +14,7 @@
 | TASK-007 | 2     | Create config/tokens.config.ts + ConfigModule        | COMPLETE |      |
 | TASK-008 | 3     | Create chain-handler.interface + chain-registry      | COMPLETE |      |
 | TASK-009 | 3     | Migrate EVM, TVM, SVM chain handlers                 | COMPLETE |      |
-| TASK-010 | 3     | Create address-normalizer.service.ts                 | PENDING |       |
+| TASK-010 | 3     | Create address-normalizer.service.ts                 | COMPLETE |      |
 | TASK-011 | 3     | Create chains.config.ts + chains.service.ts          | PENDING |       |
 | TASK-012 | 3     | Create rpc.service.ts                                | PENDING |       |
 | TASK-013 | 3     | Migrate publishers to injectable + useAsync()        | PENDING |       |
