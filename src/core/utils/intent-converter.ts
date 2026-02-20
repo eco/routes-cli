@@ -20,7 +20,10 @@
  * ```
  */
 
+import { Hex } from 'viem';
+
 import { Intent } from '../interfaces/intent';
+import { EvmAddress } from '../types/blockchain-addresses';
 
 import { AddressNormalizer } from './address-normalizer';
 
@@ -48,7 +51,13 @@ import { AddressNormalizer } from './address-normalizer';
  * // evmIntent.route.portal is now '0x742d35Cc6634C0532925a3b8D65C32c2b3f6dE1b'
  * ```
  */
-export function toEVMIntent(intent: Intent) {
+export function toEVMIntent(intent: Intent): {
+  intentHash: Hex | undefined;
+  destination: bigint;
+  sourceChainId: bigint;
+  route: ReturnType<typeof toRouteEVMIntent>;
+  reward: ReturnType<typeof toRewardEVMIntent>;
+} {
   return {
     intentHash: intent.intentHash,
     destination: intent.destination,
@@ -80,7 +89,13 @@ export function toEVMIntent(intent: Intent) {
  * // evmReward.creator is now '0x742d35Cc6634C0532925a3b8D65C32c2b3f6dE1b'
  * ```
  */
-export function toRewardEVMIntent(reward: Intent['reward']) {
+export function toRewardEVMIntent(reward: Intent['reward']): {
+  deadline: bigint;
+  creator: EvmAddress;
+  prover: EvmAddress;
+  nativeAmount: bigint;
+  tokens: { amount: bigint; token: EvmAddress }[];
+} {
   return {
     deadline: reward.deadline,
     creator: AddressNormalizer.denormalizeToEvm(reward.creator),
@@ -117,7 +132,14 @@ export function toRewardEVMIntent(reward: Intent['reward']) {
  * // evmRoute.calls[0].target is now in EVM hex format
  * ```
  */
-export function toRouteEVMIntent(route: Intent['route']) {
+export function toRouteEVMIntent(route: Intent['route']): {
+  salt: Hex;
+  deadline: bigint;
+  portal: EvmAddress;
+  nativeAmount: bigint;
+  tokens: { amount: bigint; token: EvmAddress }[];
+  calls: { data: Hex; target: EvmAddress; value: bigint }[];
+} {
   return {
     salt: route.salt,
     deadline: route.deadline,

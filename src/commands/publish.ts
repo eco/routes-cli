@@ -36,6 +36,14 @@ interface PublishCommandOptions {
   dryRun?: boolean;
 }
 
+interface BuildIntentResult {
+  reward: Intent['reward'];
+  encodedRoute: Hex;
+  sourceChain: ChainConfig;
+  destChain: ChainConfig;
+  sourcePortal: UniversalAddress;
+}
+
 export function createPublishCommand(): Command {
   const command = new Command('publish');
 
@@ -125,7 +133,9 @@ export function createPublishCommand(): Command {
 /**
  * Build intent interactively
  */
-async function buildIntentInteractively(options: PublishCommandOptions) {
+async function buildIntentInteractively(
+  options: PublishCommandOptions
+): Promise<BuildIntentResult> {
   const chains = listChains();
 
   // 1. Get source chain
@@ -291,7 +301,7 @@ async function buildIntentInteractively(options: PublishCommandOptions) {
   } catch (error: unknown) {
     logger.stopSpinner();
     if (process.env.DEBUG) {
-      console.log(error instanceof Error ? error.stack : String(error));
+      console.error(error instanceof Error ? error.stack : String(error));
     }
     logger.warning('Quote service unavailable');
     quote = null;
@@ -634,7 +644,7 @@ export function getWalletAddr(
   }
 }
 
-function getPrivateKey(chain: ChainConfig, privateKey?: string) {
+function getPrivateKey(chain: ChainConfig, privateKey?: string): string {
   // Load configuration
   const env = loadEnvConfig();
 

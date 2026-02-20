@@ -39,7 +39,7 @@ export function createConfigCommand(): Command {
     .command('list')
     .description('List current configuration')
     .option('--profile <name>', 'Show configuration for specific profile')
-    .action(async options => {
+    .action(options => {
       try {
         const config = loadConfig();
 
@@ -88,7 +88,7 @@ export function createConfigCommand(): Command {
         if (options.interactive || (!key && !value)) {
           await setConfigInteractive(options.profile);
         } else if (key && value !== undefined) {
-          await setConfigValue(key, value, options.profile);
+          setConfigValue(key, value, options.profile);
         } else {
           logger.error('Please provide both key and value, or use --interactive mode');
           process.exit(1);
@@ -139,9 +139,9 @@ export function createConfigCommand(): Command {
     .description('Remove configuration key')
     .argument('<key>', 'Configuration key to remove')
     .option('--profile <name>', 'Remove from specific profile')
-    .action(async (key, options) => {
+    .action((key, options) => {
       try {
-        await unsetConfigValue(key, options.profile);
+        unsetConfigValue(key, options.profile);
         logger.success(`Configuration key '${key}' removed`);
       } catch (error) {
         logger.error(
@@ -157,9 +157,9 @@ export function createConfigCommand(): Command {
   profileCommand
     .command('create <name>')
     .description('Create a new profile')
-    .action(async name => {
+    .action(name => {
       try {
-        await createProfile(name);
+        createProfile(name);
         logger.success(`Profile '${name}' created`);
       } catch (error) {
         logger.error(
@@ -172,9 +172,9 @@ export function createConfigCommand(): Command {
   profileCommand
     .command('switch <name>')
     .description('Switch to a profile')
-    .action(async name => {
+    .action(name => {
       try {
-        await switchProfile(name);
+        switchProfile(name);
         logger.success(`Switched to profile '${name}'`);
       } catch (error) {
         logger.error(
@@ -206,7 +206,7 @@ export function createConfigCommand(): Command {
           }
         }
 
-        await deleteProfile(name);
+        deleteProfile(name);
         logger.success(`Profile '${name}' deleted`);
       } catch (error) {
         logger.error(
@@ -265,7 +265,7 @@ export function createConfigCommand(): Command {
           }
         }
 
-        await resetConfig(options.profile);
+        resetConfig(options.profile);
         logger.success(
           options.profile ? `Profile '${options.profile}' reset` : 'Configuration reset'
         );
@@ -405,7 +405,7 @@ async function setConfigInteractive(profileName?: string): Promise<void> {
   logger.success('Configuration updated successfully');
 }
 
-async function setConfigValue(key: string, value: string, profileName?: string): Promise<void> {
+function setConfigValue(key: string, value: string, profileName?: string): void {
   const config = loadConfig();
   const targetConfig = profileName ? config.profiles?.[profileName] || {} : config;
 
@@ -422,7 +422,7 @@ async function setConfigValue(key: string, value: string, profileName?: string):
   logger.success(`Configuration key '${key}' set to '${value}'`);
 }
 
-async function unsetConfigValue(key: string, profileName?: string): Promise<void> {
+function unsetConfigValue(key: string, profileName?: string): void {
   const config = loadConfig();
   const targetConfig = profileName ? config.profiles?.[profileName] || {} : config;
 
@@ -438,7 +438,7 @@ async function unsetConfigValue(key: string, profileName?: string): Promise<void
   saveConfig(config);
 }
 
-async function createProfile(name: string): Promise<void> {
+function createProfile(name: string): void {
   const config = loadConfig();
 
   if (!config.profiles) config.profiles = {};
@@ -450,7 +450,7 @@ async function createProfile(name: string): Promise<void> {
   saveConfig(config);
 }
 
-async function switchProfile(name: string): Promise<void> {
+function switchProfile(name: string): void {
   const config = loadConfig();
 
   if (!config.profiles?.[name]) {
@@ -461,7 +461,7 @@ async function switchProfile(name: string): Promise<void> {
   saveConfig(config);
 }
 
-async function deleteProfile(name: string): Promise<void> {
+function deleteProfile(name: string): void {
   const config = loadConfig();
 
   if (!config.profiles?.[name]) {
@@ -476,7 +476,7 @@ async function deleteProfile(name: string): Promise<void> {
   saveConfig(config);
 }
 
-async function resetConfig(profileName?: string): Promise<void> {
+function resetConfig(profileName?: string): void {
   if (profileName) {
     const config = loadConfig();
     if (config.profiles?.[profileName]) {

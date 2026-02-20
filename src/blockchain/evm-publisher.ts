@@ -278,7 +278,7 @@ export class EvmPublisher extends BasePublisher {
     }
   }
 
-  private getChain(chainId: bigint) {
+  private getChain(chainId: bigint): Chain {
     const id = Number(chainId);
 
     // Find viem chain by ID

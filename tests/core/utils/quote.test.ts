@@ -22,7 +22,7 @@ describe('Quote Service', () => {
 
       (global.fetch as jest.Mock).mockResolvedValueOnce({
         ok: true,
-        json: async () => ({
+        json: () => ({
           quoteResponses: [
             {
               sourceChainID: 1,
@@ -69,7 +69,7 @@ describe('Quote Service', () => {
 
       (global.fetch as jest.Mock).mockResolvedValueOnce({
         ok: true,
-        json: async () => ({
+        json: () => ({
           data: {
             quoteResponse: {
               sourceChainID: 1,
@@ -113,7 +113,7 @@ describe('Quote Service', () => {
     it('should use production quote service by default', async () => {
       (global.fetch as jest.Mock).mockResolvedValueOnce({
         ok: true,
-        json: async () => ({
+        json: () => ({
           data: {
             quoteResponse: {},
             contracts: {
@@ -146,7 +146,7 @@ describe('Quote Service', () => {
 
       (global.fetch as jest.Mock).mockResolvedValueOnce({
         ok: true,
-        json: async () => ({
+        json: () => ({
           quoteResponses: [{}],
           contracts: {
             sourcePortal: '0x1234567890123456789012345678901234567890',
@@ -179,7 +179,7 @@ describe('Quote Service', () => {
 
       (global.fetch as jest.Mock).mockResolvedValueOnce({
         ok: true,
-        json: async () => ({
+        json: () => ({
           quoteResponses: [{}],
           contracts: {
             sourcePortal: '0x1234567890123456789012345678901234567890',
@@ -209,7 +209,7 @@ describe('Quote Service', () => {
     it('should send chain IDs as numbers for quote service', async () => {
       (global.fetch as jest.Mock).mockResolvedValueOnce({
         ok: true,
-        json: async () => ({
+        json: () => ({
           data: {
             quoteResponse: {},
             contracts: {
@@ -245,7 +245,7 @@ describe('Quote Service', () => {
 
       (global.fetch as jest.Mock).mockResolvedValueOnce({
         ok: true,
-        json: async () => ({
+        json: () => ({
           quoteResponses: [
             {
               sourceChainID: 1,
@@ -280,7 +280,7 @@ describe('Quote Service', () => {
     it('should handle quote service wrapped response format', async () => {
       (global.fetch as jest.Mock).mockResolvedValueOnce({
         ok: true,
-        json: async () => ({
+        json: () => ({
           data: {
             quoteResponse: {
               encodedRoute: '0xabcd',
@@ -313,7 +313,7 @@ describe('Quote Service', () => {
 
       (global.fetch as jest.Mock).mockResolvedValueOnce({
         ok: true,
-        json: async () => ({
+        json: () => ({
           quoteResponses: [],
           contracts: {
             sourcePortal: '0x1234567890123456789012345678901234567890',

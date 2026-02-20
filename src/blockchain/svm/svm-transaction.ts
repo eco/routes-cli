@@ -51,7 +51,13 @@ export function setupAnchorProgram(
 /**
  * Converts Intent reward to Solana-specific format
  */
-export function buildPortalReward(reward: Intent['reward']) {
+export function buildPortalReward(reward: Intent['reward']): {
+  deadline: BN;
+  creator: PublicKey;
+  prover: PublicKey;
+  nativeAmount: BN;
+  tokens: { token: PublicKey; amount: BN }[];
+} {
   return {
     deadline: new BN(reward.deadline),
     creator: new PublicKey(AddressNormalizer.denormalize(reward.creator, ChainType.SVM)),

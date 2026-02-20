@@ -159,11 +159,11 @@ function transformIntentPublishedEvent(eventData: Record<string, unknown>): Deco
 /**
  * Decodes instruction data from a transaction
  */
-export async function decodeInstructionData(
+export function decodeInstructionData(
   _program: Program,
   _instructionData: Buffer,
   instructionName: string
-): Promise<{ name: string } | null> {
+): { name: string } | null {
   try {
     // For now, we'll just log the instruction name
     // Actual decoding would require the instruction discriminator

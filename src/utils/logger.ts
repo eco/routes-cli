@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /**
  * Logger utility module for enhanced CLI output
  * Uses ora for spinners and cli-table3 for structured data display

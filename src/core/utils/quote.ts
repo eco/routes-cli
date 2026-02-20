@@ -115,7 +115,7 @@ function isSolverV2(): boolean {
   return !!process.env.SOLVER_URL;
 }
 
-export async function getQuote(requestOpts: QuoteRequest) {
+export async function getQuote(requestOpts: QuoteRequest): Promise<QuoteResponse> {
   const quoteUrl = getQuoteUrl();
   const usingSolverV2 = isSolverV2();
 

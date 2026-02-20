@@ -272,7 +272,7 @@ export function listChains(): ChainConfig[] {
 }
 
 // Update Portal address from environment if available
-export function updatePortalAddresses(env: Record<string, string | undefined>) {
+export function updatePortalAddresses(env: Record<string, string | undefined>): void {
   const addressMappings: Record<string, string> = {
     PORTAL_ADDRESS_ETH: 'ethereum',
     PORTAL_ADDRESS_OPTIMISM: 'optimism',
