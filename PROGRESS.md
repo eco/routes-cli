@@ -28,7 +28,7 @@
 | TASK-021 | 5     | Create intent/intent-storage.service.ts + IntentModule | COMPLETE |    |
 | TASK-022 | 6     | Create status/status.service.ts + StatusModule       | COMPLETE |      |
 | TASK-023 | 7     | Create cli/services/prompt.service.ts                | COMPLETE |      |
-| TASK-024 | 7     | Create cli/services/display.service.ts               | PENDING |       |
+| TASK-024 | 7     | Create cli/services/display.service.ts               | COMPLETE |      |
 | TASK-025 | 7     | Create cli/commands/publish.command.ts               | PENDING |       |
 | TASK-026 | 7     | Create remaining CLI commands                        | PENDING |       |
 | TASK-027 | 7     | Create cli.module.ts                                 | PENDING |       |
