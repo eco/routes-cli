@@ -98,14 +98,39 @@ export const TOKEN_CONFIGS: Record<string, TokenConfig> = {
         'TG3XXyExBkPp9nzdajDZsozEu4BkaSJozs',
         ChainType.TVM
       ), // Tron Shasta
+      '1399811149': AddressNormalizer.normalizeSvm(
+        'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB' as SvmAddress
+      ),
       // Add more as needed
+    },
+  },
+  bUSDC: {
+    symbol: 'bUSDC',
+    name: 'Binance USDC',
+    decimals: 18,
+    addresses: {
+      '56': AddressNormalizer.normalize(
+        '0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d',
+        ChainType.EVM
+      ), // BNB Smart Chain
+    },
+  },
+  bUSDT: {
+    symbol: 'bUSDT',
+    name: 'Binance USDT',
+    decimals: 18,
+    addresses: {
+      '56': AddressNormalizer.normalize(
+        '0x55d398326f99059fF775485246999027B3197955',
+        ChainType.EVM
+      ), // BNB Smart Chain
     },
   },
 };
 
 // Helper function to get token by symbol
 export function getTokenBySymbol(symbol: string): TokenConfig | undefined {
-  return TOKEN_CONFIGS[symbol.toUpperCase()];
+  return TOKEN_CONFIGS[symbol];
 }
 
 // Helper function to get token address on a specific chain

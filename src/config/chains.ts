@@ -2,7 +2,7 @@
  * Chain Configuration
  */
 
-import { arbitrum, mainnet, polygon, ronin, sonic } from 'viem/chains';
+import { arbitrum, bsc, hyperEvm, mainnet, polygon, ronin, sonic } from 'viem/chains';
 
 import { ChainType } from '@/core/interfaces/intent';
 import { BlockchainAddress } from '@/core/types/blockchain-addresses';
@@ -28,6 +28,14 @@ export interface ChainConfig {
 // Default chain configurations
 const chains: Record<string, ChainConfig> = {
   // EVM Chains
+  ethereum: {
+    id: 1n,
+    name: 'Ethereum',
+    type: ChainType.EVM,
+    env: 'production',
+    rpcUrl: mainnet.rpcUrls.default.http[0],
+    nativeCurrency: mainnet.nativeCurrency,
+  },
   optimism: {
     id: 10n,
     name: 'Optimism',
@@ -40,14 +48,13 @@ const chains: Record<string, ChainConfig> = {
       decimals: 18,
     },
   },
-  // EVM Chains
-  ethereum: {
-    id: 1n,
-    name: 'Ethereum',
+  bsc: {
+    id: BigInt(bsc.id),
+    name: bsc.name,
     type: ChainType.EVM,
     env: 'production',
-    rpcUrl: mainnet.rpcUrls.default.http[0],
-    nativeCurrency: mainnet.nativeCurrency,
+    rpcUrl: bsc.rpcUrls.default.http[0],
+    nativeCurrency: bsc.nativeCurrency,
   },
   base: {
     id: 8453n,
@@ -100,16 +107,12 @@ const chains: Record<string, ChainConfig> = {
   },
 
   hyperevm: {
-    id: BigInt(999),
-    name: 'HyperEVM',
+    id: BigInt(hyperEvm.id),
+    name: hyperEvm.name,
     type: ChainType.EVM,
     env: 'production',
-    rpcUrl: 'https://rpc.hyperliquid.xyz/evm',
-    nativeCurrency: {
-      decimals: 18,
-      name: 'HYPE',
-      symbol: 'HYPE',
-    },
+    rpcUrl: hyperEvm.rpcUrls.default.http[0],
+    nativeCurrency: hyperEvm.nativeCurrency,
   },
 
   // Testnet Chains
