@@ -11,7 +11,7 @@
 | TASK-004 | 1     | Create shared/errors/                                | COMPLETE |      |
 | TASK-005 | 2     | Create config/validation/env.schema.ts               | COMPLETE |      |
 | TASK-006 | 2     | Create config/config.service.ts                      | COMPLETE |      |
-| TASK-007 | 2     | Create config/tokens.config.ts + ConfigModule        | PENDING |       |
+| TASK-007 | 2     | Create config/tokens.config.ts + ConfigModule        | COMPLETE |      |
 | TASK-008 | 3     | Create chain-handler.interface + chain-registry      | PENDING |       |
 | TASK-009 | 3     | Migrate EVM, TVM, SVM chain handlers                 | PENDING |       |
 | TASK-010 | 3     | Create address-normalizer.service.ts                 | PENDING |       |
