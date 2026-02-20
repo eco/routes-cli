@@ -288,10 +288,10 @@ async function buildIntentInteractively(options: PublishCommandOptions) {
       logger.warning('Quote response missing required contract addresses');
       quote = null;
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.stopSpinner();
     if (process.env.DEBUG) {
-      console.log(error.stack);
+      console.log(error instanceof Error ? error.stack : String(error));
     }
     logger.warning('Quote service unavailable');
     quote = null;

@@ -79,6 +79,21 @@ export interface QuoteResponse {
   };
 }
 
+interface QuoteRequestPayload {
+  dAppID: string;
+  quoteRequest: {
+    sourceChainID: number | string;
+    sourceToken: string;
+    destinationChainID: number | string;
+    destinationToken: string;
+    sourceAmount: string;
+    funder: string;
+    recipient: string;
+  };
+  quoteID?: string;
+  intentExecutionTypes?: string[];
+}
+
 function getQuoteUrl(): string {
   // Priority 1: Use solver-v2 if SOLVER_URL is set
   if (process.env.SOLVER_URL) {
@@ -104,7 +119,7 @@ export async function getQuote(requestOpts: QuoteRequest) {
   const quoteUrl = getQuoteUrl();
   const usingSolverV2 = isSolverV2();
 
-  const request: any = {
+  const request: QuoteRequestPayload = {
     dAppID: 'eco-routes-cli',
     quoteRequest: {
       // For solver-v2, keep as string; for quote service, convert to number

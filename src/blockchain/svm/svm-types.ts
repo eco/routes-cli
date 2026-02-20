@@ -3,8 +3,8 @@
  * Provides type safety and clear interfaces for Solana-specific operations
  */
 
-import { BN } from '@coral-xyz/anchor';
-import { Commitment, Keypair, PublicKey } from '@solana/web3.js';
+import { AnchorProvider, BN, Program } from '@coral-xyz/anchor';
+import { Commitment, Keypair, PublicKey, Transaction } from '@solana/web3.js';
 import { Hex } from 'viem';
 
 import { Intent } from '@/core/interfaces/intent';
@@ -88,15 +88,15 @@ export interface TokenAccountResult {
  * Anchor program setup result
  */
 export interface AnchorSetupResult {
-  program: any; // Program type from Anchor
-  provider: any; // AnchorProvider type
+  program: Program;
+  provider: AnchorProvider;
 }
 
 /**
  * Transaction building result
  */
 export interface TransactionBuildResult {
-  transaction: any; // Transaction type from Solana
+  transaction: Transaction;
   signers: Keypair[];
 }
 
@@ -119,7 +119,7 @@ export class SvmError extends Error {
   constructor(
     public readonly type: SvmErrorType,
     message: string,
-    public readonly details?: any
+    public readonly details?: unknown
   ) {
     super(message);
     this.name = 'SvmError';
@@ -140,7 +140,7 @@ export interface TransactionSendOptions {
  */
 export interface DecodedEvent {
   name: string;
-  data: any;
+  data: Record<string, unknown>;
 }
 
 /**

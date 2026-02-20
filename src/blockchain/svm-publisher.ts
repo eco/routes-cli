@@ -77,7 +77,7 @@ export class SvmPublisher extends BasePublisher {
       }
 
       return fundingResult;
-    } catch (error: any) {
+    } catch (error: unknown) {
       return this.handleError(error);
     }
   }
@@ -106,7 +106,7 @@ export class SvmPublisher extends BasePublisher {
 
       logger.info(SVM_LOG_MESSAGES.FUNDING_SUCCESS(fundingResult.transactionHash!));
       return fundingResult;
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (error instanceof SvmError) {
         return {
           success: false,
@@ -152,7 +152,7 @@ export class SvmPublisher extends BasePublisher {
       const bs58 = require('bs58');
       const bytes = bs58.decode(privateKey);
       return Keypair.fromSecretKey(bytes);
-    } catch (error: any) {
+    } catch (error: unknown) {
       throw new SvmError(
         SvmErrorType.INVALID_CONFIG,
         SVM_ERROR_MESSAGES.INVALID_PRIVATE_KEY,
@@ -189,20 +189,23 @@ export class SvmPublisher extends BasePublisher {
   /**
    * Handles errors with proper formatting and logging
    */
-  private handleError(error: any): PublishResult {
+  private handleError(error: unknown): PublishResult {
     logger.stopSpinner();
 
-    let errorMessage = error.message || 'Unknown error';
+    let errorMessage = error instanceof Error ? error.message : String(error);
 
-    // Add additional error context if available
-    if (error.logs) {
-      errorMessage += `\nLogs: ${error.logs.join('\n')}`;
-    }
-    if (error.err) {
-      errorMessage += `\nError: ${JSON.stringify(error.err)}`;
-    }
-    if (error.details) {
-      errorMessage += `\nDetails: ${JSON.stringify(error.details)}`;
+    // Add Solana-specific error context if available
+    if (typeof error === 'object' && error !== null) {
+      const solanaError = error as { logs?: string[]; err?: unknown; details?: unknown };
+      if (solanaError.logs) {
+        errorMessage += `\nLogs: ${solanaError.logs.join('\n')}`;
+      }
+      if (solanaError.err) {
+        errorMessage += `\nError: ${JSON.stringify(solanaError.err)}`;
+      }
+      if (solanaError.details) {
+        errorMessage += `\nDetails: ${JSON.stringify(solanaError.details)}`;
+      }
     }
 
     logger.error(`Transaction failed: ${errorMessage}`);

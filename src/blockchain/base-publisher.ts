@@ -43,7 +43,7 @@ export interface PublishResult {
   /** Vault or contract address created (if applicable) */
   vaultAddress?: string;
   /** Decoded program data (SVM only) */
-  decodedData?: any;
+  decodedData?: unknown;
 }
 
 /**

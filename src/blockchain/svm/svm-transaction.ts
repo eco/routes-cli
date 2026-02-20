@@ -8,7 +8,6 @@ import { getAssociatedTokenAddress } from '@solana/spl-token';
 import { Connection, Keypair, PublicKey, Transaction } from '@solana/web3.js';
 
 import { getPortalIdl } from '@/commons/idls/portal.idl';
-import { PortalIdl } from '@/commons/types/portal-idl.type';
 import { ChainType, Intent } from '@/core/interfaces/intent';
 import { AddressNormalizer } from '@/core/utils/address-normalizer';
 import { logger } from '@/utils/logger';
@@ -107,7 +106,7 @@ export async function buildPublishTransaction(
  */
 export async function buildFundingTransaction(
   _connection: Connection,
-  program: Program<PortalIdl>,
+  program: Program,
   context: PublishContext
 ): Promise<Transaction> {
   if (context.reward.tokens.length === 0) {
@@ -214,20 +213,18 @@ export async function sendAndConfirmTransaction(
           result.intentPublished = intentPublished;
           logger.info(`Decoded IntentPublished event: ${JSON.stringify(intentPublished, null, 2)}`);
         }
-      } catch (decodeError: any) {
+      } catch (decodeError: unknown) {
         // Decoding is non-critical, log but don't fail
-        logger.warn(`Failed to decode transaction events: ${decodeError.message}`);
+        const message = decodeError instanceof Error ? decodeError.message : String(decodeError);
+        logger.warn(`Failed to decode transaction events: ${message}`);
       }
     }
 
     return result;
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.stopSpinner();
-    throw new SvmError(
-      SvmErrorType.TRANSACTION_FAILED,
-      `Transaction failed: ${error.message}`,
-      error
-    );
+    const message = error instanceof Error ? error.message : String(error);
+    throw new SvmError(SvmErrorType.TRANSACTION_FAILED, `Transaction failed: ${message}`, error);
   }
 }
 
@@ -308,7 +305,7 @@ export async function executeFunding(
       transactionHash: result.signature,
       intentHash: context.intentHash,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.stopSpinner();
 
     if (error instanceof SvmError) {
@@ -356,7 +353,7 @@ export async function executePublish(
       intentHash: context.intentHash,
       decodedData: result.intentPublished,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.stopSpinner();
 
     if (error instanceof SvmError) {
