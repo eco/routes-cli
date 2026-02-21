@@ -34,12 +34,19 @@
 | TASK-027 | 7     | Create cli.module.ts                                 | COMPLETE |      |
 | TASK-028 | 8     | Create app.module.ts + main.ts                       | COMPLETE | fixed chain-detector/tokens.config load-time issues; CliModule imports; ts-node for dev |
 | TASK-029 | 8     | Remove old source files                              | COMPLETE | also removed old blockchain roots, old config files, old cli helpers; moved AddressNormalizer+validation+PortalEncoder to @/blockchain/utils/ |
-| TASK-030 | 8     | Update tsconfig.json                                 | PENDING |       |
+| TASK-030 | 8     | Update tsconfig.json                                 | COMPLETE | paths already correct; src/scripts kept in exclude (not moved); verification pass only |
 
 ## Skipped Tasks Report
 
-_(populated at completion)_
+_(none — all 30 tasks completed)_
 
 ## Final Report
 
-_(populated at completion)_
+All 30 tasks COMPLETE. Final smoke test results (2026-02-20):
+
+- `pnpm typecheck`: PASS
+- `pnpm build`: PASS
+- `pnpm dev chains`: PASS (11-chain table rendered)
+- `pnpm dev tokens`: PASS (USDC, USDT, bUSDC, bUSDT rendered)
+
+NestJS migration complete. All 12 structural issues from ARCHITECTURE.md resolved.
