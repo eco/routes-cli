@@ -7,8 +7,8 @@ import { AnchorProvider, BN, Program } from '@coral-xyz/anchor';
 import { Commitment, Keypair, PublicKey, Transaction } from '@solana/web3.js';
 import { Hex } from 'viem';
 
-import { Intent } from '@/core/interfaces/intent';
-import { UniversalAddress } from '@/core/types/universal-address';
+import { Intent } from '@/shared/types';
+import { UniversalAddress } from '@/shared/types';
 
 /**
  * Solana-specific portal reward format

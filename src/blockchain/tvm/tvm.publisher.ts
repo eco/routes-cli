@@ -11,7 +11,7 @@ import { PortalHashUtils } from '@/commons/utils/portal-hash.utils';
 import { ErrorCode, RoutesCliError } from '@/shared/errors';
 import { KeyHandle } from '@/shared/security';
 import { ChainType, Intent, UniversalAddress } from '@/shared/types';
-import { AddressNormalizer } from '@/core/utils/address-normalizer';
+import { AddressNormalizer } from '@/blockchain/utils/address-normalizer';
 import { logger } from '@/utils/logger';
 
 import { DefaultTvmClientFactory, TvmClientFactory } from './tvm-client-factory';

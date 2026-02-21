@@ -22,7 +22,7 @@ import * as chains from 'viem/chains';
 import { portalAbi } from '@/commons/abis/portal.abi';
 import { KeyHandle } from '@/shared/security';
 import { Intent, UniversalAddress } from '@/shared/types';
-import { AddressNormalizer } from '@/core/utils/address-normalizer';
+import { AddressNormalizer } from '@/blockchain/utils/address-normalizer';
 import { logger } from '@/utils/logger';
 
 import { DefaultEvmClientFactory, EvmClientFactory } from './evm-client-factory';

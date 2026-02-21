@@ -9,10 +9,10 @@ import { getAssociatedTokenAddress } from '@solana/spl-token';
 import { Connection, Keypair, PublicKey, Transaction } from '@solana/web3.js';
 
 import { ChainType, Intent } from '@/shared/types';
-import { AddressNormalizer } from '@/core/utils/address-normalizer';
+import { AddressNormalizer } from '@/blockchain/utils/address-normalizer';
 import { logger } from '@/utils/logger';
 
-import { PublishResult } from '../base-publisher';
+import { PublishResult } from '../base.publisher';
 
 import { calculateVaultPDA } from './pda-manager';
 import { setupAnchorProgram } from './solana-client';

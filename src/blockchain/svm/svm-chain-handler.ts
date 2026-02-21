@@ -1,8 +1,8 @@
 import type { ChainHandler } from '@/blockchain/chain-handler.interface';
 import { RoutesCliError } from '@/shared/errors';
 import { ChainType, BlockchainAddress, SvmAddress, UniversalAddress } from '@/shared/types';
-import { AddressNormalizer } from '@/core/utils/address-normalizer';
-import { SvmAddressSchema } from '@/core/validation';
+import { AddressNormalizer } from '@/blockchain/utils/address-normalizer';
+import { SvmAddressSchema } from '@/blockchain/validation';
 
 export class SvmChainHandler implements ChainHandler {
   readonly chainType = ChainType.SVM;

@@ -10,7 +10,7 @@ import { Hex } from 'viem';
 import { PortalHashUtils } from '@/commons/utils/portal-hash.utils';
 import { KeyHandle } from '@/shared/security';
 import { ChainType, Intent, UniversalAddress } from '@/shared/types';
-import { AddressNormalizer } from '@/core/utils/address-normalizer';
+import { AddressNormalizer } from '@/blockchain/utils/address-normalizer';
 import { logger } from '@/utils/logger';
 
 import { DefaultSvmClientFactory, SvmClientFactory } from './solana-client';

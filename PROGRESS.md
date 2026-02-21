@@ -33,7 +33,7 @@
 | TASK-026 | 7     | Create remaining CLI commands                        | COMPLETE |      |
 | TASK-027 | 7     | Create cli.module.ts                                 | COMPLETE |      |
 | TASK-028 | 8     | Create app.module.ts + main.ts                       | COMPLETE | fixed chain-detector/tokens.config load-time issues; CliModule imports; ts-node for dev |
-| TASK-029 | 8     | Remove old source files                              | PENDING |       |
+| TASK-029 | 8     | Remove old source files                              | COMPLETE | also removed old blockchain roots, old config files, old cli helpers; moved AddressNormalizer+validation+PortalEncoder to @/blockchain/utils/ |
 | TASK-030 | 8     | Update tsconfig.json                                 | PENDING |       |
 
 ## Skipped Tasks Report

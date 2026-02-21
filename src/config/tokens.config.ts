@@ -3,7 +3,7 @@
  */
 
 import { EvmAddress, SvmAddress, TronAddress, UniversalAddress } from '@/shared/types';
-import { AddressNormalizer } from '@/core/utils/address-normalizer';
+import { AddressNormalizer } from '@/blockchain/utils/address-normalizer';
 
 /** Describes a cross-chain token and its deployed contract addresses. */
 export interface TokenConfig {

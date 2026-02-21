@@ -1,8 +1,8 @@
 import type { ChainHandler } from '@/blockchain/chain-handler.interface';
 import { RoutesCliError } from '@/shared/errors';
 import { ChainType, BlockchainAddress, EvmAddress, UniversalAddress } from '@/shared/types';
-import { AddressNormalizer } from '@/core/utils/address-normalizer';
-import { EvmAddressSchema } from '@/core/validation';
+import { AddressNormalizer } from '@/blockchain/utils/address-normalizer';
+import { EvmAddressSchema } from '@/blockchain/validation';
 
 export class EvmChainHandler implements ChainHandler {
   readonly chainType = ChainType.EVM;

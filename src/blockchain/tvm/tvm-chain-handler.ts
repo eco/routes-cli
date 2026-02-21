@@ -1,8 +1,8 @@
 import type { ChainHandler } from '@/blockchain/chain-handler.interface';
 import { RoutesCliError } from '@/shared/errors';
 import { ChainType, BlockchainAddress, TronAddress, UniversalAddress } from '@/shared/types';
-import { AddressNormalizer } from '@/core/utils/address-normalizer';
-import { TvmAddressSchema } from '@/core/validation';
+import { AddressNormalizer } from '@/blockchain/utils/address-normalizer';
+import { TvmAddressSchema } from '@/blockchain/validation';
 
 export class TvmChainHandler implements ChainHandler {
   readonly chainType = ChainType.TVM;

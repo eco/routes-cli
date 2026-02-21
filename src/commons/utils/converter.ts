@@ -2,7 +2,7 @@ import { PublicKey } from '@solana/web3.js';
 import { Hex } from 'viem';
 
 import { toBuffer } from '@/commons/utils/buffer';
-import { SvmAddress } from '@/core/types/blockchain-addresses';
+import { SvmAddress } from '@/shared/types';
 
 export function addressToBytes32(address: string): number[] {
   // Convert Solana address or hex address to 32-byte array

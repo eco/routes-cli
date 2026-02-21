@@ -1,6 +1,6 @@
 import { TronWeb } from 'tronweb';
 
-import { EvmAddress, TronAddress } from '@/core/types/blockchain-addresses';
+import { EvmAddress, TronAddress } from '@/shared/types';
 
 /**
  * Utility service for TVM-specific operations like address conversions
