@@ -3,21 +3,23 @@
  */
 
 import { Injectable } from '@nestjs/common';
+
 import { TronWeb } from 'tronweb';
 import { erc20Abi, Hex } from 'viem';
 
+import { AddressNormalizer } from '@/blockchain/utils/address-normalizer';
 import { portalAbi } from '@/commons/abis/portal.abi';
 import { PortalHashUtils } from '@/commons/utils/portal-hash.utils';
 import { ErrorCode, RoutesCliError } from '@/shared/errors';
 import { KeyHandle } from '@/shared/security';
 import { ChainType, Intent, UniversalAddress } from '@/shared/types';
-import { AddressNormalizer } from '@/blockchain/utils/address-normalizer';
 import { logger } from '@/utils/logger';
 
-import { DefaultTvmClientFactory, TvmClientFactory } from './tvm-client-factory';
 import { BasePublisher, IntentStatus, PublishResult, ValidationResult } from '../base.publisher';
 import { ChainRegistryService } from '../chain-registry.service';
 import { ChainsService } from '../chains.service';
+
+import { DefaultTvmClientFactory, TvmClientFactory } from './tvm-client-factory';
 
 @Injectable()
 export class TvmPublisher extends BasePublisher {
@@ -27,7 +29,7 @@ export class TvmPublisher extends BasePublisher {
     rpcUrl: string,
     registry: ChainRegistryService,
     private readonly chains: ChainsService,
-    factory: TvmClientFactory = new DefaultTvmClientFactory(),
+    factory: TvmClientFactory = new DefaultTvmClientFactory()
   ) {
     super(rpcUrl, registry);
     this.factory = factory;
@@ -39,10 +41,10 @@ export class TvmPublisher extends BasePublisher {
     reward: Intent['reward'],
     encodedRoute: string,
     keyHandle: KeyHandle,
-    _portalAddress?: UniversalAddress,
+    _portalAddress?: UniversalAddress
   ): Promise<PublishResult> {
     this.runPreflightChecks(source);
-    return keyHandle.useAsync(async (rawKey) => {
+    return keyHandle.useAsync(async rawKey => {
       const tronWeb: TronWeb = this.factory.createClient(this.rpcUrl);
       tronWeb.setPrivateKey(rawKey);
       const senderAddress = tronWeb.address.fromPrivateKey(rawKey);
@@ -72,7 +74,7 @@ export class TvmPublisher extends BasePublisher {
           if (!approved) {
             throw new RoutesCliError(
               ErrorCode.TRANSACTION_FAILED,
-              `Approval failed for ${tokenAddress}`,
+              `Approval failed for ${tokenAddress}`
             );
           }
           logger.succeed(`Token approved: ${tokenAddress}`);
@@ -86,7 +88,7 @@ export class TvmPublisher extends BasePublisher {
           AddressNormalizer.denormalize(reward.prover, ChainType.TVM),
           reward.nativeAmount,
           reward.tokens.map(
-            t => [AddressNormalizer.denormalize(t.token, ChainType.TVM), t.amount] as const,
+            t => [AddressNormalizer.denormalize(t.token, ChainType.TVM), t.amount] as const
           ),
         ];
 
@@ -104,7 +106,7 @@ export class TvmPublisher extends BasePublisher {
           destination,
           source,
           encodedRoute as Hex,
-          reward,
+          reward
         );
 
         if (tx) {
@@ -137,7 +139,7 @@ export class TvmPublisher extends BasePublisher {
 
   override async validate(
     reward: Intent['reward'],
-    senderAddress: string,
+    senderAddress: string
   ): Promise<ValidationResult> {
     const errors: string[] = [];
 
@@ -149,7 +151,7 @@ export class TvmPublisher extends BasePublisher {
       const balance = await this.getBalance(senderAddress);
       if (balance < reward.nativeAmount) {
         errors.push(
-          `Insufficient TRX balance. Required: ${reward.nativeAmount}, Available: ${balance}`,
+          `Insufficient TRX balance. Required: ${reward.nativeAmount}, Available: ${balance}`
         );
       }
     }
@@ -162,7 +164,7 @@ export class TvmPublisher extends BasePublisher {
         const balance: bigint = await contract.balanceOf(senderAddress).call();
         if (BigInt(balance) < token.amount) {
           errors.push(
-            `Insufficient token balance for ${tokenAddr}. Required: ${token.amount}, Available: ${balance}`,
+            `Insufficient token balance for ${tokenAddr}. Required: ${token.amount}, Available: ${balance}`
           );
         }
       } catch {
@@ -173,8 +175,8 @@ export class TvmPublisher extends BasePublisher {
     return { valid: errors.length === 0, errors };
   }
 
-  override async getStatus(_intentHash: string, _chainId: bigint): Promise<IntentStatus> {
-    throw new Error('getStatus not yet implemented for TVM');
+  override getStatus(_intentHash: string, _chainId: bigint): Promise<IntentStatus> {
+    return Promise.reject(new Error('getStatus not yet implemented for TVM'));
   }
 
   private async waitForTransaction(tronWeb: TronWeb, txId: string): Promise<boolean> {
@@ -186,7 +188,7 @@ export class TvmPublisher extends BasePublisher {
 
       if (txInfo?.receipt?.result === 'FAILED') {
         throw new Error(
-          `Transaction failed: ${txInfo.receipt.result || 'Unknown error'}. txId: ${txId}. Received: ${JSON.stringify(txInfo.receipt)}`,
+          `Transaction failed: ${txInfo.receipt.result || 'Unknown error'}. txId: ${txId}. Received: ${JSON.stringify(txInfo.receipt)}`
         );
       }
 

@@ -1,17 +1,20 @@
-import { Command, CommandRunner, Option } from 'nest-commander';
 import { Injectable } from '@nestjs/common';
+
+import { Command, CommandRunner, Option } from 'nest-commander';
+
+import { AddressNormalizerService } from '@/blockchain/address-normalizer.service';
+import { ChainsService } from '@/blockchain/chains.service';
+import { PublisherFactory } from '@/blockchain/publisher-factory.service';
 import { ConfigService } from '@/config/config.service';
 import { TOKEN_CONFIGS } from '@/config/tokens.config';
-import { ChainsService } from '@/blockchain/chains.service';
-import { AddressNormalizerService } from '@/blockchain/address-normalizer.service';
-import { PublisherFactory } from '@/blockchain/publisher-factory.service';
-import { QuoteService } from '@/quote/quote.service';
 import { IntentBuilder } from '@/intent/intent-builder.service';
 import { IntentStorage } from '@/intent/intent-storage.service';
-import { PromptService } from '../services/prompt.service';
-import { DisplayService } from '../services/display.service';
+import { QuoteService } from '@/quote/quote.service';
 import { KeyHandle } from '@/shared/security';
 import { Intent } from '@/shared/types';
+
+import { DisplayService } from '../services/display.service';
+import { PromptService } from '../services/prompt.service';
 
 interface PublishOptions {
   source?: string;
@@ -34,7 +37,7 @@ export class PublishCommand extends CommandRunner {
     private readonly intentBuilder: IntentBuilder,
     private readonly intentStorage: IntentStorage,
     private readonly prompt: PromptService,
-    private readonly display: DisplayService,
+    private readonly display: DisplayService
   ) {
     super();
   }
@@ -49,7 +52,10 @@ export class PublishCommand extends CommandRunner {
 
     const destChain = options.destination
       ? this.chains.resolveChain(options.destination)
-      : await this.prompt.selectChain(allChains.filter(c => c.id !== sourceChain.id), 'Select destination chain:');
+      : await this.prompt.selectChain(
+          allChains.filter(c => c.id !== sourceChain.id),
+          'Select destination chain:'
+        );
 
     const tokens = Object.values(TOKEN_CONFIGS);
 
@@ -58,11 +64,18 @@ export class PublishCommand extends CommandRunner {
 
     this.display.section('💰 Reward Configuration (Source Chain)');
     const rewardToken = await this.prompt.selectToken(sourceChain, tokens, 'reward');
-    const { parsed: rewardAmount } = await this.prompt.inputAmount(rewardToken.symbol ?? 'tokens', rewardToken.decimals);
+    const { parsed: rewardAmount } = await this.prompt.inputAmount(
+      rewardToken.symbol ?? 'tokens',
+      rewardToken.decimals
+    );
 
     this.display.section('👤 Recipient Configuration');
-    const recipientRaw = options.recipient ?? await this.prompt.inputAddress(destChain, 'recipient');
-    const recipient = this.normalizer.normalize(recipientRaw as Parameters<typeof this.normalizer.normalize>[0], destChain.type);
+    const recipientRaw =
+      options.recipient ?? (await this.prompt.inputAddress(destChain, 'recipient'));
+    const recipient = this.normalizer.normalize(
+      recipientRaw as Parameters<typeof this.normalizer.normalize>[0],
+      destChain.type
+    );
 
     const rawKey = options.privateKey ?? this.config.getEvmPrivateKey() ?? '';
     const keyHandle = new KeyHandle(rawKey);
@@ -93,21 +106,31 @@ export class PublishCommand extends CommandRunner {
       });
       this.display.succeed('Quote received');
       encodedRoute = quote.encodedRoute;
-      sourcePortal = this.normalizer.normalize(quote.sourcePortal as Parameters<typeof this.normalizer.normalize>[0], sourceChain.type);
-      proverAddress = this.normalizer.normalize(quote.prover as Parameters<typeof this.normalizer.normalize>[0], sourceChain.type);
-    } catch {
+      sourcePortal = this.normalizer.normalize(
+        quote.sourcePortal as Parameters<typeof this.normalizer.normalize>[0],
+        sourceChain.type
+      );
+      proverAddress = this.normalizer.normalize(
+        quote.prover as Parameters<typeof this.normalizer.normalize>[0],
+        sourceChain.type
+      );
+    } catch (error) {
+      console.error(error);
       this.display.warn('Quote service unavailable — using manual configuration');
       encodedRoute = await this.prompt.inputManualPortal(sourceChain); // simplified — full manual fallback in production
     }
 
     const rewardTokenUniversal = this.normalizer.normalize(
       rewardToken.address as Parameters<typeof this.normalizer.normalize>[0],
-      sourceChain.type,
+      sourceChain.type
     );
 
     const reward = this.intentBuilder.buildReward({
       sourceChain,
-      creator: this.normalizer.normalize(senderAddress! as Parameters<typeof this.normalizer.normalize>[0], sourceChain.type),
+      creator: this.normalizer.normalize(
+        senderAddress! as Parameters<typeof this.normalizer.normalize>[0],
+        sourceChain.type
+      ),
       prover: proverAddress,
       rewardToken: rewardTokenUniversal,
       rewardAmount,
@@ -125,7 +148,12 @@ export class PublishCommand extends CommandRunner {
     this.display.spinner('Publishing intent to blockchain...');
     const publisher = this.publisherFactory.create(sourceChain);
     const result = await publisher.publish(
-      sourceChain.id, destChain.id, reward, encodedRoute, publishKeyHandle, sourcePortal,
+      sourceChain.id,
+      destChain.id,
+      reward,
+      encodedRoute,
+      publishKeyHandle,
+      sourcePortal
     );
 
     if (!result.success) {
@@ -147,20 +175,32 @@ export class PublishCommand extends CommandRunner {
   }
 
   @Option({ flags: '-s, --source <chain>', description: 'Source chain name or ID' })
-  parseSource(val: string) { return val; }
+  parseSource(val: string): string {
+    return val;
+  }
 
   @Option({ flags: '-d, --destination <chain>', description: 'Destination chain name or ID' })
-  parseDestination(val: string) { return val; }
+  parseDestination(val: string): string {
+    return val;
+  }
 
   @Option({ flags: '-k, --private-key <key>', description: 'Private key override' })
-  parsePrivateKey(val: string) { return val; }
+  parsePrivateKey(val: string): string {
+    return val;
+  }
 
   @Option({ flags: '-r, --rpc <url>', description: 'RPC URL override' })
-  parseRpc(val: string) { return val; }
+  parseRpc(val: string): string {
+    return val;
+  }
 
   @Option({ flags: '--recipient <address>', description: 'Recipient address on destination chain' })
-  parseRecipient(val: string) { return val; }
+  parseRecipient(val: string): string {
+    return val;
+  }
 
   @Option({ flags: '--dry-run', description: 'Validate without broadcasting' })
-  parseDryRun() { return true; }
+  parseDryRun(): boolean {
+    return true;
+  }
 }

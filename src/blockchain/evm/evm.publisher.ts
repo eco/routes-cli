@@ -3,6 +3,7 @@
  */
 
 import { Injectable } from '@nestjs/common';
+
 import {
   Account,
   Address,
@@ -19,16 +20,17 @@ import {
 import { privateKeyToAccount } from 'viem/accounts';
 import * as chains from 'viem/chains';
 
+import { AddressNormalizer } from '@/blockchain/utils/address-normalizer';
 import { portalAbi } from '@/commons/abis/portal.abi';
 import { KeyHandle } from '@/shared/security';
 import { Intent, UniversalAddress } from '@/shared/types';
-import { AddressNormalizer } from '@/blockchain/utils/address-normalizer';
 import { logger } from '@/utils/logger';
 
-import { DefaultEvmClientFactory, EvmClientFactory } from './evm-client-factory';
 import { BasePublisher, IntentStatus, PublishResult, ValidationResult } from '../base.publisher';
 import { ChainRegistryService } from '../chain-registry.service';
 import { ChainsService } from '../chains.service';
+
+import { DefaultEvmClientFactory, EvmClientFactory } from './evm-client-factory';
 
 @Injectable()
 export class EvmPublisher extends BasePublisher {
@@ -39,7 +41,7 @@ export class EvmPublisher extends BasePublisher {
     rpcUrl: string,
     registry: ChainRegistryService,
     private readonly chains: ChainsService,
-    clientFactory: EvmClientFactory = new DefaultEvmClientFactory(),
+    clientFactory: EvmClientFactory = new DefaultEvmClientFactory()
   ) {
     super(rpcUrl, registry);
     this.clientFactory = clientFactory;
@@ -62,10 +64,10 @@ export class EvmPublisher extends BasePublisher {
     encodedRoute: string,
     keyHandle: KeyHandle,
     portalAddress?: UniversalAddress,
-    proverAddress?: UniversalAddress,
+    proverAddress?: UniversalAddress
   ): Promise<PublishResult> {
     this.runPreflightChecks(source);
-    return keyHandle.useAsync(async (rawKey) => {
+    return keyHandle.useAsync(async rawKey => {
       const account = privateKeyToAccount(rawKey as Hex);
       return this.runSafely(async () => {
         const chain = this.getChain(source);
@@ -102,10 +104,10 @@ export class EvmPublisher extends BasePublisher {
 
           if (balance < reward.nativeAmount) {
             logger.fail(
-              `Insufficient native balance. Required: ${reward.nativeAmount}, Available: ${balance}`,
+              `Insufficient native balance. Required: ${reward.nativeAmount}, Available: ${balance}`
             );
             throw new Error(
-              `Insufficient native balance. Required: ${reward.nativeAmount}, Available: ${balance}`,
+              `Insufficient native balance. Required: ${reward.nativeAmount}, Available: ${balance}`
             );
           }
           logger.succeed(`Native balance sufficient: ${balance} wei`);
@@ -120,7 +122,7 @@ export class EvmPublisher extends BasePublisher {
           const tokenAddress = AddressNormalizer.denormalizeToEvm(token.token);
 
           logger.spinner(
-            `Checking balance for token ${i + 1}/${reward.tokens.length}: ${tokenAddress}`,
+            `Checking balance for token ${i + 1}/${reward.tokens.length}: ${tokenAddress}`
           );
 
           const tokenBalance = await publicClient.readContract({
@@ -133,7 +135,7 @@ export class EvmPublisher extends BasePublisher {
           if (tokenBalance < token.amount) {
             logger.fail(`Insufficient token balance for ${tokenAddress}`);
             throw new Error(
-              `Insufficient token balance for ${tokenAddress}. Required: ${token.amount}, Available: ${tokenBalance}`,
+              `Insufficient token balance for ${tokenAddress}. Required: ${token.amount}, Available: ${tokenBalance}`
             );
           }
 
@@ -230,7 +232,7 @@ export class EvmPublisher extends BasePublisher {
 
   override async validate(
     reward: Intent['reward'],
-    senderAddress: string,
+    senderAddress: string
   ): Promise<ValidationResult> {
     const errors: string[] = [];
     try {
@@ -240,7 +242,7 @@ export class EvmPublisher extends BasePublisher {
         const balance = await publicClient.getBalance({ address: senderAddress as Address });
         if (balance < reward.nativeAmount) {
           errors.push(
-            `Insufficient native balance. Required: ${reward.nativeAmount}, Available: ${balance}`,
+            `Insufficient native balance. Required: ${reward.nativeAmount}, Available: ${balance}`
           );
         }
       }
@@ -255,7 +257,7 @@ export class EvmPublisher extends BasePublisher {
         });
         if (tokenBalance < token.amount) {
           errors.push(
-            `Insufficient token balance for ${tokenAddress}. Required: ${token.amount}, Available: ${tokenBalance}`,
+            `Insufficient token balance for ${tokenAddress}. Required: ${token.amount}, Available: ${tokenBalance}`
           );
         }
       }
@@ -309,7 +311,7 @@ export class EvmPublisher extends BasePublisher {
     if (!viemChain) {
       throw new Error(
         `Chain ID ${id} is not supported. Please use a chain that exists in viem/chains. ` +
-          `Popular chains include: Ethereum (1), Optimism (10), Base (8453), Arbitrum (42161), Polygon (137), BSC (56).`,
+          `Popular chains include: Ethereum (1), Optimism (10), Base (8453), Arbitrum (42161), Polygon (137), BSC (56).`
       );
     }
 

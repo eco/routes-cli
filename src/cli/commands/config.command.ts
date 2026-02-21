@@ -2,10 +2,13 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 
-import { Command, CommandRunner, Option } from 'nest-commander';
 import { Injectable } from '@nestjs/common';
+
+import { Command, CommandRunner, Option } from 'nest-commander';
+
 import { ConfigService } from '@/config/config.service';
 import { ChainType } from '@/shared/types';
+
 import { PromptService } from '../services/prompt.service';
 
 interface ConfigSettings {
@@ -40,8 +43,10 @@ const PROFILES_DIR = path.join(CONFIG_DIR, 'profiles');
 export class ConfigCommand extends CommandRunner {
   constructor(
     private readonly configService: ConfigService,
-    private readonly prompt: PromptService,
-  ) { super(); }
+    private readonly prompt: PromptService
+  ) {
+    super();
+  }
 
   async run(inputs: string[], options: ConfigOptions): Promise<void> {
     const [subcommand, key, value] = inputs;
@@ -99,7 +104,11 @@ export class ConfigCommand extends CommandRunner {
     }
   }
 
-  private async runSet(key: string | undefined, value: string | undefined, options: ConfigOptions): Promise<void> {
+  private async runSet(
+    key: string | undefined,
+    value: string | undefined,
+    options: ConfigOptions
+  ): Promise<void> {
     if (options.interactive || (!key && !value)) {
       await this.setConfigInteractive(options.profile);
     } else if (key && value !== undefined) {
@@ -111,9 +120,12 @@ export class ConfigCommand extends CommandRunner {
   }
 
   private runGet(key: string | undefined, profileName?: string): void {
-    if (!key) { console.error('Key is required'); process.exit(1); }
+    if (!key) {
+      console.error('Key is required');
+      process.exit(1);
+    }
     const config = this.loadConfig();
-    const target = profileName ? config.profiles?.[profileName] ?? {} : config;
+    const target = profileName ? (config.profiles?.[profileName] ?? {}) : config;
     const val = this.getNestedValue(target, key);
     if (val !== undefined) {
       console.log(key.toLowerCase().includes('private') ? '***[HIDDEN]***' : String(val));
@@ -124,7 +136,10 @@ export class ConfigCommand extends CommandRunner {
   }
 
   private runUnset(key: string | undefined, profileName?: string): void {
-    if (!key) { console.error('Key is required'); process.exit(1); }
+    if (!key) {
+      console.error('Key is required');
+      process.exit(1);
+    }
     this.unsetConfigValue(key, profileName);
     console.log(`Configuration key '${key}' removed`);
   }
@@ -133,29 +148,48 @@ export class ConfigCommand extends CommandRunner {
     if (!options.force) {
       const target = options.profile ? `profile '${options.profile}'` : 'entire configuration';
       const ok = await this.prompt.confirm(`Reset ${target}?`);
-      if (!ok) { console.log('Reset cancelled'); return; }
+      if (!ok) {
+        console.log('Reset cancelled');
+        return;
+      }
     }
     this.resetConfig(options.profile);
     console.log(options.profile ? `Profile '${options.profile}' reset` : 'Configuration reset');
   }
 
-  private async runProfile(op: string | undefined, name: string | undefined, options: ConfigOptions): Promise<void> {
+  private async runProfile(
+    op: string | undefined,
+    name: string | undefined,
+    options: ConfigOptions
+  ): Promise<void> {
     switch (op) {
       case 'create':
-        if (!name) { console.error('Profile name is required'); process.exit(1); }
+        if (!name) {
+          console.error('Profile name is required');
+          process.exit(1);
+        }
         this.createProfile(name);
         console.log(`Profile '${name}' created`);
         break;
       case 'switch':
-        if (!name) { console.error('Profile name is required'); process.exit(1); }
+        if (!name) {
+          console.error('Profile name is required');
+          process.exit(1);
+        }
         this.switchProfile(name);
         console.log(`Switched to profile '${name}'`);
         break;
       case 'delete':
-        if (!name) { console.error('Profile name is required'); process.exit(1); }
+        if (!name) {
+          console.error('Profile name is required');
+          process.exit(1);
+        }
         if (!options.force) {
           const ok = await this.prompt.confirm(`Delete profile '${name}'?`);
-          if (!ok) { console.log('Cancelled'); return; }
+          if (!ok) {
+            console.log('Cancelled');
+            return;
+          }
         }
         this.deleteProfile(name);
         console.log(`Profile '${name}' deleted`);
@@ -179,13 +213,23 @@ export class ConfigCommand extends CommandRunner {
 
   private async setConfigInteractive(profileName?: string): Promise<void> {
     const config = this.loadConfig();
-    const target: ConfigSettings = profileName ? config.profiles?.[profileName] ?? {} : config;
+    const target: ConfigSettings = profileName ? (config.profiles?.[profileName] ?? {}) : config;
     const envConfig = this.configService;
 
     const { inquirer } = await import('inquirer').then(m => ({ inquirer: m.default }));
     const answers = await inquirer.prompt([
-      { type: 'input', name: 'defaultSourceChain', message: 'Default source chain:', default: target.defaultSourceChain },
-      { type: 'input', name: 'defaultDestinationChain', message: 'Default destination chain:', default: target.defaultDestinationChain },
+      {
+        type: 'input',
+        name: 'defaultSourceChain',
+        message: 'Default source chain:',
+        default: target.defaultSourceChain,
+      },
+      {
+        type: 'input',
+        name: 'defaultDestinationChain',
+        message: 'Default destination chain:',
+        default: target.defaultDestinationChain,
+      },
       { type: 'password', name: 'evmKey', message: 'EVM private key (optional):', mask: '*' },
       { type: 'password', name: 'tvmKey', message: 'TVM private key (optional):', mask: '*' },
       { type: 'password', name: 'svmKey', message: 'SVM private key (optional):', mask: '*' },
@@ -193,8 +237,10 @@ export class ConfigCommand extends CommandRunner {
 
     void envConfig;
 
-    if (answers.defaultSourceChain) target.defaultSourceChain = answers.defaultSourceChain as string;
-    if (answers.defaultDestinationChain) target.defaultDestinationChain = answers.defaultDestinationChain as string;
+    if (answers.defaultSourceChain)
+      target.defaultSourceChain = answers.defaultSourceChain as string;
+    if (answers.defaultDestinationChain)
+      target.defaultDestinationChain = answers.defaultDestinationChain as string;
     if (!target.defaultPrivateKeys) target.defaultPrivateKeys = {};
     if (answers.evmKey) target.defaultPrivateKeys[ChainType.EVM] = answers.evmKey as string;
     if (answers.tvmKey) target.defaultPrivateKeys[ChainType.TVM] = answers.tvmKey as string;
@@ -227,8 +273,10 @@ export class ConfigCommand extends CommandRunner {
   }
 
   private displayConfig(config: ConfigSettings): void {
-    if (config.defaultSourceChain) console.log(`  Default Source Chain: ${config.defaultSourceChain}`);
-    if (config.defaultDestinationChain) console.log(`  Default Destination Chain: ${config.defaultDestinationChain}`);
+    if (config.defaultSourceChain)
+      console.log(`  Default Source Chain: ${config.defaultSourceChain}`);
+    if (config.defaultDestinationChain)
+      console.log(`  Default Destination Chain: ${config.defaultDestinationChain}`);
     if (config.rpcUrls) {
       for (const [chain, url] of Object.entries(config.rpcUrls)) {
         console.log(`  RPC URL (${chain}): ${url}`);
@@ -239,14 +287,19 @@ export class ConfigCommand extends CommandRunner {
         if (key) console.log(`  Private Key (${chainType}): ***[SET]***`);
       }
     }
-    if (!config.defaultSourceChain && !config.defaultDestinationChain && !config.rpcUrls && !config.defaultPrivateKeys) {
+    if (
+      !config.defaultSourceChain &&
+      !config.defaultDestinationChain &&
+      !config.rpcUrls &&
+      !config.defaultPrivateKeys
+    ) {
       console.log('  No configuration set');
     }
   }
 
   private setConfigValue(key: string, value: string, profileName?: string): void {
     const config = this.loadConfig();
-    const target: ConfigSettings = profileName ? config.profiles?.[profileName] ?? {} : config;
+    const target: ConfigSettings = profileName ? (config.profiles?.[profileName] ?? {}) : config;
     this.setNestedValue(target, key, value);
     if (profileName) {
       if (!config.profiles) config.profiles = {};
@@ -260,7 +313,7 @@ export class ConfigCommand extends CommandRunner {
 
   private unsetConfigValue(key: string, profileName?: string): void {
     const config = this.loadConfig();
-    const target: ConfigSettings = profileName ? config.profiles?.[profileName] ?? {} : config;
+    const target: ConfigSettings = profileName ? (config.profiles?.[profileName] ?? {}) : config;
     this.deleteNestedValue(target, key);
     if (profileName) {
       if (!config.profiles) config.profiles = {};
@@ -315,13 +368,20 @@ export class ConfigCommand extends CommandRunner {
     }, obj);
   }
 
-  private setNestedValue(obj: ConfigSettings | Record<string, unknown>, keyPath: string, value: unknown): void {
+  private setNestedValue(
+    obj: ConfigSettings | Record<string, unknown>,
+    keyPath: string,
+    value: unknown
+  ): void {
     const keys = keyPath.split('.');
     const last = keys.pop()!;
-    const target = keys.reduce((cur: Record<string, unknown>, k) => {
-      if (!cur[k] || typeof cur[k] !== 'object') cur[k] = {};
-      return cur[k] as Record<string, unknown>;
-    }, obj as Record<string, unknown>);
+    const target = keys.reduce(
+      (cur: Record<string, unknown>, k) => {
+        if (!cur[k] || typeof cur[k] !== 'object') cur[k] = {};
+        return cur[k] as Record<string, unknown>;
+      },
+      obj as Record<string, unknown>
+    );
     target[last] = value;
   }
 
@@ -340,11 +400,17 @@ export class ConfigCommand extends CommandRunner {
   }
 
   @Option({ flags: '-i, --interactive', description: 'Interactive mode' })
-  parseInteractive(): boolean { return true; }
+  parseInteractive(): boolean {
+    return true;
+  }
 
   @Option({ flags: '--profile <name>', description: 'Target profile' })
-  parseProfile(val: string): string { return val; }
+  parseProfile(val: string): string {
+    return val;
+  }
 
   @Option({ flags: '--force', description: 'Skip confirmation' })
-  parseForce(): boolean { return true; }
+  parseForce(): boolean {
+    return true;
+  }
 }

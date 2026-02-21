@@ -33,7 +33,7 @@ export interface ValidationResult {
 export abstract class BasePublisher {
   constructor(
     protected readonly rpcUrl: string,
-    protected readonly registry: ChainRegistryService,
+    protected readonly registry: ChainRegistryService
   ) {}
 
   abstract publish(
@@ -43,7 +43,7 @@ export abstract class BasePublisher {
     encodedRoute: string,
     keyHandle: KeyHandle,
     portalAddress?: UniversalAddress,
-    proverAddress?: UniversalAddress,
+    proverAddress?: UniversalAddress
   ): Promise<PublishResult>;
 
   abstract getBalance(address: string, chainId?: bigint): Promise<bigint>;

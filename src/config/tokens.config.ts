@@ -2,8 +2,8 @@
  * Token Configuration
  */
 
-import { EvmAddress, SvmAddress, TronAddress, UniversalAddress } from '@/shared/types';
 import { AddressNormalizer } from '@/blockchain/utils/address-normalizer';
+import { EvmAddress, SvmAddress, TronAddress, UniversalAddress } from '@/shared/types';
 
 /** Describes a cross-chain token and its deployed contract addresses. */
 export interface TokenConfig {
@@ -35,20 +35,48 @@ export const TOKEN_CONFIGS: Record<string, TokenConfig> = {
     name: 'USD Coin',
     decimals: 6,
     addresses: {
-      '1': AddressNormalizer.normalizeEvm('0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48' as EvmAddress), // Ethereum
-      '10': AddressNormalizer.normalizeEvm('0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85' as EvmAddress), // Optimism
-      '8453': AddressNormalizer.normalizeEvm('0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' as EvmAddress), // Base
-      '137': AddressNormalizer.normalizeEvm('0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359' as EvmAddress), // Polygon
-      '999': AddressNormalizer.normalizeEvm('0xb88339CB7199b77E23DB6E890353E22632Ba630f' as EvmAddress), // Hyperevm
-      '2020': AddressNormalizer.normalizeEvm('0x0b7007c13325c48911f73a2dad5fa5dcbf808adc' as EvmAddress), // Runin
-      '42161': AddressNormalizer.normalizeEvm('0xaf88d065e77c8cC2239327C5EDb3A432268e5831' as EvmAddress), // Arbitrum
-      '146': AddressNormalizer.normalizeEvm('0x29219dd400f2bf60e5a23d13be72b486d4038894' as EvmAddress), // Sonic
-      '84532': AddressNormalizer.normalizeEvm('0x036cbd53842c5426634e7929541ec2318f3dcf7e' as EvmAddress), // Base Sepolia
-      '11155420': AddressNormalizer.normalizeEvm('0x5fd84259d66Cd46123540766Be93DFE6D43130D7' as EvmAddress), // Optimism Sepolia
-      '9746': AddressNormalizer.normalizeEvm('0x107d0b0428741b37331138040F793aF171682603' as EvmAddress), // Plasma Testnet
-      '11155111': AddressNormalizer.normalizeEvm('0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238' as EvmAddress), // Sepolia
-      '1399811149': AddressNormalizer.normalizeSvm('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v' as SvmAddress),
-      '1399811150': AddressNormalizer.normalizeSvm('4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU' as SvmAddress),
+      '1': AddressNormalizer.normalizeEvm(
+        '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48' as EvmAddress
+      ), // Ethereum
+      '10': AddressNormalizer.normalizeEvm(
+        '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85' as EvmAddress
+      ), // Optimism
+      '8453': AddressNormalizer.normalizeEvm(
+        '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' as EvmAddress
+      ), // Base
+      '137': AddressNormalizer.normalizeEvm(
+        '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359' as EvmAddress
+      ), // Polygon
+      '999': AddressNormalizer.normalizeEvm(
+        '0xb88339CB7199b77E23DB6E890353E22632Ba630f' as EvmAddress
+      ), // Hyperevm
+      '2020': AddressNormalizer.normalizeEvm(
+        '0x0b7007c13325c48911f73a2dad5fa5dcbf808adc' as EvmAddress
+      ), // Runin
+      '42161': AddressNormalizer.normalizeEvm(
+        '0xaf88d065e77c8cC2239327C5EDb3A432268e5831' as EvmAddress
+      ), // Arbitrum
+      '146': AddressNormalizer.normalizeEvm(
+        '0x29219dd400f2bf60e5a23d13be72b486d4038894' as EvmAddress
+      ), // Sonic
+      '84532': AddressNormalizer.normalizeEvm(
+        '0x036cbd53842c5426634e7929541ec2318f3dcf7e' as EvmAddress
+      ), // Base Sepolia
+      '11155420': AddressNormalizer.normalizeEvm(
+        '0x5fd84259d66Cd46123540766Be93DFE6D43130D7' as EvmAddress
+      ), // Optimism Sepolia
+      '9746': AddressNormalizer.normalizeEvm(
+        '0x107d0b0428741b37331138040F793aF171682603' as EvmAddress
+      ), // Plasma Testnet
+      '11155111': AddressNormalizer.normalizeEvm(
+        '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238' as EvmAddress
+      ), // Sepolia
+      '1399811149': AddressNormalizer.normalizeSvm(
+        'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v' as SvmAddress
+      ),
+      '1399811150': AddressNormalizer.normalizeSvm(
+        '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU' as SvmAddress
+      ),
       // Add more as needed
     },
   },
@@ -57,13 +85,27 @@ export const TOKEN_CONFIGS: Record<string, TokenConfig> = {
     name: 'Tether USD',
     decimals: 6,
     addresses: {
-      '1': AddressNormalizer.normalizeEvm('0xdAC17F958D2ee523a2206206994597C13D831ec7' as EvmAddress), // Ethereum
-      '10': AddressNormalizer.normalizeEvm('0x94b008aA00579c1307B0EF2c499aD98a8ce58e58' as EvmAddress), // Optimism
-      '999': AddressNormalizer.normalizeEvm('0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb' as EvmAddress), // Hyperevm
-      '8453': AddressNormalizer.normalizeEvm('0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2' as EvmAddress), // Base
-      '728126428': AddressNormalizer.normalizeTvm('TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t' as TronAddress), // Tron
-      '2494104990': AddressNormalizer.normalizeTvm('TG3XXyExBkPp9nzdajDZsozEu4BkaSJozs' as TronAddress), // Tron Shasta
-      '1399811149': AddressNormalizer.normalizeSvm('Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB' as SvmAddress),
+      '1': AddressNormalizer.normalizeEvm(
+        '0xdAC17F958D2ee523a2206206994597C13D831ec7' as EvmAddress
+      ), // Ethereum
+      '10': AddressNormalizer.normalizeEvm(
+        '0x94b008aA00579c1307B0EF2c499aD98a8ce58e58' as EvmAddress
+      ), // Optimism
+      '999': AddressNormalizer.normalizeEvm(
+        '0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb' as EvmAddress
+      ), // Hyperevm
+      '8453': AddressNormalizer.normalizeEvm(
+        '0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2' as EvmAddress
+      ), // Base
+      '728126428': AddressNormalizer.normalizeTvm(
+        'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t' as TronAddress
+      ), // Tron
+      '2494104990': AddressNormalizer.normalizeTvm(
+        'TG3XXyExBkPp9nzdajDZsozEu4BkaSJozs' as TronAddress
+      ), // Tron Shasta
+      '1399811149': AddressNormalizer.normalizeSvm(
+        'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB' as SvmAddress
+      ),
       // Add more as needed
     },
   },
@@ -72,7 +114,9 @@ export const TOKEN_CONFIGS: Record<string, TokenConfig> = {
     name: 'Binance USDC',
     decimals: 18,
     addresses: {
-      '56': AddressNormalizer.normalizeEvm('0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d' as EvmAddress), // BNB Smart Chain
+      '56': AddressNormalizer.normalizeEvm(
+        '0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d' as EvmAddress
+      ), // BNB Smart Chain
     },
   },
   bUSDT: {
@@ -80,7 +124,9 @@ export const TOKEN_CONFIGS: Record<string, TokenConfig> = {
     name: 'Binance USDT',
     decimals: 18,
     addresses: {
-      '56': AddressNormalizer.normalizeEvm('0x55d398326f99059fF775485246999027B3197955' as EvmAddress), // BNB Smart Chain
+      '56': AddressNormalizer.normalizeEvm(
+        '0x55d398326f99059fF775485246999027B3197955' as EvmAddress
+      ), // BNB Smart Chain
     },
   },
 };

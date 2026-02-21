@@ -1,10 +1,12 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
-import { ChainType } from '@/shared/types';
+
 import { RoutesCliError } from '@/shared/errors';
-import { ChainHandler } from './chain-handler.interface';
+import { ChainType } from '@/shared/types';
+
 import { EvmChainHandler } from './evm/evm-chain-handler';
-import { TvmChainHandler } from './tvm/tvm-chain-handler';
 import { SvmChainHandler } from './svm/svm-chain-handler';
+import { TvmChainHandler } from './tvm/tvm-chain-handler';
+import { ChainHandler } from './chain-handler.interface';
 
 @Injectable()
 export class ChainRegistryService implements OnModuleInit {
@@ -12,11 +14,7 @@ export class ChainRegistryService implements OnModuleInit {
   private readonly registeredChainIds = new Set<bigint>();
 
   onModuleInit(): void {
-    this.bootstrap([
-      new EvmChainHandler(),
-      new TvmChainHandler(),
-      new SvmChainHandler(),
-    ]);
+    this.bootstrap([new EvmChainHandler(), new TvmChainHandler(), new SvmChainHandler()]);
   }
 
   bootstrap(handlers: ChainHandler[]): void {

@@ -17,10 +17,7 @@ export class RpcService {
     return this.config.getRpcUrl(chain.type, 'fallback') || undefined;
   }
 
-  async withFallback<T>(
-    primary: () => Promise<T>,
-    fallback: () => Promise<T>,
-  ): Promise<T> {
+  async withFallback<T>(primary: () => Promise<T>, fallback: () => Promise<T>): Promise<T> {
     try {
       return await primary();
     } catch {

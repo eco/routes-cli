@@ -1,8 +1,11 @@
-import { Command, CommandRunner, Option } from 'nest-commander';
 import { Injectable } from '@nestjs/common';
+
 import chalk from 'chalk';
+import { Command, CommandRunner, Option } from 'nest-commander';
+
 import { ChainsService } from '@/blockchain/chains.service';
-import { StatusService, IntentStatus } from '@/status/status.service';
+import { IntentStatus, StatusService } from '@/status/status.service';
+
 import { DisplayService } from '../services/display.service';
 
 interface StatusOptions {
@@ -22,8 +25,10 @@ export class StatusCommand extends CommandRunner {
   constructor(
     private readonly chains: ChainsService,
     private readonly statusService: StatusService,
-    private readonly display: DisplayService,
-  ) { super(); }
+    private readonly display: DisplayService
+  ) {
+    super();
+  }
 
   async run(inputs: string[], options: StatusOptions): Promise<void> {
     const intentHash = inputs[0];
@@ -47,8 +52,8 @@ export class StatusCommand extends CommandRunner {
     }
 
     if (options.watch) {
-      await this.statusService.watch(intentHash, chain, (status) =>
-        this.displayStatus(status, options),
+      await this.statusService.watch(intentHash, chain, status =>
+        this.displayStatus(status, options)
       );
     } else {
       const status = await this.statusService.getStatus(intentHash, chain);
@@ -58,40 +63,41 @@ export class StatusCommand extends CommandRunner {
 
   private displayStatus(status: IntentStatus, options: StatusOptions): void {
     if (options.json) {
-      console.log(
-        JSON.stringify(
-          status,
-          (_k, v) => (typeof v === 'bigint' ? v.toString() : v),
-          2,
-        ),
-      );
+      console.log(JSON.stringify(status, (_k, v) => (typeof v === 'bigint' ? v.toString() : v), 2));
       return;
     }
 
-    const statusText = status.fulfilled
-      ? chalk.green('✅ Fulfilled')
-      : chalk.yellow('⏳ Pending');
+    const statusText = status.fulfilled ? chalk.green('✅ Fulfilled') : chalk.yellow('⏳ Pending');
     this.display.log(`Status: ${statusText}`);
 
     if (status.fulfilled) {
       if (status.solver) this.display.log(`Solver: ${status.solver}`);
       if (status.fulfillmentTxHash) this.display.log(`Tx: ${status.fulfillmentTxHash}`);
       if (status.blockNumber) this.display.log(`Block: ${status.blockNumber.toString()}`);
-      if (status.timestamp) this.display.log(`Time: ${new Date(status.timestamp * 1000).toLocaleString()}`);
+      if (status.timestamp)
+        this.display.log(`Time: ${new Date(status.timestamp * 1000).toLocaleString()}`);
     } else {
       this.display.log('The intent has not been fulfilled yet.');
     }
   }
 
   @Option({ flags: '-c, --chain <chain>', description: 'Destination chain (name or ID)' })
-  parseChain(val: string): string { return val; }
+  parseChain(val: string): string {
+    return val;
+  }
 
   @Option({ flags: '-w, --watch', description: 'Poll every 10 seconds until fulfilled' })
-  parseWatch(): boolean { return true; }
+  parseWatch(): boolean {
+    return true;
+  }
 
   @Option({ flags: '--json', description: 'Output result as JSON' })
-  parseJson(): boolean { return true; }
+  parseJson(): boolean {
+    return true;
+  }
 
   @Option({ flags: '--verbose', description: 'Show portal address and raw transaction details' })
-  parseVerbose(): boolean { return true; }
+  parseVerbose(): boolean {
+    return true;
+  }
 }

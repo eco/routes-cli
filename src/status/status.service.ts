@@ -19,7 +19,7 @@ export class StatusService {
     intentHash: string,
     chain: ChainConfig,
     onUpdate: (status: IntentStatus) => void,
-    intervalMs = 10_000,
+    intervalMs = 10_000
   ): Promise<void> {
     let last: IntentStatus | null = null;
     while (true) {

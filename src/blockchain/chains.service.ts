@@ -1,12 +1,12 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 
 import { ConfigService } from '@/config/config.service';
-import { ChainConfig } from '@/shared/types';
 import { RoutesCliError } from '@/shared/errors';
+import { ChainConfig } from '@/shared/types';
 
-import { RAW_CHAIN_CONFIGS, RawChainConfig } from './chains.config';
 import { AddressNormalizerService } from './address-normalizer.service';
 import { ChainRegistryService } from './chain-registry.service';
+import { RAW_CHAIN_CONFIGS, RawChainConfig } from './chains.config';
 
 @Injectable()
 export class ChainsService implements OnModuleInit {
@@ -15,14 +15,14 @@ export class ChainsService implements OnModuleInit {
   constructor(
     private readonly config: ConfigService,
     private readonly normalizer: AddressNormalizerService,
-    private readonly registry: ChainRegistryService,
+    private readonly registry: ChainRegistryService
   ) {}
 
   onModuleInit(): void {
     const env = this.config.getChainsEnv();
-    this.chains = RAW_CHAIN_CONFIGS
-      .filter(c => c.env === env || c.env === 'production')
-      .map(c => this.normalizeChain(c));
+    this.chains = RAW_CHAIN_CONFIGS.filter(c => c.env === env || c.env === 'production').map(c =>
+      this.normalizeChain(c)
+    );
 
     for (const chain of this.chains) {
       this.registry.registerChainId(chain.id);
@@ -33,12 +33,12 @@ export class ChainsService implements OnModuleInit {
     return {
       ...raw,
       portalAddress: raw.portalAddress
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ? this.normalizer.normalize(raw.portalAddress as any, raw.type)
+        ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          this.normalizer.normalize(raw.portalAddress as any, raw.type)
         : undefined,
       proverAddress: raw.proverAddress
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ? this.normalizer.normalize(raw.proverAddress as any, raw.type)
+        ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          this.normalizer.normalize(raw.proverAddress as any, raw.type)
         : undefined,
     };
   }

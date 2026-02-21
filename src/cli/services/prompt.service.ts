@@ -1,44 +1,50 @@
 import { Injectable } from '@nestjs/common';
+
 import inquirer from 'inquirer';
 import { parseUnits } from 'viem';
-import { ChainConfig } from '@/shared/types';
-import { TokenConfig } from '@/config/tokens.config';
-import { ChainRegistryService } from '@/blockchain/chain-registry.service';
+
 import { AddressNormalizerService } from '@/blockchain/address-normalizer.service';
+import { ChainRegistryService } from '@/blockchain/chain-registry.service';
+import { TokenConfig } from '@/config/tokens.config';
+import { ChainConfig } from '@/shared/types';
 
 @Injectable()
 export class PromptService {
   constructor(
     private readonly registry: ChainRegistryService,
-    private readonly normalizer: AddressNormalizerService,
+    private readonly normalizer: AddressNormalizerService
   ) {}
 
   async selectChain(chains: ChainConfig[], message: string): Promise<ChainConfig> {
-    const { chain } = await inquirer.prompt([{
-      type: 'list',
-      name: 'chain',
-      message,
-      choices: chains.map(c => ({ name: `${c.name} (${c.id})`, value: c })),
-    }]);
+    const { chain } = await inquirer.prompt([
+      {
+        type: 'list',
+        name: 'chain',
+        message,
+        choices: chains.map(c => ({ name: `${c.name} (${c.id})`, value: c })),
+      },
+    ]);
     return chain;
   }
 
   async selectToken(
     chain: ChainConfig,
     tokens: TokenConfig[],
-    label: string,
+    label: string
   ): Promise<{ address: string; decimals: number; symbol?: string }> {
     const choices = [
       ...tokens.map(t => ({ name: `${t.symbol} - ${t.name}`, value: t.symbol })),
       { name: 'Custom Token Address', value: 'CUSTOM' },
     ];
 
-    const { tokenChoice } = await inquirer.prompt([{
-      type: 'list',
-      name: 'tokenChoice',
-      message: `Select ${label} token:`,
-      choices,
-    }]);
+    const { tokenChoice } = await inquirer.prompt([
+      {
+        type: 'list',
+        name: 'tokenChoice',
+        message: `Select ${label} token:`,
+        choices,
+      },
+    ]);
 
     if (tokenChoice === 'CUSTOM') {
       const handler = this.registry.get(chain.type);
@@ -83,17 +89,23 @@ export class PromptService {
     };
   }
 
-  async inputAmount(label: string, decimals: number, defaultValue = '0.1'): Promise<{ raw: string; parsed: bigint }> {
-    const { amount } = await inquirer.prompt([{
-      type: 'input',
-      name: 'amount',
-      message: `Enter ${label} amount in human-readable format (e.g., "10" for 10 tokens):`,
-      default: defaultValue,
-      validate: (input: string) => {
-        const num = parseFloat(input);
-        return !isNaN(num) && num > 0 ? true : 'Please enter a positive number';
+  async inputAmount(
+    label: string,
+    decimals: number,
+    defaultValue = '0.1'
+  ): Promise<{ raw: string; parsed: bigint }> {
+    const { amount } = await inquirer.prompt([
+      {
+        type: 'input',
+        name: 'amount',
+        message: `Enter ${label} amount in human-readable format (e.g., "10" for 10 tokens):`,
+        default: defaultValue,
+        validate: (input: string) => {
+          const num = parseFloat(input);
+          return !isNaN(num) && num > 0 ? true : 'Please enter a positive number';
+        },
       },
-    }]);
+    ]);
     return {
       raw: amount as string,
       parsed: parseUnits(amount as string, decimals),
@@ -102,59 +114,67 @@ export class PromptService {
 
   async inputAddress(chain: ChainConfig, label: string, defaultValue?: string): Promise<string> {
     const handler = this.registry.get(chain.type);
-    const { address } = await inquirer.prompt([{
-      type: 'input',
-      name: 'address',
-      message: `Enter ${label} address on ${chain.name} (${chain.type} chain):`,
-      default: defaultValue,
-      validate: (input: string) => {
-        if (!input || input.trim() === '') return `${label} address is required`;
-        if (!handler.validateAddress(input)) {
-          return `Invalid ${chain.type} address — expected ${handler.getAddressFormat()}`;
-        }
-        return true;
+    const { address } = await inquirer.prompt([
+      {
+        type: 'input',
+        name: 'address',
+        message: `Enter ${label} address on ${chain.name} (${chain.type} chain):`,
+        default: defaultValue,
+        validate: (input: string) => {
+          if (!input || input.trim() === '') return `${label} address is required`;
+          if (!handler.validateAddress(input)) {
+            return `Invalid ${chain.type} address — expected ${handler.getAddressFormat()}`;
+          }
+          return true;
+        },
       },
-    }]);
+    ]);
     return address as string;
   }
 
   async confirmPublish(): Promise<boolean> {
-    const { confirmed } = await inquirer.prompt([{
-      type: 'confirm',
-      name: 'confirmed',
-      message: 'Publish this intent?',
-      default: true,
-    }]);
+    const { confirmed } = await inquirer.prompt([
+      {
+        type: 'confirm',
+        name: 'confirmed',
+        message: 'Publish this intent?',
+        default: true,
+      },
+    ]);
     return confirmed;
   }
 
   async confirm(message: string, defaultValue = false): Promise<boolean> {
-    const { confirmed } = await inquirer.prompt([{
-      type: 'confirm',
-      name: 'confirmed',
-      message,
-      default: defaultValue,
-    }]);
+    const { confirmed } = await inquirer.prompt([
+      {
+        type: 'confirm',
+        name: 'confirmed',
+        message,
+        default: defaultValue,
+      },
+    ]);
     return confirmed;
   }
 
   async inputManualPortal(chain: ChainConfig): Promise<string> {
     const handler = this.registry.get(chain.type);
-    const { portal } = await inquirer.prompt([{
-      type: 'input',
-      name: 'portal',
-      message: `Enter portal contract address on ${chain.name}:`,
-      default: chain.portalAddress
-        ? this.normalizer.denormalize(chain.portalAddress, chain.type) as string
-        : undefined,
-      validate: (input: string) => {
-        if (!input || input.trim() === '') return 'Portal address is required';
-        if (!handler.validateAddress(input)) {
-          return `Invalid ${chain.type} address — expected ${handler.getAddressFormat()}`;
-        }
-        return true;
+    const { portal } = await inquirer.prompt([
+      {
+        type: 'input',
+        name: 'portal',
+        message: `Enter portal contract address on ${chain.name}:`,
+        default: chain.portalAddress
+          ? (this.normalizer.denormalize(chain.portalAddress, chain.type) as string)
+          : undefined,
+        validate: (input: string) => {
+          if (!input || input.trim() === '') return 'Portal address is required';
+          if (!handler.validateAddress(input)) {
+            return `Invalid ${chain.type} address — expected ${handler.getAddressFormat()}`;
+          }
+          return true;
+        },
       },
-    }]);
+    ]);
     return portal as string;
   }
 }

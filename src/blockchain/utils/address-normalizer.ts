@@ -3,13 +3,7 @@ import { TronWeb } from 'tronweb';
 import { getAddress, isAddress as isViemAddress } from 'viem';
 
 import { getErrorMessage } from '@/commons/utils/error-handler';
-import {
-  BlockchainAddress,
-  ChainType,
-  EvmAddress,
-  SvmAddress,
-  TronAddress,
-} from '@/shared/types';
+import { BlockchainAddress, ChainType, EvmAddress, SvmAddress, TronAddress } from '@/shared/types';
 import { padTo32Bytes, UniversalAddress, unpadFrom32Bytes } from '@/shared/types';
 
 export class AddressNormalizer {

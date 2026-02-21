@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+
 import { Address } from 'viem';
 
 import { ConfigService } from '@/config/config.service';
@@ -113,11 +114,13 @@ export class QuoteService {
       body: JSON.stringify(request),
     });
 
-    const raw = await response.json() as RawQuoteResponse;
+    const raw = (await response.json()) as RawQuoteResponse;
     if (!response.ok) throw new Error(JSON.stringify(raw));
 
     // Solver-v2 returns the object directly; quote-service-v3 wraps in `data`
-    const data: RawQuoteResponse = isSolverV2 ? raw : ((raw as unknown as { data?: RawQuoteResponse }).data ?? raw);
+    const data: RawQuoteResponse = isSolverV2
+      ? raw
+      : ((raw as unknown as { data?: RawQuoteResponse }).data ?? raw);
 
     if (!data.contracts?.sourcePortal || !data.contracts?.prover) {
       throw new Error('Quote response missing required contract addresses');

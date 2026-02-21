@@ -1,6 +1,9 @@
-import { Command, CommandRunner } from 'nest-commander';
 import { Injectable } from '@nestjs/common';
+
+import { Command, CommandRunner } from 'nest-commander';
+
 import { ChainsService } from '@/blockchain/chains.service';
+
 import { DisplayService } from '../services/display.service';
 
 @Injectable()
@@ -8,10 +11,13 @@ import { DisplayService } from '../services/display.service';
 export class ChainsCommand extends CommandRunner {
   constructor(
     private readonly chains: ChainsService,
-    private readonly display: DisplayService,
-  ) { super(); }
+    private readonly display: DisplayService
+  ) {
+    super();
+  }
 
-  async run(): Promise<void> {
+  run(): Promise<void> {
     this.display.displayChains(this.chains.listChains());
+    return Promise.resolve();
   }
 }

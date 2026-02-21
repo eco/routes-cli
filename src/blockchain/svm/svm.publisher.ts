@@ -3,22 +3,24 @@
  */
 
 import { Injectable } from '@nestjs/common';
+
 import { getAccount, getAssociatedTokenAddressSync } from '@solana/spl-token';
 import { Connection, Keypair, PublicKey } from '@solana/web3.js';
 import { Hex } from 'viem';
 
+import { AddressNormalizer } from '@/blockchain/utils/address-normalizer';
 import { PortalHashUtils } from '@/commons/utils/portal-hash.utils';
 import { KeyHandle } from '@/shared/security';
 import { ChainType, Intent, UniversalAddress } from '@/shared/types';
-import { AddressNormalizer } from '@/blockchain/utils/address-normalizer';
 import { logger } from '@/utils/logger';
+
+import { BasePublisher, IntentStatus, PublishResult, ValidationResult } from '../base.publisher';
+import { ChainRegistryService } from '../chain-registry.service';
+import { ChainsService } from '../chains.service';
 
 import { DefaultSvmClientFactory, SvmClientFactory } from './solana-client';
 import { PublishContext, SvmError, SvmErrorType } from './svm-types';
 import { executeFunding } from './transaction-builder';
-import { BasePublisher, IntentStatus, PublishResult, ValidationResult } from '../base.publisher';
-import { ChainRegistryService } from '../chain-registry.service';
-import { ChainsService } from '../chains.service';
 
 @Injectable()
 export class SvmPublisher extends BasePublisher {
@@ -28,7 +30,7 @@ export class SvmPublisher extends BasePublisher {
     rpcUrl: string,
     registry: ChainRegistryService,
     private readonly chains: ChainsService,
-    factory: SvmClientFactory = new DefaultSvmClientFactory(),
+    factory: SvmClientFactory = new DefaultSvmClientFactory()
   ) {
     super(rpcUrl, registry);
     this.connection = factory.createConnection(rpcUrl);
@@ -41,10 +43,10 @@ export class SvmPublisher extends BasePublisher {
     encodedRoute: string,
     keyHandle: KeyHandle,
     portalAddress?: UniversalAddress,
-    proverAddress?: UniversalAddress,
+    proverAddress?: UniversalAddress
   ): Promise<PublishResult> {
     this.runPreflightChecks(source);
-    return keyHandle.useAsync(async (rawKey) => {
+    return keyHandle.useAsync(async rawKey => {
       const keypair = this.parsePrivateKey(rawKey);
       return this.runSafely(async () => {
         const portalProgramId = portalAddress
@@ -55,7 +57,7 @@ export class SvmPublisher extends BasePublisher {
           source,
           destination,
           encodedRoute as Hex,
-          reward,
+          reward
         );
 
         this.logPublishInfo(portalProgramId, keypair, destination);
@@ -120,7 +122,7 @@ export class SvmPublisher extends BasePublisher {
 
   override async validate(
     reward: Intent['reward'],
-    senderAddress: string,
+    senderAddress: string
   ): Promise<ValidationResult> {
     const errors: string[] = [];
 
@@ -128,7 +130,7 @@ export class SvmPublisher extends BasePublisher {
       const balance = await this.getBalance(senderAddress);
       if (balance < reward.nativeAmount) {
         errors.push(
-          `Insufficient SOL balance. Required: ${reward.nativeAmount} lamports, Available: ${balance}`,
+          `Insufficient SOL balance. Required: ${reward.nativeAmount} lamports, Available: ${balance}`
         );
       }
     }
@@ -136,19 +138,17 @@ export class SvmPublisher extends BasePublisher {
     const walletPubkey = new PublicKey(senderAddress);
     for (const token of reward.tokens) {
       try {
-        const tokenMint = new PublicKey(
-          AddressNormalizer.denormalize(token.token, ChainType.SVM),
-        );
+        const tokenMint = new PublicKey(AddressNormalizer.denormalize(token.token, ChainType.SVM));
         const ata = getAssociatedTokenAddressSync(tokenMint, walletPubkey);
         const tokenAccount = await getAccount(this.connection, ata);
         if (tokenAccount.amount < token.amount) {
           errors.push(
-            `Insufficient SPL token balance for ${tokenMint}. Required: ${token.amount}, Available: ${tokenAccount.amount}`,
+            `Insufficient SPL token balance for ${tokenMint}. Required: ${token.amount}, Available: ${tokenAccount.amount}`
           );
         }
       } catch {
         errors.push(
-          `Could not verify SPL token balance for ${AddressNormalizer.denormalize(token.token, ChainType.SVM)}`,
+          `Could not verify SPL token balance for ${AddressNormalizer.denormalize(token.token, ChainType.SVM)}`
         );
       }
     }
@@ -199,8 +199,8 @@ export class SvmPublisher extends BasePublisher {
     }
   }
 
-  override async getStatus(_intentHash: string, _chainId: bigint): Promise<IntentStatus> {
-    throw new Error('getStatus not yet implemented for SVM');
+  override getStatus(_intentHash: string, _chainId: bigint): Promise<IntentStatus> {
+    return Promise.reject(new Error('getStatus not yet implemented for SVM'));
   }
 
   private getPortalProgramId(chainId: bigint): PublicKey {
@@ -209,13 +209,11 @@ export class SvmPublisher extends BasePublisher {
     if (!chainConfig?.portalAddress) {
       throw new SvmError(
         SvmErrorType.INVALID_CONFIG,
-        `No Portal address configured for chain ${chainId}`,
+        `No Portal address configured for chain ${chainId}`
       );
     }
 
-    return new PublicKey(
-      AddressNormalizer.denormalize(chainConfig.portalAddress, ChainType.SVM),
-    );
+    return new PublicKey(AddressNormalizer.denormalize(chainConfig.portalAddress, ChainType.SVM));
   }
 
   private logPublishInfo(portalProgramId: PublicKey, keypair: Keypair, destination: bigint): void {

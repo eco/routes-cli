@@ -8,7 +8,7 @@ export interface RawChainConfig {
   env: 'production' | 'development';
   type: ChainType;
   rpcUrl: string;
-  portalAddress?: string;   // raw string, normalized lazily by ChainsService
+  portalAddress?: string; // raw string, normalized lazily by ChainsService
   proverAddress?: string;
   nativeCurrency: { name: string; symbol: string; decimals: number };
 }

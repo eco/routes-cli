@@ -1,5 +1,14 @@
 import { Injectable } from '@nestjs/common';
-import { ChainType, UniversalAddress, BlockchainAddress, EvmAddress, TronAddress, SvmAddress } from '@/shared/types';
+
+import {
+  BlockchainAddress,
+  ChainType,
+  EvmAddress,
+  SvmAddress,
+  TronAddress,
+  UniversalAddress,
+} from '@/shared/types';
+
 import { ChainRegistryService } from './chain-registry.service';
 
 @Injectable()

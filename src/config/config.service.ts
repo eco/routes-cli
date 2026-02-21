@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService as NestConfigService } from '@nestjs/config';
+
 import { Hex } from 'viem';
+
 import { ChainType } from '@/shared/types';
 
 @Injectable()
@@ -23,7 +25,7 @@ export class ConfigService {
     const map: Record<ChainType, Record<'primary' | 'fallback', string>> = {
       [ChainType.EVM]: {
         primary: this.config.get<string>('EVM_RPC_URL') ?? '',
-        fallback: '',  // EVM fallback not configured via env — handled per-chain
+        fallback: '', // EVM fallback not configured via env — handled per-chain
       },
       [ChainType.TVM]: {
         primary: this.config.get<string>('TVM_RPC_URL') ?? 'https://api.trongrid.io',

@@ -78,6 +78,12 @@ module.exports = defineConfig([
   },
   globalIgnores(['**/.eslintrc.js', 'src/scripts/**']),
   {
+    files: ['src/cli/**/*.ts'],
+    rules: {
+      'no-console': 'off',
+    },
+  },
+  {
     files: ['**/*.ts', '**/*.tsx'],
 
     rules: {

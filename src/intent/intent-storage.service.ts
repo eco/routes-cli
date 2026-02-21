@@ -1,9 +1,11 @@
-import { Injectable } from '@nestjs/common';
 import * as fs from 'fs/promises';
-import * as path from 'path';
 import * as os from 'os';
-import { Intent } from '@/shared/types';
+import * as path from 'path';
+
+import { Injectable } from '@nestjs/common';
+
 import { PublishResult } from '@/blockchain/base.publisher';
+import { Intent } from '@/shared/types';
 
 export interface StoredIntent {
   intentHash: string;
@@ -57,7 +59,9 @@ export class IntentStorage {
   private async readAll(): Promise<StoredIntent[]> {
     try {
       const raw = await fs.readFile(this.storePath, 'utf8');
-      return JSON.parse(raw, (_, v) => typeof v === 'string' && /^\d+n$/.test(v) ? BigInt(v.slice(0, -1)) : v);
+      return JSON.parse(raw, (_, v) =>
+        typeof v === 'string' && /^\d+n$/.test(v) ? BigInt(v.slice(0, -1)) : v
+      );
     } catch {
       return [];
     }
@@ -65,6 +69,9 @@ export class IntentStorage {
 
   private async writeAll(intents: StoredIntent[]): Promise<void> {
     await fs.mkdir(path.dirname(this.storePath), { recursive: true });
-    await fs.writeFile(this.storePath, JSON.stringify(intents, (_, v) => typeof v === 'bigint' ? `${v}n` : v, 2));
+    await fs.writeFile(
+      this.storePath,
+      JSON.stringify(intents, (_, v) => (typeof v === 'bigint' ? `${v}n` : v), 2)
+    );
   }
 }

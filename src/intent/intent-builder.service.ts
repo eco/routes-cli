@@ -1,9 +1,11 @@
 import { Injectable } from '@nestjs/common';
+
 import { encodeFunctionData, erc20Abi, Hex } from 'viem';
-import { Intent, UniversalAddress, ChainConfig } from '@/shared/types';
+
 import { AddressNormalizerService } from '@/blockchain/address-normalizer.service';
 import { PortalEncoderService } from '@/blockchain/encoding/portal-encoder.service';
 import { ConfigService } from '@/config/config.service';
+import { ChainConfig, Intent, UniversalAddress } from '@/shared/types';
 
 export interface RewardParams {
   sourceChain: ChainConfig;
@@ -28,7 +30,7 @@ export class IntentBuilder {
   constructor(
     private readonly config: ConfigService,
     private readonly encoder: PortalEncoderService,
-    private readonly normalizer: AddressNormalizerService,
+    private readonly normalizer: AddressNormalizerService
   ) {}
 
   buildReward(params: RewardParams): Intent['reward'] {

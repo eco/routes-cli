@@ -1,8 +1,14 @@
 import { z } from 'zod';
 
 export const EnvSchema = z.object({
-  EVM_PRIVATE_KEY: z.string().regex(/^0x[a-fA-F0-9]{64}$/).optional(),
-  TVM_PRIVATE_KEY: z.string().regex(/^[a-fA-F0-9]{64}$/).optional(),
+  EVM_PRIVATE_KEY: z
+    .string()
+    .regex(/^0x[a-fA-F0-9]{64}$/)
+    .optional(),
+  TVM_PRIVATE_KEY: z
+    .string()
+    .regex(/^[a-fA-F0-9]{64}$/)
+    .optional(),
   SVM_PRIVATE_KEY: z.string().min(1).optional(),
 
   EVM_RPC_URL: z.string().url().optional(),
