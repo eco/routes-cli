@@ -298,6 +298,42 @@ async function buildIntentInteractively(options: PublishCommandOptions) {
       logger.warning('Quote response missing required contract addresses');
       quote = null;
     }
+
+    // If quote is valid, ask user if they want to use it or configure manually
+    if (quote) {
+      const quoteData = quote.quoteResponse;
+      if (quoteData) {
+        logger.log('');
+        logger.log('📊 Quote Details:');
+        logger.log(
+          `   Route Amount: ${formatUnits(BigInt(quoteData.destinationAmount), routeToken.decimals)} ${routeToken.symbol || ''}`
+        );
+        logger.log(`   Deadline: ${new Date(quoteData.deadline * 1000).toLocaleString()}`);
+        if (quoteData.estimatedFulfillTimeSec) {
+          logger.log(`   Estimated Fulfillment: ${quoteData.estimatedFulfillTimeSec} seconds`);
+        }
+        if (quoteData.fees && quoteData.fees.length > 0) {
+          logger.log(
+            `   Fees: ${quoteData.fees.map(f => `${formatUnits(BigInt(f.amount), f.token.decimals)} ${f.token.symbol}`).join(', ')}`
+          );
+        }
+        logger.log('');
+
+        const { useQuote } = await inquirer.prompt([
+          {
+            type: 'confirm',
+            name: 'useQuote',
+            message: 'Use this quote or configure route manually?',
+            default: true,
+          },
+        ]);
+
+        if (!useQuote) {
+          logger.log('Proceeding with manual configuration...');
+          quote = null;
+        }
+      }
+    }
   } catch (error: any) {
     logger.stopSpinner();
     if (process.env.DEBUG) {
