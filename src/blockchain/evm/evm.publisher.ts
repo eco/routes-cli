@@ -20,7 +20,6 @@ import { privateKeyToAccount } from 'viem/accounts';
 import * as chains from 'viem/chains';
 
 import { portalAbi } from '@/commons/abis/portal.abi';
-import { getChainById } from '@/config/chains';
 import { KeyHandle } from '@/shared/security';
 import { Intent, UniversalAddress } from '@/shared/types';
 import { AddressNormalizer } from '@/core/utils/address-normalizer';
@@ -29,6 +28,7 @@ import { logger } from '@/utils/logger';
 import { DefaultEvmClientFactory, EvmClientFactory } from './evm-client-factory';
 import { BasePublisher, IntentStatus, PublishResult, ValidationResult } from '../base.publisher';
 import { ChainRegistryService } from '../chain-registry.service';
+import { ChainsService } from '../chains.service';
 
 @Injectable()
 export class EvmPublisher extends BasePublisher {
@@ -38,6 +38,7 @@ export class EvmPublisher extends BasePublisher {
   constructor(
     rpcUrl: string,
     registry: ChainRegistryService,
+    private readonly chains: ChainsService,
     clientFactory: EvmClientFactory = new DefaultEvmClientFactory(),
   ) {
     super(rpcUrl, registry);
@@ -78,8 +79,8 @@ export class EvmPublisher extends BasePublisher {
 
         const publicClient = this.getPublicClient();
 
-        const sourceChainConfig = getChainById(source);
-        const destinationChainConfig = getChainById(destination);
+        const sourceChainConfig = this.chains.findChainById(source);
+        const destinationChainConfig = this.chains.findChainById(destination);
 
         const portalAddrUniversal = portalAddress ?? sourceChainConfig?.portalAddress;
 
@@ -266,7 +267,7 @@ export class EvmPublisher extends BasePublisher {
   }
 
   override async getStatus(intentHash: string, chainId: bigint): Promise<IntentStatus> {
-    const chainConfig = getChainById(chainId);
+    const chainConfig = this.chains.findChainById(chainId);
     if (!chainConfig?.portalAddress) {
       throw new Error(`No portal address configured for chain ${chainId}`);
     }

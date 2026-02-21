@@ -24,8 +24,6 @@
  * ```
  */
 
-import { Network } from '@/commons/idls/portal.idl';
-import { getChainById } from '@/config/chains';
 import { ChainType } from '@/core/interfaces/intent';
 
 /**
@@ -201,19 +199,4 @@ export class ChainTypeDetector {
     );
   }
 
-  /**
-   * Determines the network (mainnet/devnet) from chain configuration
-   *
-   * @param chainId - Chain ID to look up
-   * @returns Network enum value
-   * @throws Error if chain is not found
-   */
-  static getNetworkFromChainConfig(chainId: bigint): Network {
-    const chainConfig = getChainById(chainId);
-    if (!chainConfig) {
-      throw new Error(`Unknown chain: ${chainId}`);
-    }
-
-    return chainConfig.env === 'production' ? Network.MAINNET : Network.DEVNET;
-  }
 }

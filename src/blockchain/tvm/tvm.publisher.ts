@@ -8,7 +8,6 @@ import { erc20Abi, Hex } from 'viem';
 
 import { portalAbi } from '@/commons/abis/portal.abi';
 import { PortalHashUtils } from '@/commons/utils/portal-hash.utils';
-import { getChainById } from '@/config/chains';
 import { ErrorCode, RoutesCliError } from '@/shared/errors';
 import { KeyHandle } from '@/shared/security';
 import { ChainType, Intent, UniversalAddress } from '@/shared/types';
@@ -18,6 +17,7 @@ import { logger } from '@/utils/logger';
 import { DefaultTvmClientFactory, TvmClientFactory } from './tvm-client-factory';
 import { BasePublisher, IntentStatus, PublishResult, ValidationResult } from '../base.publisher';
 import { ChainRegistryService } from '../chain-registry.service';
+import { ChainsService } from '../chains.service';
 
 @Injectable()
 export class TvmPublisher extends BasePublisher {
@@ -26,6 +26,7 @@ export class TvmPublisher extends BasePublisher {
   constructor(
     rpcUrl: string,
     registry: ChainRegistryService,
+    private readonly chains: ChainsService,
     factory: TvmClientFactory = new DefaultTvmClientFactory(),
   ) {
     super(rpcUrl, registry);
@@ -47,14 +48,14 @@ export class TvmPublisher extends BasePublisher {
       const senderAddress = tronWeb.address.fromPrivateKey(rawKey);
 
       return this.runSafely(async () => {
-        const chainConfig = getChainById(source);
+        const chainConfig = this.chains.findChainById(source);
         const portalAddrUniversal = _portalAddress ?? chainConfig?.portalAddress;
         if (!portalAddrUniversal) {
           throw new Error(`No Portal address configured for chain ${source}`);
         }
         const portalAddress = AddressNormalizer.denormalize(portalAddrUniversal, ChainType.TVM);
 
-        const destChainConfig = getChainById(BigInt(destination));
+        const destChainConfig = this.chains.findChainById(BigInt(destination));
         if (!destChainConfig) {
           throw new Error(`Unknown destination chain: ${destination}`);
         }

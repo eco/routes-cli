@@ -32,7 +32,7 @@
 | TASK-025 | 7     | Create cli/commands/publish.command.ts               | COMPLETE | swapped nestjs-commander→nest-commander (correct package name) |
 | TASK-026 | 7     | Create remaining CLI commands                        | COMPLETE |      |
 | TASK-027 | 7     | Create cli.module.ts                                 | COMPLETE |      |
-| TASK-028 | 8     | Create app.module.ts + main.ts                       | PENDING |       |
+| TASK-028 | 8     | Create app.module.ts + main.ts                       | COMPLETE | fixed chain-detector/tokens.config load-time issues; CliModule imports; ts-node for dev |
 | TASK-029 | 8     | Remove old source files                              | PENDING |       |
 | TASK-030 | 8     | Update tsconfig.json                                 | PENDING |       |
 

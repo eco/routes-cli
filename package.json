@@ -8,9 +8,9 @@
   },
   "scripts": {
     "build": "tsc",
-    "dev": "tsx -r tsconfig-paths/register src/index.ts",
-    "dev:testnet": "NODE_CHAINS_ENV=development tsx -r tsconfig-paths/register src/index.ts",
-    "start": "node -r tsconfig-paths/register dist/index.js",
+    "dev": "ts-node --transpile-only -r tsconfig-paths/register src/main.ts",
+    "dev:testnet": "NODE_CHAINS_ENV=development ts-node --transpile-only -r tsconfig-paths/register src/main.ts",
+    "start": "node -r tsconfig-paths/register dist/main.js",
     "clean": "rm -rf dist",
     "test": "jest",
     "test:unit": "jest --testPathPattern='tests/(core|config|blockchain)'",

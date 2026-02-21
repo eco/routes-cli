@@ -8,7 +8,6 @@ import { Connection, Keypair, PublicKey } from '@solana/web3.js';
 import { Hex } from 'viem';
 
 import { PortalHashUtils } from '@/commons/utils/portal-hash.utils';
-import { getChainById } from '@/config/chains';
 import { KeyHandle } from '@/shared/security';
 import { ChainType, Intent, UniversalAddress } from '@/shared/types';
 import { AddressNormalizer } from '@/core/utils/address-normalizer';
@@ -19,6 +18,7 @@ import { PublishContext, SvmError, SvmErrorType } from './svm-types';
 import { executeFunding } from './transaction-builder';
 import { BasePublisher, IntentStatus, PublishResult, ValidationResult } from '../base.publisher';
 import { ChainRegistryService } from '../chain-registry.service';
+import { ChainsService } from '../chains.service';
 
 @Injectable()
 export class SvmPublisher extends BasePublisher {
@@ -27,6 +27,7 @@ export class SvmPublisher extends BasePublisher {
   constructor(
     rpcUrl: string,
     registry: ChainRegistryService,
+    private readonly chains: ChainsService,
     factory: SvmClientFactory = new DefaultSvmClientFactory(),
   ) {
     super(rpcUrl, registry);
@@ -203,7 +204,7 @@ export class SvmPublisher extends BasePublisher {
   }
 
   private getPortalProgramId(chainId: bigint): PublicKey {
-    const chainConfig = getChainById(chainId);
+    const chainConfig = this.chains.findChainById(chainId);
 
     if (!chainConfig?.portalAddress) {
       throw new SvmError(

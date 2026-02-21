@@ -1,4 +1,5 @@
 import { Global, Module } from '@nestjs/common';
+import { ConfigModule } from '@/config/config.module';
 import { ChainRegistryService } from './chain-registry.service';
 import { AddressNormalizerService } from './address-normalizer.service';
 import { ChainsService } from './chains.service';
@@ -9,6 +10,7 @@ import { IntentConverterService } from './encoding/intent-converter.service';
 
 @Global()
 @Module({
+  imports: [ConfigModule],
   providers: [
     ChainRegistryService,
     AddressNormalizerService,

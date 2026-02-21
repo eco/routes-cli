@@ -53,6 +53,10 @@ export class ChainsService implements OnModuleInit {
     return chain;
   }
 
+  findChainById(id: bigint): ChainConfig | undefined {
+    return this.chains.find(c => c.id === id);
+  }
+
   getChainByName(name: string): ChainConfig {
     const chain = this.chains.find(c => c.name.toLowerCase() === name.toLowerCase());
     if (!chain) throw RoutesCliError.unsupportedChain(name);
