@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 
+import { Keypair } from '@solana/web3.js';
 import { Command, CommandRunner, Option } from 'nest-commander';
+import { TronWeb } from 'tronweb';
+import { Hex } from 'viem';
+import { privateKeyToAccount } from 'viem/accounts';
 
 import { AddressNormalizerService } from '@/blockchain/address-normalizer.service';
 import { ChainsService } from '@/blockchain/chains.service';
@@ -11,10 +15,34 @@ import { IntentBuilder } from '@/intent/intent-builder.service';
 import { IntentStorage } from '@/intent/intent-storage.service';
 import { QuoteService } from '@/quote/quote.service';
 import { KeyHandle } from '@/shared/security';
-import { Intent } from '@/shared/types';
+import { ChainType, Intent } from '@/shared/types';
 
 import { DisplayService } from '../services/display.service';
 import { PromptService } from '../services/prompt.service';
+
+function deriveAddress(key: string, chainType: ChainType): string {
+  switch (chainType) {
+    case ChainType.EVM:
+      return privateKeyToAccount(key as Hex).address;
+    case ChainType.TVM:
+      return TronWeb.address.fromPrivateKey(key) as string;
+    case ChainType.SVM: {
+      let keypair: Keypair;
+      if (key.startsWith('[') && key.endsWith(']')) {
+        keypair = Keypair.fromSecretKey(new Uint8Array(JSON.parse(key) as number[]));
+      } else if (key.includes(',')) {
+        keypair = Keypair.fromSecretKey(
+          new Uint8Array(key.split(',').map(b => parseInt(b.trim())))
+        );
+      } else {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const bs58 = require('bs58') as { decode: (s: string) => Uint8Array };
+        keypair = Keypair.fromSecretKey(bs58.decode(key));
+      }
+      return keypair.publicKey.toBase58();
+    }
+  }
+}
 
 interface PublishOptions {
   source?: string;
@@ -70,22 +98,24 @@ export class PublishCommand extends CommandRunner {
     );
 
     this.display.section('👤 Recipient Configuration');
+    const destKey = this.config.getKeyForChainType(destChain.type);
+    const recipientDefault = destKey ? deriveAddress(destKey, destChain.type) : undefined;
     const recipientRaw =
-      options.recipient ?? (await this.prompt.inputAddress(destChain, 'recipient'));
+      options.recipient ??
+      (await this.prompt.inputAddress(destChain, 'recipient', recipientDefault));
     const recipient = this.normalizer.normalize(
       recipientRaw as Parameters<typeof this.normalizer.normalize>[0],
       destChain.type
     );
 
-    const rawKey = options.privateKey ?? this.config.getEvmPrivateKey() ?? '';
+    const rawKey = options.privateKey ?? this.config.getKeyForChainType(sourceChain.type) ?? '';
     const keyHandle = new KeyHandle(rawKey);
 
     // Derive sender address synchronously, then keep async key handle for publisher
     let senderAddress: string;
     const publishKeyHandle = new KeyHandle(rawKey);
     keyHandle.use(key => {
-      // replace with getWalletAddress(sourceChain.type, key) for production
-      senderAddress = key;
+      senderAddress = deriveAddress(key, sourceChain.type);
     });
 
     // Quote or fallback

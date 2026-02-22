@@ -32,8 +32,9 @@ export class PromptService {
     tokens: TokenConfig[],
     label: string
   ): Promise<{ address: string; decimals: number; symbol?: string }> {
+    const availableTokens = tokens.filter(t => !!t.addresses[chain.id.toString()]);
     const choices = [
-      ...tokens.map(t => ({ name: `${t.symbol} - ${t.name}`, value: t.symbol })),
+      ...availableTokens.map(t => ({ name: `${t.symbol} - ${t.name}`, value: t.symbol })),
       { name: 'Custom Token Address', value: 'CUSTOM' },
     ];
 
@@ -76,7 +77,7 @@ export class PromptService {
       return { address: address as string, decimals: parseInt(decimals as string) };
     }
 
-    const token = tokens.find(t => t.symbol === tokenChoice);
+    const token = availableTokens.find(t => t.symbol === tokenChoice);
     if (!token) throw new Error(`Token ${tokenChoice as string} not found`);
 
     const tokenAddress = token.addresses[chain.id.toString()];

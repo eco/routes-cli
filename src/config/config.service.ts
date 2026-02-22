@@ -21,6 +21,17 @@ export class ConfigService {
     return this.config.get<string>('SVM_PRIVATE_KEY');
   }
 
+  getKeyForChainType(chainType: ChainType): string | undefined {
+    switch (chainType) {
+      case ChainType.EVM:
+        return this.getEvmPrivateKey();
+      case ChainType.TVM:
+        return this.getTvmPrivateKey();
+      case ChainType.SVM:
+        return this.getSvmPrivateKey();
+    }
+  }
+
   getRpcUrl(chainType: ChainType, variant: 'primary' | 'fallback' = 'primary'): string | undefined {
     const map: Record<ChainType, Record<'primary' | 'fallback', string>> = {
       [ChainType.EVM]: {
