@@ -36,12 +36,16 @@ export class IntentBuilder {
   buildReward(params: RewardParams): Intent['reward'] {
     const deadlineOffset = BigInt(this.config.getDeadlineOffsetSeconds());
     const deadline = params.deadline ?? BigInt(Math.floor(Date.now() / 1000)) + deadlineOffset;
+
+    const rewardEvmAddr = this.normalizer.denormalizeToEvm(params.rewardToken);
+    const isNative = rewardEvmAddr === '0x0000000000000000000000000000000000000000';
+
     return {
       deadline,
       creator: params.creator,
       prover: params.prover,
-      nativeAmount: 0n,
-      tokens: [{ token: params.rewardToken, amount: params.rewardAmount }],
+      nativeAmount: isNative ? params.rewardAmount : 0n,
+      tokens: isNative ? [] : [{ token: params.rewardToken, amount: params.rewardAmount }],
     };
   }
 
@@ -50,22 +54,39 @@ export class IntentBuilder {
     const deadline = params.deadline ?? BigInt(Math.floor(Date.now() / 1000)) + deadlineOffset;
     const salt = this.generateSalt();
 
-    // Build ERC-20 transfer call to recipient
-    const recipientAddr = this.normalizer.denormalizeToEvm(params.recipient);
-    const transferData = encodeFunctionData({
-      abi: erc20Abi,
-      functionName: 'transfer',
-      args: [recipientAddr, params.routeAmount],
-    });
+    const routeEvmAddr = this.normalizer.denormalizeToEvm(params.routeToken);
+    const isNative = routeEvmAddr === '0x0000000000000000000000000000000000000000';
 
-    const route: Intent['route'] = {
-      salt,
-      deadline,
-      portal: params.portal,
-      nativeAmount: 0n,
-      tokens: [{ token: params.routeToken, amount: params.routeAmount }],
-      calls: [{ target: params.routeToken, data: transferData, value: 0n }],
-    };
+    let route: Intent['route'];
+
+    if (isNative) {
+      // Native ETH call: send value directly to recipient with empty calldata
+      route = {
+        salt,
+        deadline,
+        portal: params.portal,
+        nativeAmount: params.routeAmount,
+        tokens: [],
+        calls: [{ target: params.recipient, data: '0x', value: params.routeAmount }],
+      };
+    } else {
+      // ERC-20 path: build transfer call to recipient
+      const recipientAddr = this.normalizer.denormalizeToEvm(params.recipient);
+      const transferData = encodeFunctionData({
+        abi: erc20Abi,
+        functionName: 'transfer',
+        args: [recipientAddr, params.routeAmount],
+      });
+
+      route = {
+        salt,
+        deadline,
+        portal: params.portal,
+        nativeAmount: 0n,
+        tokens: [{ token: params.routeToken, amount: params.routeAmount }],
+        calls: [{ target: params.routeToken, data: transferData, value: 0n }],
+      };
+    }
 
     const encodedRoute = this.encoder.encode(route, params.destChain.type);
     return { encodedRoute, route };

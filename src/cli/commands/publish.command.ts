@@ -147,7 +147,26 @@ export class PublishCommand extends CommandRunner {
     } catch (error) {
       console.error(error);
       this.display.warn('Quote service unavailable — using manual configuration');
-      encodedRoute = await this.prompt.inputManualPortal(sourceChain); // simplified — full manual fallback in production
+
+      const { parsed: routeAmount } = await this.prompt.inputAmount(
+        routeToken.symbol ?? 'tokens',
+        routeToken.decimals
+      );
+
+      const destPortal = destChain.portalAddress!;
+      const routeTokenUniversal = this.normalizer.normalize(
+        routeToken.address as Parameters<typeof this.normalizer.normalize>[0],
+        destChain.type
+      );
+
+      const { encodedRoute: manualEncodedRoute } = this.intentBuilder.buildManualRoute({
+        destChain,
+        recipient,
+        routeToken: routeTokenUniversal,
+        routeAmount,
+        portal: destPortal,
+      });
+      encodedRoute = manualEncodedRoute;
     }
 
     const rewardTokenUniversal = this.normalizer.normalize(
