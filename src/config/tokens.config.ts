@@ -129,6 +129,40 @@ export const TOKEN_CONFIGS: Record<string, TokenConfig> = {
       ), // BNB Smart Chain
     },
   },
+  ETH: {
+    symbol: 'ETH',
+    name: 'Ether',
+    decimals: 18,
+    addresses: {
+      // ETH-native chains → zero address (no contract; native currency sentinel)
+      '1': AddressNormalizer.normalizeEvm(
+        '0x0000000000000000000000000000000000000000' as EvmAddress
+      ), // Ethereum
+      '10': AddressNormalizer.normalizeEvm(
+        '0x0000000000000000000000000000000000000000' as EvmAddress
+      ), // Optimism
+      '8453': AddressNormalizer.normalizeEvm(
+        '0x0000000000000000000000000000000000000000' as EvmAddress
+      ), // Base
+      '42161': AddressNormalizer.normalizeEvm(
+        '0x0000000000000000000000000000000000000000' as EvmAddress
+      ), // Arbitrum
+      // ETH testnets → zero address
+      '11155111': AddressNormalizer.normalizeEvm(
+        '0x0000000000000000000000000000000000000000' as EvmAddress
+      ), // Sepolia
+      '84532': AddressNormalizer.normalizeEvm(
+        '0x0000000000000000000000000000000000000000' as EvmAddress
+      ), // Base Sepolia
+      '11155420': AddressNormalizer.normalizeEvm(
+        '0x0000000000000000000000000000000000000000' as EvmAddress
+      ), // Optimism Sepolia
+      // Non-ETH-native chain → WETH contract
+      '2020': AddressNormalizer.normalizeEvm(
+        '0xc99a6a985ed2cac1ef41640596c5a5f9f4e19ef5' as EvmAddress
+      ), // Ronin WETH
+    },
+  },
 };
 
 /**
