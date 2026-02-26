@@ -48,7 +48,11 @@ export abstract class BasePublisher {
 
   abstract getBalance(address: string, chainId?: bigint): Promise<bigint>;
 
-  abstract validate(reward: Intent['reward'], senderAddress: string): Promise<ValidationResult>;
+  abstract validate(
+    reward: Intent['reward'],
+    senderAddress: string,
+    chainId: bigint
+  ): Promise<ValidationResult>;
 
   abstract getStatus(intentHash: string, chain: ChainConfig): Promise<IntentStatus>;
 

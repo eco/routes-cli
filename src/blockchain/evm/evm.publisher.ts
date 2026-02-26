@@ -35,7 +35,7 @@ import { DefaultEvmClientFactory, EvmClientFactory } from './evm-client-factory'
 @Injectable()
 export class EvmPublisher extends BasePublisher {
   private readonly clientFactory: EvmClientFactory;
-  private _publicClient?: PublicClient;
+  private _publicClients: Map<number, PublicClient> = new Map();
 
   constructor(
     rpcUrl: string,
@@ -47,14 +47,12 @@ export class EvmPublisher extends BasePublisher {
     this.clientFactory = clientFactory;
   }
 
-  private getPublicClient(): PublicClient {
-    if (!this._publicClient) {
-      this._publicClient = this.clientFactory.createPublicClient({
-        chain: chains.mainnet,
-        rpcUrl: this.rpcUrl,
-      });
-    }
-    return this._publicClient;
+  private getPublicClient(chain: Chain): PublicClient {
+    const cached = this._publicClients.get(chain.id);
+    if (cached) return cached;
+    const client = this.clientFactory.createPublicClient({ chain, rpcUrl: this.rpcUrl });
+    this._publicClients.set(chain.id, client);
+    return client;
   }
 
   override async publish(
@@ -79,7 +77,7 @@ export class EvmPublisher extends BasePublisher {
             account,
           });
 
-        const publicClient = this.getPublicClient();
+        const publicClient = this.getPublicClient(chain);
 
         const sourceChainConfig = this.chains.findChainById(source);
         const destinationChainConfig = this.chains.findChainById(destination);
@@ -226,17 +224,19 @@ export class EvmPublisher extends BasePublisher {
     });
   }
 
-  override async getBalance(address: string, _chainId?: bigint): Promise<bigint> {
-    return await this.getPublicClient().getBalance({ address: address as Address });
+  override async getBalance(address: string, chainId?: bigint): Promise<bigint> {
+    const chain = chainId ? this.getChain(chainId) : this.getChain(BigInt(chains.mainnet.id));
+    return await this.getPublicClient(chain).getBalance({ address: address as Address });
   }
 
   override async validate(
     reward: Intent['reward'],
-    senderAddress: string
+    senderAddress: string,
+    chainId: bigint
   ): Promise<ValidationResult> {
     const errors: string[] = [];
     try {
-      const publicClient = this.getPublicClient();
+      const publicClient = this.getPublicClient(this.getChain(chainId));
 
       if (reward.nativeAmount > 0n) {
         const balance = await publicClient.getBalance({ address: senderAddress as Address });
@@ -274,7 +274,8 @@ export class EvmPublisher extends BasePublisher {
     }
 
     const portalAddress = AddressNormalizer.denormalizeToEvm(chain.portalAddress);
-    const publicClient = this.getPublicClient();
+    const viemChain = this.getChain(chain.id);
+    const publicClient = this.getPublicClient(viemChain);
 
     const events = await publicClient.getContractEvents({
       address: portalAddress,

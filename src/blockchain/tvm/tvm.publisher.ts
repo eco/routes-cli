@@ -139,7 +139,8 @@ export class TvmPublisher extends BasePublisher {
 
   override async validate(
     reward: Intent['reward'],
-    senderAddress: string
+    senderAddress: string,
+    _chainId: bigint
   ): Promise<ValidationResult> {
     const errors: string[] = [];
 
