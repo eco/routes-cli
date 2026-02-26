@@ -49,12 +49,25 @@ interface PublishOptions {
   source?: string;
   destination?: string;
   privateKey?: string;
+  privateKeyTvm?: string;
+  privateKeySvm?: string;
   rpc?: string;
   recipient?: string;
   portalAddress?: string;
   proverAddress?: string;
   dryRun?: boolean;
   watch?: boolean;
+}
+
+function resolveKey(options: PublishOptions, chainType: ChainType): string | undefined {
+  switch (chainType) {
+    case ChainType.EVM:
+      return options.privateKey;
+    case ChainType.TVM:
+      return options.privateKeyTvm;
+    case ChainType.SVM:
+      return options.privateKeySvm;
+  }
 }
 
 @Injectable()
@@ -103,7 +116,8 @@ export class PublishCommand extends CommandRunner {
     );
 
     this.display.section('👤 Recipient Configuration');
-    const destKey = this.config.getKeyForChainType(destChain.type);
+    const destKey =
+      resolveKey(options, destChain.type) ?? this.config.getKeyForChainType(destChain.type);
     const recipientDefault = destKey ? deriveAddress(destKey, destChain.type) : undefined;
     const recipientRaw =
       options.recipient ??
@@ -113,7 +127,10 @@ export class PublishCommand extends CommandRunner {
       destChain.type
     );
 
-    const rawKey = options.privateKey ?? this.config.getKeyForChainType(sourceChain.type) ?? '';
+    const rawKey =
+      resolveKey(options, sourceChain.type) ??
+      this.config.getKeyForChainType(sourceChain.type) ??
+      '';
     const keyHandle = new KeyHandle(rawKey);
 
     // Derive sender address synchronously, then keep async key handle for publisher
@@ -317,8 +334,18 @@ export class PublishCommand extends CommandRunner {
     return val;
   }
 
-  @Option({ flags: '-k, --private-key <key>', description: 'Private key override' })
+  @Option({ flags: '-k, --private-key <key>', description: 'EVM private key (overrides env)' })
   parsePrivateKey(val: string): string {
+    return val;
+  }
+
+  @Option({ flags: '--private-key-tvm <key>', description: 'TVM private key (overrides env)' })
+  parsePrivateKeyTvm(val: string): string {
+    return val;
+  }
+
+  @Option({ flags: '--private-key-svm <key>', description: 'SVM private key (overrides env)' })
+  parsePrivateKeySvm(val: string): string {
     return val;
   }
 
