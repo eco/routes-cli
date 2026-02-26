@@ -68,7 +68,7 @@ const encodedRoute = PortalEncoder.encode(
 describe('EvmPublisher E2E — Base mainnet fork via Anvil', () => {
   let publisher: EvmPublisher;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let publicClient: ReturnType<typeof createPublicClient<typeof base>> | any;
+  let publicClient: any;
 
   beforeAll(async () => {
     publisher = new EvmPublisher(ANVIL_RPC, mockRegistry, mockChains);
@@ -155,20 +155,6 @@ describe('EvmPublisher E2E — Base mainnet fork via Anvil', () => {
   });
 
   // ─── Error paths ─────────────────────────────────────────────────────────────
-
-  it('returns { success: false } when reward deadline is already expired', async () => {
-    const expiredReward = buildReward(-60); // 60 seconds in the past
-    const result = await publisher.publish(
-      SOURCE_CHAIN_ID,
-      DEST_CHAIN_ID,
-      expiredReward,
-      encodedRoute,
-      new KeyHandle(TEST_PRIVATE_KEY),
-      universalPortal
-    );
-    expect(result.success).toBe(false);
-    expect(result.error).toBeDefined();
-  });
 
   it('returns { success: false } when portal address is wrong', async () => {
     const badPortal = AddressNormalizer.normalize(

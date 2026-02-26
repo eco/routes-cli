@@ -35,8 +35,8 @@ export class ConfigService {
   getRpcUrl(chainType: ChainType, variant: 'primary' | 'fallback' = 'primary'): string | undefined {
     const map: Record<ChainType, Record<'primary' | 'fallback', string>> = {
       [ChainType.EVM]: {
-        primary: this.config.get<string>('EVM_RPC_URL') ?? '',
-        fallback: '', // EVM fallback not configured via env — handled per-chain
+        primary: '',
+        fallback: '',
       },
       [ChainType.TVM]: {
         primary: this.config.get<string>('TVM_RPC_URL') ?? 'https://api.trongrid.io',
@@ -75,9 +75,5 @@ export class ConfigService {
 
   isDebug(): boolean {
     return !!this.config.get('DEBUG');
-  }
-
-  isWatchFulfillmentEnabled(): boolean {
-    return this.config.get<string>('WATCH_FULFILLMENT') !== 'false';
   }
 }

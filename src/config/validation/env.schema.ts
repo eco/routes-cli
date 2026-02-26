@@ -11,7 +11,6 @@ export const EnvSchema = z.object({
     .optional(),
   SVM_PRIVATE_KEY: z.string().min(1).optional(),
 
-  EVM_RPC_URL: z.string().url().optional(),
   TVM_RPC_URL: z.string().url().default('https://api.trongrid.io'),
   TVM_RPC_URL_2: z.string().url().default('https://tron.publicnode.com'),
   SVM_RPC_URL: z.string().url().default('https://api.mainnet-beta.solana.com'),
@@ -23,7 +22,6 @@ export const EnvSchema = z.object({
 
   NODE_CHAINS_ENV: z.enum(['production', 'development']).default('production'),
   DEBUG: z.string().optional(),
-  WATCH_FULFILLMENT: z.string().optional(),
 
   DAPP_ID: z.string().default('eco-routes-cli'),
   DEADLINE_OFFSET_SECONDS: z.coerce.number().positive().default(9000),

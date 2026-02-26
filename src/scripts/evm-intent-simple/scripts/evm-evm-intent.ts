@@ -10,13 +10,11 @@
  * - Ethereum → Optimism (USDT transfer)
  */
 
-import * as dotenv from 'dotenv';
+import 'dotenv/config';
 import { Hex } from 'viem';
 import { base, optimism } from 'viem/chains';
 
 import { IntentConfig, IntentCreator } from './intent-creator-base';
-
-dotenv.config();
 
 // ============================================================================
 // Configuration Examples

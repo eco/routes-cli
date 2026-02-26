@@ -4,11 +4,11 @@ services:
     entrypoint: anvil
     command: >
       --fork-url ${FORK_RPC_URL}
-      --fork-block-number ${FORK_BLOCK_NUMBER:-28000000}
       --chain-id 8453
       --host 0.0.0.0
       --port 8545
       --silent
+      --block-time 2
     ports:
       - "8545:8545"
     healthcheck:

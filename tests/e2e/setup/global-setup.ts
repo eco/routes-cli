@@ -1,6 +1,9 @@
 import { execFileSync } from 'child_process';
 import path from 'path';
 
+import * as dotenv from 'dotenv';
+dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
+
 const COMPOSE_FILE = path.resolve(__dirname, '../docker-compose.e2e.yml');
 const ANVIL_URL = 'http://localhost:8545';
 const MAX_WAIT_MS = 60_000;
