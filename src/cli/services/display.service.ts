@@ -20,16 +20,28 @@ export class DisplayService {
   }
 
   succeed(text?: string): void {
-    this.activeSpinner?.succeed(text);
-    this.activeSpinner = null;
+    if (this.activeSpinner) {
+      this.activeSpinner.succeed(text);
+      this.activeSpinner = null;
+    } else {
+      console.log(chalk.green(`✓ ${text}`));
+    }
   }
   fail(text?: string): void {
-    this.activeSpinner?.fail(text);
-    this.activeSpinner = null;
+    if (this.activeSpinner) {
+      this.activeSpinner.fail(text);
+      this.activeSpinner = null;
+    } else {
+      console.error(chalk.red(`✗ ${text}`));
+    }
   }
   warn(text?: string): void {
-    this.activeSpinner?.warn(text);
-    this.activeSpinner = null;
+    if (this.activeSpinner) {
+      this.activeSpinner.warn(text);
+      this.activeSpinner = null;
+    } else {
+      console.warn(chalk.yellow(`⚠ ${text}`));
+    }
   }
   stopSpinner(): void {
     this.activeSpinner?.stop();

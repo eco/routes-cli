@@ -198,7 +198,6 @@ export class PublishCommand extends CommandRunner {
       return;
     }
 
-    this.display.spinner('Publishing intent to blockchain...');
     const publisher = this.publisherFactory.create(sourceChain);
     const result = await publisher.publish(
       sourceChain.id,
@@ -231,8 +230,9 @@ export class PublishCommand extends CommandRunner {
       if (!canWatch) {
         this.display.log(`Fulfillment watching not yet supported for ${destChain.type} chains.`);
       } else {
+        const timeoutMultipler = 3;
         const estimatedSec = quote?.estimatedFulfillTimeSec ?? 300;
-        const timeoutMs = estimatedSec * 2 * 1000;
+        const timeoutMs = estimatedSec * timeoutMultipler * 1000;
 
         this.display.spinner(`Watching for fulfillment on ${destChain.name}...`);
 
@@ -261,7 +261,7 @@ export class PublishCommand extends CommandRunner {
           this.display.displayFulfillmentResult(finalStatus);
         } else {
           this.display.warn(
-            `Not fulfilled within ${estimatedSec * 2}s — check manually: ` +
+            `Not fulfilled within ${estimatedSec * timeoutMultipler}s — check manually: ` +
               `routes status ${result.intentHash} --chain ${destChain.name}`
           );
         }
