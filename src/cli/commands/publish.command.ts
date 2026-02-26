@@ -15,7 +15,7 @@ import { IntentBuilder } from '@/intent/intent-builder.service';
 import { IntentStorage } from '@/intent/intent-storage.service';
 import { QuoteResult, QuoteService } from '@/quote/quote.service';
 import { KeyHandle } from '@/shared/security';
-import { ChainType, Intent } from '@/shared/types';
+import { BlockchainAddress, ChainType, Intent } from '@/shared/types';
 import { IntentStatus, StatusService } from '@/status/status.service';
 
 import { DisplayService } from '../services/display.service';
@@ -236,10 +236,20 @@ export class PublishCommand extends CommandRunner {
 
         this.display.spinner(`Watching for fulfillment on ${destChain.name}...`);
 
+        const watchChain = quote?.destinationPortalAddress
+          ? {
+              ...destChain,
+              portalAddress: this.normalizer.normalize(
+                quote.destinationPortalAddress as BlockchainAddress,
+                destChain.type
+              ),
+            }
+          : destChain;
+
         let finalStatus: IntentStatus | null = null;
         const outcome = await this.statusService.watch(
           result.intentHash,
-          destChain,
+          watchChain,
           status => {
             finalStatus = status;
           },

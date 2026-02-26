@@ -8,8 +8,8 @@ import { BN, Program } from '@coral-xyz/anchor';
 import { getAssociatedTokenAddress } from '@solana/spl-token';
 import { Connection, Keypair, PublicKey, Transaction } from '@solana/web3.js';
 
-import { ChainType, Intent } from '@/shared/types';
 import { AddressNormalizer } from '@/blockchain/utils/address-normalizer';
+import { ChainType, Intent } from '@/shared/types';
 import { logger } from '@/utils/logger';
 
 import { PublishResult } from '../base.publisher';

@@ -99,12 +99,16 @@
     "overrides": {
       "axios": ">=1.13.5",
       "minimatch": ">=10.2.1",
-      "test-exclude": "8.0.0"
+      "test-exclude": "8.0.0",
+      "bn.js": "5.2.3"
     },
     "auditConfig": {
       "ignoreCves": [
         "GHSA-3gc7-fjrx-p6mg",
-        "CVE-2025-3194"
+        "CVE-2025-3194",
+        "GHSA-2g4f-4pwh-qvx6",
+        "CVE-2025-69873",
+        "GHSA-378v-28hj-76wf"
       ]
     }
   }

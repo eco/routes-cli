@@ -3,6 +3,7 @@ import { TronWeb } from 'tronweb';
 import { getAddress, isAddress as isViemAddress } from 'viem';
 
 import { getErrorMessage } from '@/commons/utils/error-handler';
+import { RoutesCliError } from '@/shared/errors';
 import { BlockchainAddress, ChainType, EvmAddress, SvmAddress, TronAddress } from '@/shared/types';
 import { padTo32Bytes, UniversalAddress, unpadFrom32Bytes } from '@/shared/types';
 
@@ -16,7 +17,7 @@ export class AddressNormalizer {
       case ChainType.SVM:
         return AddressNormalizer.normalizeSvm(address as SvmAddress);
       default:
-        throw new Error(`Unsupported chain type: ${chainType}`);
+        throw RoutesCliError.unsupportedChain(chainType as string);
     }
   }
 
@@ -38,7 +39,7 @@ export class AddressNormalizer {
       case ChainType.SVM:
         return AddressNormalizer.denormalizeToSvm(address) as Addr;
       default:
-        throw new Error(`Unsupported chain type: ${chainType}`);
+        throw RoutesCliError.unsupportedChain(chainType as string);
     }
   }
 
@@ -85,7 +86,7 @@ export class AddressNormalizer {
 
   static normalizeEvm(address: EvmAddress): UniversalAddress {
     if (!isViemAddress(address)) {
-      throw new Error(`Invalid EVM address: ${address}`);
+      throw RoutesCliError.invalidAddress(address, ChainType.EVM);
     }
     const checksummed = getAddress(address);
     return padTo32Bytes(checksummed) as UniversalAddress;
@@ -110,7 +111,8 @@ export class AddressNormalizer {
       }
       return padTo32Bytes(hexAddress) as UniversalAddress;
     } catch (error) {
-      throw new Error(`Failed to normalize TVM address ${address}: ${getErrorMessage(error)}`);
+      if (error instanceof RoutesCliError) throw error;
+      throw RoutesCliError.invalidAddress(address, ChainType.TVM);
     }
   }
 
@@ -120,8 +122,9 @@ export class AddressNormalizer {
       const bytes = publicKey.toBytes();
       const hex = '0x' + Buffer.from(bytes).toString('hex');
       return hex as UniversalAddress;
-    } catch (error) {
-      throw new Error(`Failed to normalize SVM address ${address}: ${getErrorMessage(error)}`);
+    } catch {
+      const addrStr = address instanceof PublicKey ? address.toBase58() : String(address);
+      throw RoutesCliError.invalidAddress(addrStr, ChainType.SVM);
     }
   }
 }

@@ -8,10 +8,9 @@
  * - Edge cases: empty token/call arrays, zero amounts, large BigInts
  */
 
-import { ChainType, Intent } from '@/core/interfaces/intent';
-import { BlockchainAddress } from '@/core/types/blockchain-addresses';
-import { AddressNormalizer } from '@/core/utils/address-normalizer';
-import { PortalEncoder } from '@/core/utils/portal-encoder';
+import { AddressNormalizer } from '@/blockchain/utils/address-normalizer';
+import { PortalEncoder } from '@/blockchain/utils/portal-encoder';
+import { BlockchainAddress, ChainType, Intent } from '@/shared/types';
 
 // ── EVM fixtures ─────────────────────────────────────────────────────────────
 const EVM_VITALIK = '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045' as BlockchainAddress;

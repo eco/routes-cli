@@ -8,12 +8,12 @@
 
 import { encodeFunctionData, getAddress, maxUint256 } from 'viem';
 
-import { EvmPublisher } from '@/blockchain/evm-publisher';
+import { EvmPublisher } from '@/blockchain/evm/evm.publisher';
+import { AddressNormalizer } from '@/blockchain/utils/address-normalizer';
 import { portalAbi } from '@/commons/abis/portal.abi';
-import type { Intent } from '@/core/interfaces/intent';
-import { ChainType } from '@/core/interfaces/intent';
-import { KeyHandle } from '@/core/security';
-import { AddressNormalizer } from '@/core/utils/address-normalizer';
+import { KeyHandle } from '@/shared/security';
+import type { Intent } from '@/shared/types';
+import { ChainType } from '@/shared/types';
 
 import {
   createMockEvmClientFactory,
@@ -35,6 +35,24 @@ const TOKEN_ADDR_EVM = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'; // USDC on 
 
 const SOURCE_CHAIN_ID = 1n; // Ethereum (production env)
 const DEST_CHAIN_ID = 10n; // Optimism (production env)
+
+// Minimal mocks for the NestJS DI dependencies that EvmPublisher requires
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mockRegistry: any = { isRegistered: (_id: bigint) => true };
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mockChains: any = {
+  findChainById: (id: bigint) =>
+    id === DEST_CHAIN_ID
+      ? {
+          id: DEST_CHAIN_ID,
+          name: 'Optimism',
+          type: 'EVM',
+          env: 'production',
+          rpcUrl: 'https://mainnet.optimism.io',
+          nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+        }
+      : undefined,
+};
 
 const portalUniversal = AddressNormalizer.normalize(PORTAL_ADDR_EVM, ChainType.EVM);
 const creatorUniversal = AddressNormalizer.normalize(CREATOR_ADDR_EVM, ChainType.EVM);
@@ -70,7 +88,12 @@ describe('EvmPublisher (integration — mocked clients)', () => {
     (mockEvmWalletClient.writeContract as jest.Mock).mockResolvedValue('0xmockapprovetxhash');
     (mockEvmWalletClient.sendTransaction as jest.Mock).mockResolvedValue('0xmockpublishtxhash');
 
-    publisher = new EvmPublisher('https://rpc.example.com', createMockEvmClientFactory());
+    publisher = new EvmPublisher(
+      'https://rpc.example.com',
+      mockRegistry,
+      mockChains,
+      createMockEvmClientFactory()
+    );
   });
 
   // ── getBalance() ─────────────────────────────────────────────────────────────

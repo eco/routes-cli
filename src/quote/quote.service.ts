@@ -23,6 +23,7 @@ export interface QuoteResult {
   destinationAmount: string;
   estimatedFulfillTimeSec?: number;
   intentExecutionType?: 'SELF_PUBLISH' | 'GASLESS';
+  destinationPortalAddress: Address;
 }
 
 // Internal API response types
@@ -152,6 +153,7 @@ export class QuoteService {
         destinationAmount: q.destinationAmount,
         estimatedFulfillTimeSec: q.estimatedFulfillTimeSec,
         intentExecutionType: q.intentExecutionType,
+        destinationPortalAddress: data.contracts.destinationPortal,
       };
     }
 
@@ -167,6 +169,7 @@ export class QuoteService {
       destinationAmount: data.quoteResponse.destinationAmount,
       estimatedFulfillTimeSec: data.quoteResponse.estimatedFulfillTimeSec,
       intentExecutionType: data.quoteResponse.intentExecutionType,
+      destinationPortalAddress: data.contracts.destinationPortal,
     };
   }
 }

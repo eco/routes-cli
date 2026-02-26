@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+
 import { decodeAbiParameters, encodeAbiParameters, Hex } from 'viem';
 
 import { EVMRewardAbiItem, EVMRouteAbiItem } from '@/commons/abis/portal.abi';
@@ -7,9 +8,9 @@ import { bufferToBytes, bytes32ToAddress } from '@/commons/utils/converter';
 import { toSvmRewardForCoder, toSvmRouteForCoder } from '@/commons/utils/instruments';
 import { portalBorshCoder } from '@/commons/utils/portal-borsh-coder';
 import { TvmUtils } from '@/commons/utils/tvm-utils';
-import { AddressNormalizerService } from '../address-normalizer.service';
-
 import { ChainType, Intent, SvmAddress } from '@/shared/types';
+
+import { AddressNormalizerService } from '../address-normalizer.service';
 
 @Injectable()
 export class PortalEncoderService {

@@ -5,11 +5,9 @@
  * input validation, edge cases, and unsupported-chain error handling.
  */
 
-import { ErrorCode, RoutesCliError } from '@/core/errors';
-import { ChainType } from '@/core/interfaces/intent';
-import { BlockchainAddress } from '@/core/types/blockchain-addresses';
-import { UniversalAddress } from '@/core/types/universal-address';
-import { AddressNormalizer } from '@/core/utils/address-normalizer';
+import { AddressNormalizer } from '@/blockchain/utils/address-normalizer';
+import { ErrorCode, RoutesCliError } from '@/shared/errors';
+import { BlockchainAddress, ChainType, UniversalAddress } from '@/shared/types';
 
 describe('AddressNormalizer', () => {
   // ── EVM ──────────────────────────────────────────────────────────────────────

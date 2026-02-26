@@ -1,12 +1,11 @@
 import { createPublicClient, http, parseEventLogs, parseUnits } from 'viem';
 import { base } from 'viem/chains';
 
-import { EvmPublisher } from '@/blockchain/evm-publisher';
+import { EvmPublisher } from '@/blockchain/evm/evm.publisher';
+import { AddressNormalizer } from '@/blockchain/utils/address-normalizer';
+import { PortalEncoder } from '@/blockchain/utils/portal-encoder';
 import { portalAbi } from '@/commons/abis/portal.abi';
-import { ChainType } from '@/core/interfaces/intent';
-import { KeyHandle } from '@/core/security';
-import { AddressNormalizer } from '@/core/utils/address-normalizer';
-import { PortalEncoder } from '@/core/utils/portal-encoder';
+import { ChainType, KeyHandle } from '@/shared';
 
 import {
   ANVIL_RPC,
@@ -20,6 +19,19 @@ import {
 
 const SOURCE_CHAIN_ID = 8453n; // Base mainnet
 const DEST_CHAIN_ID = 10n; // Optimism
+
+// Minimal fakes satisfying the DI contracts required by EvmPublisher
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mockRegistry: any = { isRegistered: (_id: bigint) => true };
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mockChains: any = {
+  findChainById: (id: bigint) => {
+    if (id === SOURCE_CHAIN_ID || id === DEST_CHAIN_ID) {
+      return { id, name: id === SOURCE_CHAIN_ID ? 'Base' : 'Optimism', type: 'EVM' };
+    }
+    return undefined;
+  },
+};
 
 const universalCreator = AddressNormalizer.normalize(TEST_ADDRESS, ChainType.EVM);
 const universalPortal = AddressNormalizer.normalize(PORTAL_ADDRESS, ChainType.EVM);
@@ -44,9 +56,10 @@ function buildReward(deadlineOffsetSec = 3600): {
 const encodedRoute = PortalEncoder.encode(
   {
     salt: '0x0000000000000000000000000000000000000000000000000000000000000001',
-    destination: DEST_CHAIN_ID,
     portal: universalPortal,
     calls: [],
+    nativeAmount: 0n,
+    deadline: 0n,
     tokens: [{ token: universalUsdc, amount: parseUnits('5', 6) }],
   },
   ChainType.EVM
@@ -58,7 +71,7 @@ describe('EvmPublisher E2E — Base mainnet fork via Anvil', () => {
   let publicClient: ReturnType<typeof createPublicClient<typeof base>> | any;
 
   beforeAll(async () => {
-    publisher = new EvmPublisher(ANVIL_RPC);
+    publisher = new EvmPublisher(ANVIL_RPC, mockRegistry, mockChains);
     publicClient = createPublicClient({ chain: base, transport: http(ANVIL_RPC) });
 
     // Write 100 USDC directly into the test account storage on the fork

@@ -1,8 +1,10 @@
 import { Injectable } from '@nestjs/common';
+
 import { Hex } from 'viem';
 
+import { EvmAddress, Intent } from '@/shared/types';
+
 import { AddressNormalizerService } from '../address-normalizer.service';
-import { Intent, EvmAddress } from '@/shared/types';
 
 @Injectable()
 export class IntentConverterService {

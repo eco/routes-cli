@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+
 import { IntentBuilder } from './intent-builder.service';
 import { IntentStorage } from './intent-storage.service';
 
