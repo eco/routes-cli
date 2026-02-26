@@ -13,9 +13,10 @@ import { ConfigService } from '@/config/config.service';
 import { TOKEN_CONFIGS } from '@/config/tokens.config';
 import { IntentBuilder } from '@/intent/intent-builder.service';
 import { IntentStorage } from '@/intent/intent-storage.service';
-import { QuoteService } from '@/quote/quote.service';
+import { QuoteResult, QuoteService } from '@/quote/quote.service';
 import { KeyHandle } from '@/shared/security';
 import { ChainType, Intent } from '@/shared/types';
+import { IntentStatus, StatusService } from '@/status/status.service';
 
 import { DisplayService } from '../services/display.service';
 import { PromptService } from '../services/prompt.service';
@@ -65,7 +66,8 @@ export class PublishCommand extends CommandRunner {
     private readonly intentBuilder: IntentBuilder,
     private readonly intentStorage: IntentStorage,
     private readonly prompt: PromptService,
-    private readonly display: DisplayService
+    private readonly display: DisplayService,
+    private readonly statusService: StatusService
   ) {
     super();
   }
@@ -122,10 +124,11 @@ export class PublishCommand extends CommandRunner {
     let encodedRoute: string;
     let sourcePortal = sourceChain.portalAddress!;
     let proverAddress = sourceChain.proverAddress!;
+    let quote: QuoteResult | undefined;
 
     try {
       this.display.spinner('Getting quote...');
-      const quote = await this.quoteService.getQuote({
+      quote = await this.quoteService.getQuote({
         source: sourceChain.id,
         destination: destChain.id,
         amount: rewardAmount,
@@ -220,6 +223,40 @@ export class PublishCommand extends CommandRunner {
     await this.intentStorage.save(intent, result);
     this.display.succeed('Intent published!');
     this.display.displayTransactionResult(result);
+
+    const watchEnabled = this.config.isWatchFulfillmentEnabled();
+    const canWatch = destChain.type === ChainType.EVM;
+
+    if (watchEnabled && result.intentHash) {
+      if (!canWatch) {
+        this.display.log(`Fulfillment watching not yet supported for ${destChain.type} chains.`);
+      } else {
+        const estimatedSec = quote?.estimatedFulfillTimeSec ?? 300;
+        const timeoutMs = estimatedSec * 2 * 1000;
+
+        this.display.spinner(`Watching for fulfillment on ${destChain.name}...`);
+
+        let finalStatus: IntentStatus | null = null;
+        const outcome = await this.statusService.watch(
+          result.intentHash,
+          destChain,
+          status => {
+            finalStatus = status;
+          },
+          { timeoutMs }
+        );
+
+        if (outcome === 'fulfilled' && finalStatus) {
+          this.display.succeed('Intent fulfilled!');
+          this.display.displayFulfillmentResult(finalStatus);
+        } else {
+          this.display.warn(
+            `Not fulfilled within ${estimatedSec * 2}s — check manually: ` +
+              `routes status ${result.intentHash} --chain ${destChain.name}`
+          );
+        }
+      }
+    }
 
     void recipient; // used in reward/route construction
   }

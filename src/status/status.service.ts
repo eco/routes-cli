@@ -19,16 +19,22 @@ export class StatusService {
     intentHash: string,
     chain: ChainConfig,
     onUpdate: (status: IntentStatus) => void,
-    intervalMs = 10_000
-  ): Promise<void> {
+    options: { intervalMs?: number; timeoutMs?: number } = {}
+  ): Promise<'fulfilled' | 'timeout'> {
+    const { intervalMs = 10_000, timeoutMs } = options;
+    const startTime = Date.now();
     let last: IntentStatus | null = null;
+
     while (true) {
+      if (timeoutMs && Date.now() - startTime > timeoutMs) return 'timeout';
+
       const status = await this.getStatus(intentHash, chain);
       if (!last || status.fulfilled !== last.fulfilled) {
         onUpdate(status);
         last = status;
       }
-      if (status.fulfilled) break;
+      if (status.fulfilled) return 'fulfilled';
+
       await new Promise(r => setTimeout(r, intervalMs));
     }
   }

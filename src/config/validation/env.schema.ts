@@ -23,6 +23,7 @@ export const EnvSchema = z.object({
 
   NODE_CHAINS_ENV: z.enum(['production', 'development']).default('production'),
   DEBUG: z.string().optional(),
+  WATCH_FULFILLMENT: z.string().optional(),
 
   DAPP_ID: z.string().default('eco-routes-cli'),
   DEADLINE_OFFSET_SECONDS: z.coerce.number().positive().default(9000),

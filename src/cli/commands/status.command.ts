@@ -52,8 +52,11 @@ export class StatusCommand extends CommandRunner {
     }
 
     if (options.watch) {
-      await this.statusService.watch(intentHash, chain, status =>
-        this.displayStatus(status, options)
+      await this.statusService.watch(
+        intentHash,
+        chain,
+        status => this.displayStatus(status, options),
+        {}
       );
     } else {
       const status = await this.statusService.getStatus(intentHash, chain);

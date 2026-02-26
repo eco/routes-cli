@@ -76,4 +76,8 @@ export class ConfigService {
   isDebug(): boolean {
     return !!this.config.get('DEBUG');
   }
+
+  isWatchFulfillmentEnabled(): boolean {
+    return this.config.get<string>('WATCH_FULFILLMENT') !== 'false';
+  }
 }

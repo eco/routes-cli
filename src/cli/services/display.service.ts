@@ -5,7 +5,7 @@ import Table from 'cli-table3';
 import ora, { Ora } from 'ora';
 import { formatUnits } from 'viem';
 
-import { PublishResult } from '@/blockchain/base.publisher';
+import { IntentStatus, PublishResult } from '@/blockchain/base.publisher';
 import { TokenConfig } from '@/config/tokens.config';
 import { QuoteResult } from '@/quote/quote.service';
 import { ChainConfig } from '@/shared/types';
@@ -74,6 +74,17 @@ export class DisplayService {
         ['Transaction Hash', result.transactionHash ?? '-'],
         ['Intent Hash', result.intentHash ?? '-'],
         ['Vault Address', result.vaultAddress ?? '-'],
+      ]
+    );
+  }
+
+  displayFulfillmentResult(status: IntentStatus): void {
+    this.displayTable(
+      ['Field', 'Value'],
+      [
+        ['Fulfillment Tx', status.fulfillmentTxHash ?? '-'],
+        ['Solver', status.solver ?? '-'],
+        ['Block', status.blockNumber?.toString() ?? '-'],
       ]
     );
   }
