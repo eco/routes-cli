@@ -15,7 +15,7 @@ import { IntentBuilder } from '@/intent/intent-builder.service';
 import { IntentStorage } from '@/intent/intent-storage.service';
 import { QuoteResult, QuoteService } from '@/quote/quote.service';
 import { KeyHandle } from '@/shared/security';
-import { BlockchainAddress, ChainType, Intent } from '@/shared/types';
+import { BlockchainAddress, ChainType, Intent, UniversalAddress } from '@/shared/types';
 import { IntentStatus, StatusService } from '@/status/status.service';
 
 import { DisplayService } from '../services/display.service';
@@ -51,7 +51,10 @@ interface PublishOptions {
   privateKey?: string;
   rpc?: string;
   recipient?: string;
+  portalAddress?: string;
+  proverAddress?: string;
   dryRun?: boolean;
+  watch?: boolean;
 }
 
 @Injectable()
@@ -122,8 +125,8 @@ export class PublishCommand extends CommandRunner {
 
     // Quote or fallback
     let encodedRoute: string;
-    let sourcePortal = sourceChain.portalAddress!;
-    let proverAddress = sourceChain.proverAddress!;
+    let sourcePortal: UniversalAddress | undefined;
+    let proverAddress: UniversalAddress | undefined;
     let quote: QuoteResult | undefined;
 
     try {
@@ -171,6 +174,39 @@ export class PublishCommand extends CommandRunner {
         portal: destPortal,
       });
       encodedRoute = manualEncodedRoute;
+    }
+
+    // Source portal: CLI arg → interactive prompt (quote already set above if available)
+    if (!sourcePortal && options.portalAddress) {
+      sourcePortal = this.normalizer.normalize(
+        options.portalAddress as Parameters<typeof this.normalizer.normalize>[0],
+        sourceChain.type
+      );
+    }
+    if (!sourcePortal) {
+      const raw = await this.prompt.inputManualPortal(sourceChain);
+      sourcePortal = this.normalizer.normalize(
+        raw as Parameters<typeof this.normalizer.normalize>[0],
+        sourceChain.type
+      );
+    }
+
+    // Prover address: CLI arg → chain config → interactive prompt (quote already set above if available)
+    if (!proverAddress && options.proverAddress) {
+      proverAddress = this.normalizer.normalize(
+        options.proverAddress as Parameters<typeof this.normalizer.normalize>[0],
+        sourceChain.type
+      );
+    }
+    if (!proverAddress && sourceChain.proverAddress) {
+      proverAddress = sourceChain.proverAddress;
+    }
+    if (!proverAddress) {
+      const raw = await this.prompt.inputManualProver(sourceChain);
+      proverAddress = this.normalizer.normalize(
+        raw as Parameters<typeof this.normalizer.normalize>[0],
+        sourceChain.type
+      );
     }
 
     const rewardTokenUniversal = this.normalizer.normalize(
@@ -223,7 +259,7 @@ export class PublishCommand extends CommandRunner {
     this.display.succeed('Intent published!');
     this.display.displayTransactionResult(result);
 
-    const watchEnabled = this.config.isWatchFulfillmentEnabled();
+    const watchEnabled = options.watch === true;
     const canWatch = destChain.type === ChainType.EVM;
 
     if (watchEnabled && result.intentHash) {
@@ -296,8 +332,29 @@ export class PublishCommand extends CommandRunner {
     return val;
   }
 
+  @Option({
+    flags: '--portal-address <address>',
+    description: 'Portal contract address on the source chain',
+  })
+  parsePortalAddress(val: string): string {
+    return val;
+  }
+
+  @Option({
+    flags: '--prover-address <address>',
+    description: 'Prover contract address on the source chain',
+  })
+  parseProverAddress(val: string): string {
+    return val;
+  }
+
   @Option({ flags: '--dry-run', description: 'Validate without broadcasting' })
   parseDryRun(): boolean {
+    return true;
+  }
+
+  @Option({ flags: '-w, --watch', description: 'Watch for fulfillment after publishing' })
+  parseWatch(): boolean {
     return true;
   }
 }

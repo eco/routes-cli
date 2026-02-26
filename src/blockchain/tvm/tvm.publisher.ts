@@ -176,7 +176,11 @@ export class TvmPublisher extends BasePublisher {
     return { valid: errors.length === 0, errors };
   }
 
-  override getStatus(_intentHash: string, _chain: ChainConfig): Promise<IntentStatus> {
+  override getStatus(
+    _intentHash: string,
+    _chain: ChainConfig,
+    _portalAddress?: UniversalAddress
+  ): Promise<IntentStatus> {
     return Promise.reject(new Error('getStatus not yet implemented for TVM'));
   }
 

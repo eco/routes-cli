@@ -54,7 +54,11 @@ export abstract class BasePublisher {
     chainId: bigint
   ): Promise<ValidationResult>;
 
-  abstract getStatus(intentHash: string, chain: ChainConfig): Promise<IntentStatus>;
+  abstract getStatus(
+    intentHash: string,
+    chain: ChainConfig,
+    portalAddress?: UniversalAddress
+  ): Promise<IntentStatus>;
 
   protected handleError(error: unknown): PublishResult {
     const message = error instanceof Error ? error.message : String(error);

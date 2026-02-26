@@ -178,4 +178,26 @@ export class PromptService {
     ]);
     return portal as string;
   }
+
+  async inputManualProver(chain: ChainConfig): Promise<string> {
+    const handler = this.registry.get(chain.type);
+    const { prover } = await inquirer.prompt([
+      {
+        type: 'input',
+        name: 'prover',
+        message: `Enter prover contract address on ${chain.name}:`,
+        default: chain.proverAddress
+          ? (this.normalizer.denormalize(chain.proverAddress, chain.type) as string)
+          : undefined,
+        validate: (input: string) => {
+          if (!input || input.trim() === '') return 'Prover address is required';
+          if (!handler.validateAddress(input)) {
+            return `Invalid ${chain.type} address — expected ${handler.getAddressFormat()}`;
+          }
+          return true;
+        },
+      },
+    ]);
+    return prover as string;
+  }
 }

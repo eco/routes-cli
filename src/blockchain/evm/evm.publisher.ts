@@ -47,14 +47,6 @@ export class EvmPublisher extends BasePublisher {
     this.clientFactory = clientFactory;
   }
 
-  private getPublicClient(chain: Chain): PublicClient {
-    const cached = this._publicClients.get(chain.id);
-    if (cached) return cached;
-    const client = this.clientFactory.createPublicClient({ chain, rpcUrl: this.rpcUrl });
-    this._publicClients.set(chain.id, client);
-    return client;
-  }
-
   override async publish(
     source: bigint,
     destination: bigint,
@@ -268,40 +260,61 @@ export class EvmPublisher extends BasePublisher {
     return { valid: errors.length === 0, errors };
   }
 
-  override async getStatus(intentHash: string, chain: ChainConfig): Promise<IntentStatus> {
-    if (!chain.portalAddress) {
+  override async getStatus(
+    intentHash: string,
+    chain: ChainConfig,
+    portalAddress?: UniversalAddress
+  ): Promise<IntentStatus> {
+    const resolvedPortal = portalAddress ?? chain.portalAddress;
+    if (!resolvedPortal) {
       throw new Error(`No portal address configured for chain ${chain.id}`);
     }
 
-    const portalAddress = AddressNormalizer.denormalizeToEvm(chain.portalAddress);
+    const evmPortalAddress = AddressNormalizer.denormalizeToEvm(resolvedPortal);
     const viemChain = this.getChain(chain.id);
     const publicClient = this.getPublicClient(viemChain);
 
-    const events = await publicClient.getContractEvents({
-      address: portalAddress,
-      abi: portalAbi,
-      eventName: 'IntentFulfilled',
-      args: { intentHash: intentHash as Hex },
-    });
+    try {
+      const currentBlock = await publicClient.getBlockNumber();
 
-    const event = events[0];
-    if (!event) {
+      const events = await publicClient.getContractEvents({
+        address: evmPortalAddress,
+        abi: portalAbi,
+        eventName: 'IntentFulfilled',
+        fromBlock: currentBlock - 1_000n,
+        args: { intentHash: intentHash as Hex },
+      });
+
+      const event = events[0];
+      if (!event) {
+        return { fulfilled: false };
+      }
+
+      const status: IntentStatus = {
+        fulfilled: true,
+        solver: AddressNormalizer.denormalizeToEvm(event.args.claimant as UniversalAddress),
+        fulfillmentTxHash: event.transactionHash ?? undefined,
+        blockNumber: event.blockNumber ?? undefined,
+      };
+
+      if (event.blockNumber) {
+        const block = await publicClient.getBlock({ blockNumber: event.blockNumber });
+        status.timestamp = Number(block.timestamp);
+      }
+
+      return status;
+    } catch (error) {
+      console.error(error);
       return { fulfilled: false };
     }
+  }
 
-    const status: IntentStatus = {
-      fulfilled: true,
-      solver: event.args.claimant,
-      fulfillmentTxHash: event.transactionHash ?? undefined,
-      blockNumber: event.blockNumber ?? undefined,
-    };
-
-    if (event.blockNumber) {
-      const block = await publicClient.getBlock({ blockNumber: event.blockNumber });
-      status.timestamp = Number(block.timestamp);
-    }
-
-    return status;
+  private getPublicClient(chain: Chain): PublicClient {
+    const cached = this._publicClients.get(chain.id);
+    if (cached) return cached;
+    const client = this.clientFactory.createPublicClient({ chain, rpcUrl: this.rpcUrl });
+    this._publicClients.set(chain.id, client);
+    return client;
   }
 
   private getChain(chainId: bigint): Chain {
