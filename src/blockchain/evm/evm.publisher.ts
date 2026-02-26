@@ -23,7 +23,7 @@ import * as chains from 'viem/chains';
 import { AddressNormalizer } from '@/blockchain/utils/address-normalizer';
 import { portalAbi } from '@/commons/abis/portal.abi';
 import { KeyHandle } from '@/shared/security';
-import { Intent, UniversalAddress } from '@/shared/types';
+import { ChainConfig, Intent, UniversalAddress } from '@/shared/types';
 import { logger } from '@/utils/logger';
 
 import { BasePublisher, IntentStatus, PublishResult, ValidationResult } from '../base.publisher';
@@ -268,13 +268,12 @@ export class EvmPublisher extends BasePublisher {
     return { valid: errors.length === 0, errors };
   }
 
-  override async getStatus(intentHash: string, chainId: bigint): Promise<IntentStatus> {
-    const chainConfig = this.chains.findChainById(chainId);
-    if (!chainConfig?.portalAddress) {
-      throw new Error(`No portal address configured for chain ${chainId}`);
+  override async getStatus(intentHash: string, chain: ChainConfig): Promise<IntentStatus> {
+    if (!chain.portalAddress) {
+      throw new Error(`No portal address configured for chain ${chain.id}`);
     }
 
-    const portalAddress = AddressNormalizer.denormalizeToEvm(chainConfig.portalAddress);
+    const portalAddress = AddressNormalizer.denormalizeToEvm(chain.portalAddress);
     const publicClient = this.getPublicClient();
 
     const events = await publicClient.getContractEvents({

@@ -12,7 +12,7 @@ export class StatusService {
 
   async getStatus(intentHash: string, chain: ChainConfig): Promise<IntentStatus> {
     const publisher = this.publisherFactory.create(chain);
-    return publisher.getStatus(intentHash, chain.id);
+    return publisher.getStatus(intentHash, chain);
   }
 
   async watch(

@@ -12,7 +12,7 @@ import { portalAbi } from '@/commons/abis/portal.abi';
 import { PortalHashUtils } from '@/commons/utils/portal-hash.utils';
 import { ErrorCode, RoutesCliError } from '@/shared/errors';
 import { KeyHandle } from '@/shared/security';
-import { ChainType, Intent, UniversalAddress } from '@/shared/types';
+import { ChainConfig, ChainType, Intent, UniversalAddress } from '@/shared/types';
 import { logger } from '@/utils/logger';
 
 import { BasePublisher, IntentStatus, PublishResult, ValidationResult } from '../base.publisher';
@@ -175,7 +175,7 @@ export class TvmPublisher extends BasePublisher {
     return { valid: errors.length === 0, errors };
   }
 
-  override getStatus(_intentHash: string, _chainId: bigint): Promise<IntentStatus> {
+  override getStatus(_intentHash: string, _chain: ChainConfig): Promise<IntentStatus> {
     return Promise.reject(new Error('getStatus not yet implemented for TVM'));
   }
 

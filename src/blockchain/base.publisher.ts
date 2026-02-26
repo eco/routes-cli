@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 
 import { RoutesCliError } from '@/shared/errors';
 import { KeyHandle } from '@/shared/security';
-import { Intent, UniversalAddress } from '@/shared/types';
+import { ChainConfig, Intent, UniversalAddress } from '@/shared/types';
 import { logger } from '@/utils/logger';
 
 import { ChainRegistryService } from './chain-registry.service';
@@ -50,7 +50,7 @@ export abstract class BasePublisher {
 
   abstract validate(reward: Intent['reward'], senderAddress: string): Promise<ValidationResult>;
 
-  abstract getStatus(intentHash: string, chainId: bigint): Promise<IntentStatus>;
+  abstract getStatus(intentHash: string, chain: ChainConfig): Promise<IntentStatus>;
 
   protected handleError(error: unknown): PublishResult {
     const message = error instanceof Error ? error.message : String(error);
