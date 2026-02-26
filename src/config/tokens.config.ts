@@ -157,7 +157,20 @@ export const TOKEN_CONFIGS: Record<string, TokenConfig> = {
       '11155420': AddressNormalizer.normalizeEvm(
         '0x0000000000000000000000000000000000000000' as EvmAddress
       ), // Optimism Sepolia
-      // Non-ETH-native chain → WETH contract
+    },
+  },
+  WETH: {
+    symbol: 'WETH',
+    name: 'Wrap Ether',
+    decimals: 18,
+    addresses: {
+      // ETH-native chains → zero address (no contract; native currency sentinel)
+      '1': AddressNormalizer.normalizeEvm(
+        '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2' as EvmAddress
+      ), // Ethereum
+      '8453': AddressNormalizer.normalizeEvm(
+        '0x4200000000000000000000000000000000000006' as EvmAddress
+      ), // Base
       '2020': AddressNormalizer.normalizeEvm(
         '0xc99a6a985ed2cac1ef41640596c5a5f9f4e19ef5' as EvmAddress
       ), // Ronin WETH
