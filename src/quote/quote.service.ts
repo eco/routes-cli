@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 
 import { Address } from 'viem';
 
+import { DisplayService } from '@/cli/services/display.service';
 import { ConfigService } from '@/config/config.service';
 
 export interface QuoteRequest {
@@ -83,7 +84,10 @@ interface QuoteRequestPayload {
 
 @Injectable()
 export class QuoteService {
-  constructor(private readonly config: ConfigService) {}
+  constructor(
+    private readonly config: ConfigService,
+    private readonly display: DisplayService
+  ) {}
 
   async getQuote(params: QuoteRequest): Promise<QuoteResult> {
     const { url, type } = this.config.getQuoteEndpoint();
@@ -109,7 +113,9 @@ export class QuoteService {
     }
 
     if (this.config.isDebug()) {
-      console.warn('[DEBUG] Quote request:', { url, request: JSON.stringify(request) });
+      this.display.log(
+        `[DEBUG] Quote request: ${JSON.stringify({ url, request: JSON.stringify(request) })}`
+      );
     }
 
     const response = await fetch(url, {
@@ -120,7 +126,7 @@ export class QuoteService {
 
     const raw = (await response.json()) as RawQuoteResponse;
     if (this.config.isDebug()) {
-      console.warn('[DEBUG] Quote response:', JSON.stringify(raw));
+      this.display.log(`[DEBUG] Quote response: ${JSON.stringify(raw)}`);
     }
     if (!response.ok) throw new Error(JSON.stringify(raw));
 

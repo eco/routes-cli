@@ -37,7 +37,13 @@ export class DisplayService {
   }
 
   log(msg: string): void {
-    console.log(chalk.gray(msg));
+    if (this.activeSpinner) {
+      this.activeSpinner.stop();
+      console.log(chalk.gray(msg));
+      this.activeSpinner.start();
+    } else {
+      console.log(chalk.gray(msg));
+    }
   }
   success(msg: string): void {
     console.log(chalk.green(`✅ ${msg}`));
