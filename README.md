@@ -100,10 +100,18 @@ This is powered by the [Eco Routes Protocol](https://github.com/eco/eco-routes/)
 
 **`publish` flags:**
 
-| Flag | Alias | Description | Example |
-|------|-------|-------------|---------|
-| `--source` | `-s` | Source chain name or ID | `ethereum`, `1` |
-| `--destination` | `-d` | Destination chain name or ID | `optimism`, `10` |
+| Flag | Alias | Description |
+|------|-------|-------------|
+| `--source` | `-s` | Source chain name or ID |
+| `--destination` | `-d` | Destination chain name or ID |
+| `--private-key` | `-k` | EVM private key (overrides `EVM_PRIVATE_KEY` env) |
+| `--private-key-svm` | | SVM private key (overrides `SVM_PRIVATE_KEY` env) |
+| `--recipient` | | Recipient address on the destination chain |
+| `--portal-address` | | Portal contract address on the source chain |
+| `--prover-address` | | Prover contract address on the source chain |
+| `--rpc` | `-r` | RPC URL override for the source chain |
+| `--dry-run` | | Validate and preview without broadcasting |
+| `--watch` | `-w` | Watch for fulfillment after publishing |
 
 **Private key formats:**
 
