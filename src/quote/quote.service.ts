@@ -108,6 +108,10 @@ export class QuoteService {
       request.intentExecutionTypes = ['SELF_PUBLISH'];
     }
 
+    if (this.config.isDebug()) {
+      console.warn('[DEBUG] Quote request:', { url, request: JSON.stringify(request) });
+    }
+
     const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -115,6 +119,9 @@ export class QuoteService {
     });
 
     const raw = (await response.json()) as RawQuoteResponse;
+    if (this.config.isDebug()) {
+      console.warn('[DEBUG] Quote response:', JSON.stringify(raw));
+    }
     if (!response.ok) throw new Error(JSON.stringify(raw));
 
     // Solver-v2 returns the object directly; quote-service-v3 wraps in `data`
