@@ -1,1 +1,0 @@
-/Users/carlosfebres/dev/eco/routes-cli/.ralph/agent/memories.md
