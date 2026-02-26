@@ -3,9 +3,11 @@ import { Injectable } from '@nestjs/common';
 import chalk from 'chalk';
 import Table from 'cli-table3';
 import ora, { Ora } from 'ora';
+import { formatUnits } from 'viem';
 
 import { PublishResult } from '@/blockchain/base.publisher';
 import { TokenConfig } from '@/config/tokens.config';
+import { QuoteResult } from '@/quote/quote.service';
 import { ChainConfig } from '@/shared/types';
 
 @Injectable()
@@ -68,6 +70,32 @@ export class DisplayService {
         ['Vault Address', result.vaultAddress ?? '-'],
       ]
     );
+  }
+
+  displayQuote(
+    quote: QuoteResult,
+    sourceToken: { symbol?: string; decimals: number },
+    sourceAmount: bigint,
+    destToken: { symbol?: string; decimals: number }
+  ): void {
+    const srcSymbol = sourceToken.symbol ?? 'tokens';
+    const dstSymbol = destToken.symbol ?? 'tokens';
+    const rows: string[][] = [
+      ['Source Token', srcSymbol],
+      ['Source Amount', `${formatUnits(sourceAmount, sourceToken.decimals)} ${srcSymbol}`],
+      ['Destination Token', dstSymbol],
+      [
+        'Destination Amount',
+        `${formatUnits(BigInt(quote.destinationAmount), destToken.decimals)} ${dstSymbol}`,
+      ],
+      ['Portal', quote.sourcePortal],
+      ['Prover', quote.prover],
+      ['Deadline', new Date(quote.deadline * 1000).toLocaleString()],
+    ];
+    if (quote.estimatedFulfillTimeSec !== undefined) {
+      rows.push(['Est. Fulfill Time', `${quote.estimatedFulfillTimeSec}s`]);
+    }
+    this.displayTable(['Quote Summary', ''], rows);
   }
 
   displayChains(chains: ChainConfig[]): void {

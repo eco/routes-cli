@@ -135,6 +135,7 @@ export class PublishCommand extends CommandRunner {
         rewardToken: rewardToken.address,
       });
       this.display.succeed('Quote received');
+      this.display.displayQuote(quote, rewardToken, rewardAmount, routeToken);
       encodedRoute = quote.encodedRoute;
       sourcePortal = this.normalizer.normalize(
         quote.sourcePortal as Parameters<typeof this.normalizer.normalize>[0],
