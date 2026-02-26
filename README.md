@@ -17,7 +17,7 @@ Routes CLI is a terminal tool for publishing **cross-chain intents** built on th
 ## See It In Action
 
 ```
-$ pnpm dev publish
+$ eco-routes-cli publish --private-key 0xYOUR_PRIVATE_KEY
 
 ? Select source chain:        Base
 ? Select destination chain:   Optimism
@@ -49,35 +49,23 @@ $ pnpm dev publish
 
 ## Quick Start
 
-**1. Clone and install**
+**1. Install globally**
 
 ```bash
-git clone https://github.com/eco/routes-cli.git
-cd routes-cli
-pnpm install
+npm i -g eco-routes-cli
 ```
 
-**2. Configure your private key**
+**2. Publish your first EVM intent**
 
 ```bash
-cp .env.example .env
+eco-routes-cli publish --private-key 0xYOUR_PRIVATE_KEY
 ```
 
-Open `.env` and fill in the key for the chain type you want to use:
+Follow the prompts to select source chain (e.g. Base), destination chain (e.g. Optimism), token, and amounts. Done.
 
-```env
-# Pick the one you need — you only need one to get started
-EVM_PRIVATE_KEY=0x...   # Ethereum, Base, Optimism, Arbitrum, etc.
-SVM_PRIVATE_KEY=...      # Solana
-```
+> Tip: pass `--source` and `--destination` to skip chain selection prompts.
 
-**3. Publish your first intent**
-
-```bash
-pnpm dev publish
-```
-
-Follow the prompts. Done.
+Prefer not to pass keys inline? Copy `.env.example` to `.env` and set `EVM_PRIVATE_KEY` (or `SVM_PRIVATE_KEY` for Solana) — the CLI will pick it up automatically.
 
 ---
 
@@ -93,10 +81,10 @@ This is powered by the [Eco Routes Protocol](https://github.com/eco/eco-routes/)
 
 | Command | Description |
 |---------|-------------|
-| `pnpm dev publish` | Interactive intent publishing wizard |
-| `pnpm dev publish --source <chain> --destination <chain>` | Skip chain selection prompts |
-| `pnpm dev chains` | List all supported chains |
-| `pnpm dev tokens` | List all configured tokens |
+| `eco-routes-cli publish` | Interactive intent publishing wizard |
+| `eco-routes-cli publish --source <chain> --destination <chain>` | Skip chain selection prompts |
+| `eco-routes-cli chains` | List all supported chains |
+| `eco-routes-cli tokens` | List all configured tokens |
 
 **`publish` flags:**
 
@@ -151,7 +139,7 @@ See `.env.example` for the complete list of portal address overrides.
 | Issue | Fix |
 |-------|-----|
 | `Private key error` | Check the format matches the chain type — see Private key formats above |
-| `Chain not found` | Run `pnpm dev chains` to verify the exact chain name or ID |
+| `Chain not found` | Run `eco-routes-cli chains` to verify the exact chain name or ID |
 | `Insufficient balance` | Ensure your wallet has the reward token plus gas on the source chain |
 | `Quote unavailable` | Not all chain pairs have live routes yet — try a different pair |
 | `RPC timeout` | Set a custom RPC endpoint via `EVM_RPC_URL` / `TVM_RPC_URL` / `SVM_RPC_URL` |
@@ -159,7 +147,7 @@ See `.env.example` for the complete list of portal address overrides.
 Enable verbose output for more detail:
 
 ```bash
-DEBUG=* pnpm dev publish
+DEBUG=* eco-routes-cli publish
 ```
 
 ---
