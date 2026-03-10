@@ -13,7 +13,7 @@ export interface RewardParams {
   prover: UniversalAddress;
   rewardToken: UniversalAddress;
   rewardAmount: bigint;
-  deadline?: bigint;
+  deadline?: number;
 }
 
 export interface ManualRouteParams {
@@ -41,7 +41,7 @@ export class IntentBuilder {
     const isNative = rewardEvmAddr === '0x0000000000000000000000000000000000000000';
 
     return {
-      deadline,
+      deadline: BigInt(deadline),
       creator: params.creator,
       prover: params.prover,
       nativeAmount: isNative ? params.rewardAmount : 0n,

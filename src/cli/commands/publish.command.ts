@@ -233,6 +233,7 @@ export class PublishCommand extends CommandRunner {
 
     const reward = this.intentBuilder.buildReward({
       sourceChain,
+      deadline: quote?.deadline,
       creator: this.normalizer.normalize(
         senderAddress! as Parameters<typeof this.normalizer.normalize>[0],
         sourceChain.type
