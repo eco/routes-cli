@@ -109,6 +109,16 @@ export const TOKEN_CONFIGS: Record<string, TokenConfig> = {
       // Add more as needed
     },
   },
+  USDG: {
+    symbol: 'USDG',
+    name: 'Global Dollar',
+    decimals: 6,
+    addresses: {
+      '1399811149': AddressNormalizer.normalizeSvm(
+        '2u1tszSeqZ3qBWF3uNGPFc8TzMk2tdiwknnRMWGWjGWH' as SvmAddress
+      ),
+    },
+  },
   bUSDC: {
     symbol: 'bUSDC',
     name: 'Binance USDC',

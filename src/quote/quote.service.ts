@@ -24,6 +24,7 @@ export interface QuoteResult {
   estimatedFulfillTimeSec?: number;
   intentExecutionType?: 'SELF_PUBLISH' | 'GASLESS';
   destinationPortalAddress: Address;
+  destinationChainId?: number;
 }
 
 // Internal API response types
@@ -154,6 +155,7 @@ export class QuoteService {
         estimatedFulfillTimeSec: q.estimatedFulfillTimeSec,
         intentExecutionType: q.intentExecutionType,
         destinationPortalAddress: data.contracts.destinationPortal,
+        destinationChainId: q.destinationChainID,
       };
     }
 

@@ -252,10 +252,14 @@ export class PublishCommand extends CommandRunner {
       return;
     }
 
+    const destinationChainId = quote?.destinationChainId
+      ? BigInt(quote.destinationChainId)
+      : destChain.id;
+
     const publisher = this.publisherFactory.create(sourceChain);
     const result = await publisher.publish(
       sourceChain.id,
-      destChain.id,
+      destinationChainId,
       reward,
       encodedRoute,
       publishKeyHandle,
@@ -268,7 +272,7 @@ export class PublishCommand extends CommandRunner {
     }
 
     const intent: Intent = {
-      destination: destChain.id,
+      destination: destinationChainId,
       sourceChainId: sourceChain.id,
       route: {} as Intent['route'],
       reward,
