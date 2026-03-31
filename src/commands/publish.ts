@@ -183,28 +183,32 @@ async function buildIntentInteractively(options: PublishCommandOptions) {
 
   const rewardToken = await selectToken(sourceChain, 'reward');
 
-  const { rewardAmountStr } = await inquirer.prompt([
-    {
-      type: 'input',
-      name: 'rewardAmountStr',
-      default: '0.1',
-      message: `Enter reward amount${rewardToken.symbol ? ` (${rewardToken.symbol})` : ''} in human-readable format (e.g., "10" for 10 tokens):`,
-      validate: input => {
-        try {
-          const num = parseFloat(input);
-          if (isNaN(num) || num <= 0) {
-            return 'Please enter a positive number';
-          }
-          return true;
-        } catch {
-          return 'Invalid amount';
-        }
-      },
-    },
-  ]);
+  let rewardAmountStr = '0';
+  let rewardAmount = 0n;
 
-  // Convert human-readable amount to token units using parseUnits
-  const rewardAmount = parseUnits(rewardAmountStr, rewardToken.decimals);
+  if (rewardToken) {
+    const { rewardAmountStr: inputStr } = await inquirer.prompt([
+      {
+        type: 'input',
+        name: 'rewardAmountStr',
+        default: '0.1',
+        message: `Enter reward amount${rewardToken.symbol ? ` (${rewardToken.symbol})` : ''} in human-readable format (e.g., "10" for 10 tokens):`,
+        validate: input => {
+          try {
+            const num = parseFloat(input);
+            if (isNaN(num) || num <= 0) {
+              return 'Please enter a positive number';
+            }
+            return true;
+          } catch {
+            return 'Invalid amount';
+          }
+        },
+      },
+    ]);
+    rewardAmountStr = inputStr;
+    rewardAmount = parseUnits(rewardAmountStr, rewardToken.decimals);
+  }
 
   // 7. Prompt for route configuration
   logger.section('📏 Route Configuration (Destination Chain)');
@@ -279,32 +283,34 @@ async function buildIntentInteractively(options: PublishCommandOptions) {
   // 5. Get quote (with fallback to manual configuration)
   let quote: QuoteResponse | null = null;
 
-  logger.spinner('Getting quote...');
-  try {
-    quote = await getQuote({
-      source: sourceChain.id,
-      destination: destChain.id,
-      funder: AddressNormalizer.denormalize(creatorAddress, sourceChain.type),
-      recipient: AddressNormalizer.denormalize(normalizedRecipient, destChain.type),
-      amount: rewardAmount,
-      routeToken: routeToken.address,
-      rewardToken: rewardToken.address,
-    });
+  if (routeToken && rewardToken) {
+    logger.spinner('Getting quote...');
+    try {
+      quote = await getQuote({
+        source: sourceChain.id,
+        destination: destChain.id,
+        funder: AddressNormalizer.denormalize(creatorAddress, sourceChain.type),
+        recipient: AddressNormalizer.denormalize(normalizedRecipient, destChain.type),
+        amount: rewardAmount,
+        routeToken: routeToken.address,
+        rewardToken: rewardToken.address,
+      });
 
-    logger.succeed('Quote fetched');
+      logger.succeed('Quote fetched');
 
-    // Validate contract addresses from quote
-    if (quote && (!quote.contracts?.sourcePortal || !quote.contracts?.prover)) {
-      logger.warning('Quote response missing required contract addresses');
+      // Validate contract addresses from quote
+      if (quote && (!quote.contracts?.sourcePortal || !quote.contracts?.prover)) {
+        logger.warning('Quote response missing required contract addresses');
+        quote = null;
+      }
+    } catch (error: any) {
+      logger.stopSpinner();
+      if (process.env.DEBUG) {
+        console.log(error.stack);
+      }
+      logger.warning('Quote service unavailable');
       quote = null;
     }
-  } catch (error: any) {
-    logger.stopSpinner();
-    if (process.env.DEBUG) {
-      console.log(error.stack);
-    }
-    logger.warning('Quote service unavailable');
-    quote = null;
   }
 
   // Variables to hold route/reward data
@@ -328,7 +334,7 @@ async function buildIntentInteractively(options: PublishCommandOptions) {
       encodedRoute = quoteData.encodedRoute as Hex;
       sourcePortal = AddressNormalizer.normalize(quote.contracts.sourcePortal, sourceChain.type);
       proverAddress = AddressNormalizer.normalize(quote.contracts.prover, sourceChain.type);
-      routeAmountDisplay = formatUnits(BigInt(quoteData.destinationAmount), routeToken.decimals);
+      routeAmountDisplay = formatUnits(BigInt(quoteData.destinationAmount), routeToken!.decimals);
       rewardDeadline = BigInt(quoteData.deadline);
 
       // Display solver-v2 specific fields if available
@@ -369,27 +375,31 @@ async function buildIntentInteractively(options: PublishCommandOptions) {
     }
 
     // Prompt for route amount
-    const { routeAmountStr } = await inquirer.prompt([
-      {
-        type: 'input',
-        name: 'routeAmountStr',
-        message: `Enter expected route amount (tokens to receive on ${destChain.name}):`,
-        validate: input => {
-          try {
-            const num = parseFloat(input);
-            if (isNaN(num) || num <= 0) {
-              return 'Please enter a positive number';
+    let routeAmount = 0n;
+    if (routeToken) {
+      const { routeAmountStr } = await inquirer.prompt([
+        {
+          type: 'input',
+          name: 'routeAmountStr',
+          message: `Enter expected route amount (tokens to receive on ${destChain.name}):`,
+          validate: input => {
+            try {
+              const num = parseFloat(input);
+              if (isNaN(num) || num <= 0) {
+                return 'Please enter a positive number';
+              }
+              return true;
+            } catch {
+              return 'Invalid amount';
             }
-            return true;
-          } catch {
-            return 'Invalid amount';
-          }
+          },
         },
-      },
-    ]);
-
-    const routeAmount = parseUnits(routeAmountStr, routeToken.decimals);
-    routeAmountDisplay = routeAmountStr;
+      ]);
+      routeAmount = parseUnits(routeAmountStr, routeToken.decimals);
+      routeAmountDisplay = routeAmountStr;
+    } else {
+      routeAmountDisplay = '0';
+    }
 
     // Get or prompt for portal address
     if (sourceChain.portalAddress) {
@@ -415,27 +425,7 @@ async function buildIntentInteractively(options: PublishCommandOptions) {
     }
 
     // Get or prompt for prover address
-    if (sourceChain.proverAddress) {
-      proverAddress = sourceChain.proverAddress;
-      logger.log(`Using prover address from config: ${proverAddress}`);
-    } else {
-      const { proverAddressInput } = await inquirer.prompt([
-        {
-          type: 'input',
-          name: 'proverAddressInput',
-          message: `Enter prover address for ${sourceChain.name}:`,
-          validate: input => {
-            try {
-              AddressNormalizer.normalize(input, sourceChain.type);
-              return true;
-            } catch {
-              return 'Invalid address format';
-            }
-          },
-        },
-      ]);
-      proverAddress = AddressNormalizer.normalize(proverAddressInput, sourceChain.type);
-    }
+    proverAddress = await selectProver(sourceChain, destChain);
 
     // Build Route object manually
     logger.spinner('Building route manually...');
@@ -443,34 +433,39 @@ async function buildIntentInteractively(options: PublishCommandOptions) {
     const now = Math.floor(Date.now() / 1000);
     const routeDeadline = BigInt(now + 2 * 60 * 60); // 2 hours
 
-    // Encode transfer function call for route token
-    const transferCallData = encodeFunctionData({
-      abi: erc20Abi,
-      functionName: 'transfer',
-      args: [
-        AddressNormalizer.denormalize(normalizedRecipient, destChain.type) as `0x${string}`,
-        routeAmount,
-      ],
-    });
+    const routeTokens: Intent['route']['tokens'] = routeToken
+      ? [
+          {
+            token: AddressNormalizer.normalize(routeToken.address, destChain.type),
+            amount: routeAmount,
+          },
+        ]
+      : [];
+
+    const routeCalls: Intent['route']['calls'] = routeToken
+      ? [
+          {
+            target: AddressNormalizer.normalize(routeToken.address, destChain.type),
+            data: encodeFunctionData({
+              abi: erc20Abi,
+              functionName: 'transfer',
+              args: [
+                AddressNormalizer.denormalize(normalizedRecipient, destChain.type) as `0x${string}`,
+                routeAmount,
+              ],
+            }),
+            value: 0n,
+          },
+        ]
+      : [];
 
     const route: Intent['route'] = {
       salt: `0x${crypto.randomBytes(32).toString('hex')}` as Hex,
       deadline: routeDeadline,
       portal: sourcePortal,
       nativeAmount: 0n,
-      tokens: [
-        {
-          token: AddressNormalizer.normalize(routeToken.address, destChain.type),
-          amount: routeAmount,
-        },
-      ],
-      calls: [
-        {
-          target: AddressNormalizer.normalize(routeToken.address, destChain.type),
-          data: transferCallData,
-          value: 0n,
-        },
-      ],
+      tokens: routeTokens,
+      calls: routeCalls,
     };
 
     // Encode the route
@@ -484,12 +479,14 @@ async function buildIntentInteractively(options: PublishCommandOptions) {
     prover: proverAddress,
     creator: creatorAddress,
     nativeAmount: 0n,
-    tokens: [
-      {
-        token: AddressNormalizer.normalize(rewardToken.address, sourceChain.type),
-        amount: rewardAmount,
-      },
-    ],
+    tokens: rewardToken
+      ? [
+          {
+            token: AddressNormalizer.normalize(rewardToken.address, sourceChain.type),
+            amount: rewardAmount,
+          },
+        ]
+      : [],
   };
 
   logger.displayIntentSummary({
@@ -498,9 +495,13 @@ async function buildIntentInteractively(options: PublishCommandOptions) {
     creator: AddressNormalizer.denormalize(creatorAddress, sourceChain.type),
     recipient: normalizedRecipient,
     rewardDeadline: new Date(Number(rewardDeadline) * 1000).toLocaleString(),
-    routeToken: `${routeToken.address}${routeToken.symbol ? ` (${routeToken.symbol})` : ''}`,
+    routeToken: routeToken
+      ? `${routeToken.address}${routeToken.symbol ? ` (${routeToken.symbol})` : ''}`
+      : 'None',
     routeAmount: routeAmountDisplay,
-    rewardToken: `${rewardToken.address}${rewardToken.symbol ? ` (${rewardToken.symbol})` : ''}`,
+    rewardToken: rewardToken
+      ? `${rewardToken.address}${rewardToken.symbol ? ` (${rewardToken.symbol})` : ''}`
+      : 'None',
     rewardAmount: `${rewardAmountStr} (${rewardAmount.toString()} units)`,
   });
 
@@ -527,12 +528,55 @@ async function buildIntentInteractively(options: PublishCommandOptions) {
 }
 
 /**
+ * Select a prover for the given source/destination chain pair.
+ * Uses the intersection of prover keys from both chains to offer a named list.
+ * Falls back to a free-text address prompt when no intersection exists.
+ */
+async function selectProver(
+  sourceChain: ChainConfig,
+  destChain: ChainConfig
+): Promise<UniversalAddress> {
+  const sourceProvers = sourceChain.provers ?? {};
+  const destProvers = destChain.provers ?? {};
+  const commonTypes = Object.keys(sourceProvers).filter(k => k in destProvers);
+
+  if (commonTypes.length > 0) {
+    const { proverType } = await inquirer.prompt([
+      {
+        type: 'list',
+        name: 'proverType',
+        message: `Select prover for ${sourceChain.name} → ${destChain.name}:`,
+        choices: commonTypes.map(k => ({ name: k, value: k })),
+      },
+    ]);
+    return sourceProvers[proverType];
+  }
+
+  const { proverAddressInput } = await inquirer.prompt([
+    {
+      type: 'input',
+      name: 'proverAddressInput',
+      message: `Enter prover address for ${sourceChain.name}:`,
+      validate: input => {
+        try {
+          AddressNormalizer.normalize(input, sourceChain.type);
+          return true;
+        } catch {
+          return 'Invalid address format';
+        }
+      },
+    },
+  ]);
+  return AddressNormalizer.normalize(proverAddressInput, sourceChain.type);
+}
+
+/**
  * Select a token for a specific chain
  */
 async function selectToken(
   chain: ChainConfig,
   type: string
-): Promise<{ address: BlockchainAddress; decimals: number; symbol?: string }> {
+): Promise<{ address: BlockchainAddress; decimals: number; symbol?: string } | null> {
   // Get available tokens for this chain
   const allTokens = listTokens();
   const chainTokens = allTokens.filter(token => {
@@ -545,6 +589,7 @@ async function selectToken(
       name: `${t.symbol} - ${t.name}`,
       value: t.symbol,
     })),
+    { name: 'None (no tokens)', value: 'NONE' },
     { name: 'Custom Token Address', value: 'CUSTOM' },
   ];
 
@@ -556,6 +601,10 @@ async function selectToken(
       choices,
     },
   ]);
+
+  if (tokenChoice === 'NONE') {
+    return null;
+  }
 
   if (tokenChoice === 'CUSTOM') {
     const { address, decimals } = await inquirer.prompt([

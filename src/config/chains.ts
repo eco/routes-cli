@@ -17,7 +17,7 @@ export interface ChainConfig {
   type: ChainType;
   rpcUrl: string;
   portalAddress?: UniversalAddress;
-  proverAddress?: UniversalAddress;
+  provers?: Record<string, UniversalAddress>;
   nativeCurrency: {
     name: string;
     symbol: string;
@@ -126,10 +126,16 @@ const chains: Record<string, ChainConfig> = {
       '0x06EFdb68dbF245ECb49E3aE10Cd0f893B674443c',
       ChainType.EVM
     ),
-    proverAddress: AddressNormalizer.normalize(
-      '0x9523b6c0caac8122dbd5dd1c1d336ceba637038d',
-      ChainType.EVM
-    ),
+    provers: {
+      Hyperlane: AddressNormalizer.normalize(
+        '0x9523b6c0caac8122dbd5dd1c1d336ceba637038d',
+        ChainType.EVM
+      ),
+      LayerZero: AddressNormalizer.normalize(
+        '0x0000000000000000000000000000000000000000',
+        ChainType.EVM
+      ), // TODO
+    },
     nativeCurrency: {
       name: 'Ether',
       symbol: 'ETH',
@@ -146,10 +152,16 @@ const chains: Record<string, ChainConfig> = {
       '0x06EFdb68dbF245ECb49E3aE10Cd0f893B674443c',
       ChainType.EVM
     ),
-    proverAddress: AddressNormalizer.normalize(
-      '0x9523b6c0caac8122dbd5dd1c1d336ceba637038d',
-      ChainType.EVM
-    ),
+    provers: {
+      Hyperlane: AddressNormalizer.normalize(
+        '0x9523b6c0caac8122dbd5dd1c1d336ceba637038d',
+        ChainType.EVM
+      ),
+      LayerZero: AddressNormalizer.normalize(
+        '0x0000000000000000000000000000000000000000',
+        ChainType.EVM
+      ), // TODO
+    },
     nativeCurrency: {
       name: 'Ether',
       symbol: 'ETH',
@@ -166,10 +178,16 @@ const chains: Record<string, ChainConfig> = {
       '0x06EFdb68dbF245ECb49E3aE10Cd0f893B674443c',
       ChainType.EVM
     ),
-    proverAddress: AddressNormalizer.normalize(
-      '0x9523b6c0caac8122dbd5dd1c1d336ceba637038d',
-      ChainType.EVM
-    ),
+    provers: {
+      Hyperlane: AddressNormalizer.normalize(
+        '0x9523b6c0caac8122dbd5dd1c1d336ceba637038d',
+        ChainType.EVM
+      ),
+      LayerZero: AddressNormalizer.normalize(
+        '0x0000000000000000000000000000000000000000',
+        ChainType.EVM
+      ), // TODO
+    },
     nativeCurrency: {
       name: 'Ether',
       symbol: 'ETH',
@@ -186,10 +204,16 @@ const chains: Record<string, ChainConfig> = {
       '0x06EFdb68dbF245ECb49E3aE10Cd0f893B674443c',
       ChainType.EVM
     ),
-    proverAddress: AddressNormalizer.normalize(
-      '0x9523b6c0caac8122dbd5dd1c1d336ceba637038d',
-      ChainType.EVM
-    ),
+    provers: {
+      Hyperlane: AddressNormalizer.normalize(
+        '0x9523b6c0caac8122dbd5dd1c1d336ceba637038d',
+        ChainType.EVM
+      ),
+      LayerZero: AddressNormalizer.normalize(
+        '0x0000000000000000000000000000000000000000',
+        ChainType.EVM
+      ), // TODO
+    },
     nativeCurrency: {
       name: 'Ether',
       symbol: 'ETH',
@@ -204,6 +228,12 @@ const chains: Record<string, ChainConfig> = {
     type: ChainType.TVM,
     env: 'production',
     rpcUrl: 'https://api.trongrid.io',
+    provers: {
+      LayerZero: AddressNormalizer.normalize(
+        '0x0000000000000000000000000000000000000000',
+        ChainType.TVM
+      ), // TODO
+    },
     nativeCurrency: {
       name: 'Tron',
       symbol: 'TRX',
@@ -216,6 +246,12 @@ const chains: Record<string, ChainConfig> = {
     type: ChainType.TVM,
     env: 'development',
     rpcUrl: 'https://api.shasta.trongrid.io',
+    provers: {
+      LayerZero: AddressNormalizer.normalize(
+        '0x0000000000000000000000000000000000000000',
+        ChainType.TVM
+      ), // TODO
+    },
     nativeCurrency: {
       name: 'Tron',
       symbol: 'TRX',
