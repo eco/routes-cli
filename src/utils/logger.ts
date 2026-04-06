@@ -120,6 +120,35 @@ export class Logger {
     console.log(chalk.gray(message));
   }
 
+  private detectDarkMode(): boolean {
+    const bg = process.env.COLORFGBG?.split(';').pop();
+    if (bg) {
+      const value = parseInt(bg, 10);
+      return Number.isNaN(value) ? true : value < 7;
+    }
+    return true;
+  }
+
+  /**
+   * Display the ECO ASCII art logo
+   */
+  logo(): void {
+    const lines = [
+      ' ██████╗  ██████╗  ██████╗ ',
+      '██╔════╝ ██╔════╝ ██╔═══██╗',
+      '█████╗   ██║      ██║   ██║',
+      '██╔══╝   ██║      ██║   ██║',
+      '╚██████╗ ╚██████╗ ╚██████╔╝',
+      ' ╚═════╝  ╚═════╝  ╚═════╝ ',
+    ];
+    const isDark = this.detectDarkMode();
+    const logoColor = isDark ? chalk.white : chalk.hex('#1C538D');
+    console.log('');
+    lines.forEach(line => console.log(logoColor(line)));
+    console.log(logoColor.bold('                     CLI'));
+    console.log('');
+  }
+
   /**
    * Title/header message
    */

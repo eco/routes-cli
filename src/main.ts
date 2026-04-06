@@ -12,7 +12,17 @@ async function bootstrap(): Promise<void> {
     process.exit(1);
   }
 
-  if (process.argv.length <= 2) {
+  const isVersion = process.argv.includes('--version') || process.argv.includes('-V');
+  if (isVersion || process.argv.length <= 2) {
+    const { logger } = await import('./utils/logger');
+    logger.logo();
+
+    if (isVersion) {
+      const pkg = await import('../package.json');
+      process.stdout.write(`${pkg.version}\n`);
+      process.exit(0);
+    }
+
     process.argv.push('--help');
   }
 
