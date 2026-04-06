@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /**
  * Logger utility module for enhanced CLI output
  * Uses ora for spinners and cli-table3 for structured data display
@@ -136,7 +137,7 @@ export class Logger {
   /**
    * Create a table for displaying data
    */
-  table(options?: any): any {
+  table(options?: ConstructorParameters<typeof Table>[0]): InstanceType<typeof Table> {
     return new Table(
       options || {
         head: [],
@@ -175,7 +176,11 @@ export class Logger {
   /**
    * Display a data table with headers
    */
-  displayTable(headers: string[], rows: (string | number | boolean)[][], options?: any): void {
+  displayTable(
+    headers: string[],
+    rows: (string | number | boolean)[][],
+    options?: ConstructorParameters<typeof Table>[0]
+  ): void {
     const table = this.table({
       head: headers.map(h => chalk.cyan(h)),
       ...options,
