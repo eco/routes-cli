@@ -139,13 +139,12 @@ export class Logger {
       '█████╗   ██║      ██║   ██║',
       '██╔══╝   ██║      ██║   ██║',
       '╚██████╗ ╚██████╗ ╚██████╔╝',
-      ' ╚═════╝  ╚═════╝  ╚═════╝ ',
     ];
     const isDark = this.detectDarkMode();
     const logoColor = isDark ? chalk.white : chalk.hex('#1C538D');
     console.log('');
     lines.forEach(line => console.log(logoColor(line)));
-    console.log(logoColor.bold('                     CLI'));
+    console.log(logoColor(' ╚═════╝  ╚═════╝  ╚═════╝ ') + logoColor.bold(' CLI'));
     console.log('');
   }
 
