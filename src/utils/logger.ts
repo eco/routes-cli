@@ -124,18 +124,40 @@ export class Logger {
    * Display the ECO ASCII art logo
    */
   logo(): void {
-    const logo = [
-      '    ▄██████▄    ▄██████▄    ▄██████▄ ',
-      '  ██▀      ██ ██▀      ██ ██▀      ██',
-      '  ██        █ ██          ██        ██',
-      '  ██████████  ██          ██        ██',
-      '  ██          ██          ██        ██',
-      '  ██▄      ▄█ ██▄      ▄█ ██▄      ██',
-      '    ▀██████▀    ▀██████▀    ▀██████▀ ',
+    const lines = [
+      ' ██████╗  ██████╗  ██████╗ ',
+      '██╔════╝ ██╔════╝ ██╔═══██╗',
+      '█████╗   ██║      ██║   ██║',
+      '██╔══╝   ██║      ██║   ██║',
+      '╚██████╗ ╚██████╗ ╚██████╔╝',
     ];
     console.log('');
-    logo.forEach(line => console.log(chalk.blue(line)));
-    console.log(chalk.gray('                              CLI'));
+    // Detect light/dark theme: check COLORFGBG first, then macOS system setting, then Windows registry
+    let isDark = true;
+    const bg = process.env.COLORFGBG?.split(';').pop();
+    if (bg) {
+      isDark = parseInt(bg, 10) < 7;
+    } else {
+      try {
+        const { execSync } = require('child_process');
+        if (process.platform === 'darwin') {
+          execSync('defaults read -g AppleInterfaceStyle', { stdio: ['pipe', 'pipe', 'pipe'] });
+          isDark = true;
+        } else if (process.platform === 'win32') {
+          const result = execSync(
+            'reg query HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize /v AppsUseLightTheme',
+            { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] },
+          );
+          isDark = result.includes('0x0');
+        }
+      } catch {
+        // macOS: key missing = Light mode; other: default dark
+        isDark = process.platform !== 'darwin';
+      }
+    }
+    const logoColor = isDark ? chalk.white : chalk.hex('#1C538D');
+    lines.forEach(line => console.log(logoColor(line)));
+    console.log(logoColor(' ╚═════╝  ╚═════╝  ╚═════╝ ') + chalk.white(' CLI'));
     console.log('');
   }
 
