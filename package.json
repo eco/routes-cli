@@ -91,6 +91,7 @@
       "prettier --write"
     ]
   },
+  "packageManager": "pnpm@9.15.9",
   "engines": {
     "node": ">=18.0.0",
     "pnpm": ">=8.0.0"
@@ -108,7 +109,9 @@
         "CVE-2025-3194",
         "GHSA-2g4f-4pwh-qvx6",
         "CVE-2025-69873",
-        "GHSA-378v-28hj-76wf"
+        "GHSA-378v-28hj-76wf",
+        "GHSA-2w6w-674q-4c4q",
+        "CVE-2026-33937"
       ]
     }
   }

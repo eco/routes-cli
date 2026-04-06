@@ -10,9 +10,9 @@
 
 import { EvmPublisher } from '@/blockchain/evm/evm.publisher';
 import { AddressNormalizer } from '@/blockchain/utils/address-normalizer';
-import { ChainConfig } from '@/config/chains';
 import { ErrorCode, RoutesCliError } from '@/shared/errors';
 import { KeyHandle } from '@/shared/security';
+import { ChainConfig } from '@/shared/types';
 import { BlockchainAddress, ChainType } from '@/shared/types';
 
 import {
@@ -140,7 +140,7 @@ describe('Intent publishing flow (integration)', () => {
       );
       (mockEvmPublicClient.readContract as jest.Mock).mockResolvedValue(100n); // 0.0001 USDC
 
-      const result = await publisher.validate(largeReward(), CREATOR_ADDR_EVM);
+      const result = await publisher.validate(largeReward(), CREATOR_ADDR_EVM, SOURCE_CHAIN.id);
 
       expect(result.valid).toBe(false);
       expect(result.errors).toHaveLength(1);

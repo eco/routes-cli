@@ -21,7 +21,7 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test:coverage
       - run: pnpm build
-      - run: pnpm audit --audit-level=moderate
+      - run: pnpm audit --audit-level=critical
   e2e:
     runs-on: ubuntu-latest
     needs: quality

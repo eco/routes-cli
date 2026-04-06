@@ -121,7 +121,7 @@ describe('EvmPublisher (integration — mocked clients)', () => {
       (mockEvmPublicClient.getBalance as jest.Mock).mockResolvedValue(10n); // > 1n
       (mockEvmPublicClient.readContract as jest.Mock).mockResolvedValue(200n); // > 100n
 
-      const result = await publisher.validate(reward, SENDER_ADDR);
+      const result = await publisher.validate(reward, SENDER_ADDR, SOURCE_CHAIN_ID);
 
       expect(result.valid).toBe(true);
       expect(result.errors).toHaveLength(0);
@@ -131,7 +131,7 @@ describe('EvmPublisher (integration — mocked clients)', () => {
       const reward = makeReward({ nativeAmount: 1_000_000_000_000_000_000n }); // requires 1 ETH
       (mockEvmPublicClient.getBalance as jest.Mock).mockResolvedValue(0n); // has nothing
 
-      const result = await publisher.validate(reward, SENDER_ADDR);
+      const result = await publisher.validate(reward, SENDER_ADDR, SOURCE_CHAIN_ID);
 
       expect(result.valid).toBe(false);
       expect(result.errors).toHaveLength(1);
@@ -142,7 +142,7 @@ describe('EvmPublisher (integration — mocked clients)', () => {
       const reward = makeReward({ tokens: [{ token: tokenUniversal, amount: 500n }] });
       (mockEvmPublicClient.readContract as jest.Mock).mockResolvedValue(10n); // 10 < 500
 
-      const result = await publisher.validate(reward, SENDER_ADDR);
+      const result = await publisher.validate(reward, SENDER_ADDR, SOURCE_CHAIN_ID);
 
       expect(result.valid).toBe(false);
       expect(result.errors).toHaveLength(1);
