@@ -38,11 +38,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
       - name: Run E2E tests (Anvil managed by Jest global setup/teardown)
-        if: env.FORK_RPC_URL != ''
         run: pnpm test:e2e:ci
-      - name: Skip E2E (no RPC secret)
-        if: env.FORK_RPC_URL == ''
-        run: echo "Skipping E2E — BASE_RPC_URL secret not configured"
   release:
     runs-on: ubuntu-latest
     needs: quality
