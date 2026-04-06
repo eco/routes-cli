@@ -8,6 +8,7 @@
   },
   "files": [
     "bundle",
+    "scripts/postinstall.js",
     "README.md",
     "LICENSE"
   ],
@@ -31,7 +32,7 @@
     "typecheck": "tsc --noEmit",
     "prepare": "husky",
     "docs": "typedoc",
-    "postinstall": "node -e \"try{require('./bundle/index').logger.logo()}catch{}\""
+    "postinstall": "node scripts/postinstall.js"
   },
   "keywords": [
     "blockchain",

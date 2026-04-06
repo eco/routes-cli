@@ -120,6 +120,15 @@ export class Logger {
     console.log(chalk.gray(message));
   }
 
+  private detectDarkMode(): boolean {
+    const bg = process.env.COLORFGBG?.split(';').pop();
+    if (bg) {
+      const value = parseInt(bg, 10);
+      return Number.isNaN(value) ? true : value < 7;
+    }
+    return true;
+  }
+
   /**
    * Display the ECO ASCII art logo
    */
@@ -130,34 +139,13 @@ export class Logger {
       '█████╗   ██║      ██║   ██║',
       '██╔══╝   ██║      ██║   ██║',
       '╚██████╗ ╚██████╗ ╚██████╔╝',
+      ' ╚═════╝  ╚═════╝  ╚═════╝ ',
     ];
-    console.log('');
-    // Detect light/dark theme: check COLORFGBG first, then macOS system setting, then Windows registry
-    let isDark = true;
-    const bg = process.env.COLORFGBG?.split(';').pop();
-    if (bg) {
-      isDark = parseInt(bg, 10) < 7;
-    } else {
-      try {
-        const { execSync } = require('child_process');
-        if (process.platform === 'darwin') {
-          execSync('defaults read -g AppleInterfaceStyle', { stdio: ['pipe', 'pipe', 'pipe'] });
-          isDark = true;
-        } else if (process.platform === 'win32') {
-          const result = execSync(
-            'reg query HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize /v AppsUseLightTheme',
-            { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] },
-          );
-          isDark = result.includes('0x0');
-        }
-      } catch {
-        // macOS: key missing = Light mode; other: default dark
-        isDark = process.platform !== 'darwin';
-      }
-    }
+    const isDark = this.detectDarkMode();
     const logoColor = isDark ? chalk.white : chalk.hex('#1C538D');
+    console.log('');
     lines.forEach(line => console.log(logoColor(line)));
-    console.log(logoColor(' ╚═════╝  ╚═════╝  ╚═════╝ ') + chalk.white(' CLI'));
+    console.log(logoColor.bold('                     CLI'));
     console.log('');
   }
 
