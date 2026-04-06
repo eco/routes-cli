@@ -2,25 +2,23 @@
 
 /**
  * Lightweight postinstall script that prints the ECO logo.
- * Intentionally avoids importing the app bundle to keep install fast.
+ * Uses raw ANSI codes to avoid any dependency on chalk being installed.
+ * Writes to stderr so npm doesn't suppress the output.
  */
 
-try {
-  const chalk = require('chalk');
+const white = '\x1b[37m';
+const bold = '\x1b[1m';
+const reset = '\x1b[0m';
 
-  const lines = [
-    ' ██████╗  ██████╗  ██████╗ ',
-    '██╔════╝ ██╔════╝ ██╔═══██╗',
-    '█████╗   ██║      ██║   ██║',
-    '██╔══╝   ██║      ██║   ██║',
-    '╚██████╗ ╚██████╗ ╚██████╔╝',
-    ' ╚═════╝  ╚═════╝  ╚═════╝ ',
-  ];
+const lines = [
+  ' ██████╗  ██████╗  ██████╗ ',
+  '██╔════╝ ██╔════╝ ██╔═══██╗',
+  '█████╗   ██║      ██║   ██║',
+  '██╔══╝   ██║      ██║   ██║',
+  '╚██████╗ ╚██████╗ ╚██████╔╝',
+];
 
-  console.log('');
-  lines.forEach(line => console.log(chalk.white(line)));
-  console.log(chalk.white.bold('                     CLI'));
-  console.log('');
-} catch {
-  // chalk may not be available in all environments — skip silently
-}
+process.stderr.write('\n');
+lines.forEach(line => process.stderr.write(`${white}${line}${reset}\n`));
+process.stderr.write(`${white} ╚═════╝  ╚═════╝  ╚═════╝ ${reset}${bold} CLI${reset}\n`);
+process.stderr.write('\n');
