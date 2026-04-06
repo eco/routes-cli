@@ -141,7 +141,7 @@ describe('EvmPublisher E2E — Base mainnet fork via Anvil', () => {
   // ─── validate() against real chain ──────────────────────────────────────────
 
   it('validate() passes when USDC balance is sufficient', async () => {
-    const result = await publisher.validate(buildReward(), TEST_ADDRESS);
+    const result = await publisher.validate(buildReward(), TEST_ADDRESS, SOURCE_CHAIN_ID);
     expect(result.valid).toBe(true);
     expect(result.errors).toHaveLength(0);
   });
@@ -149,7 +149,7 @@ describe('EvmPublisher E2E — Base mainnet fork via Anvil', () => {
   it('validate() fails when USDC balance is insufficient', async () => {
     const hugeReward = buildReward();
     hugeReward.tokens = [{ token: universalUsdc, amount: parseUnits('999999', 6) }];
-    const result = await publisher.validate(hugeReward, TEST_ADDRESS);
+    const result = await publisher.validate(hugeReward, TEST_ADDRESS, SOURCE_CHAIN_ID);
     expect(result.valid).toBe(false);
     expect(result.errors[0]).toMatch(/insufficient/i);
   });
