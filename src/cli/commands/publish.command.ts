@@ -134,11 +134,8 @@ export class PublishCommand extends CommandRunner {
     const keyHandle = new KeyHandle(rawKey);
 
     // Derive sender address synchronously, then keep async key handle for publisher
-    let senderAddress: string;
     const publishKeyHandle = new KeyHandle(rawKey);
-    keyHandle.use(key => {
-      senderAddress = deriveAddress(key, sourceChain.type);
-    });
+    const senderAddress = keyHandle.use(key => deriveAddress(key, sourceChain.type));
 
     // Quote or fallback
     let encodedRoute: string;
@@ -152,7 +149,7 @@ export class PublishCommand extends CommandRunner {
         source: sourceChain.id,
         destination: destChain.id,
         amount: rewardAmount,
-        funder: senderAddress!,
+        funder: senderAddress,
         recipient: recipientRaw,
         routeToken: routeToken.address,
         rewardToken: rewardToken.address,
@@ -235,7 +232,7 @@ export class PublishCommand extends CommandRunner {
       sourceChain,
       deadline: quote?.deadline,
       creator: this.normalizer.normalize(
-        senderAddress! as Parameters<typeof this.normalizer.normalize>[0],
+        senderAddress as Parameters<typeof this.normalizer.normalize>[0],
         sourceChain.type
       ),
       prover: proverAddress,
