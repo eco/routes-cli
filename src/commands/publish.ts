@@ -137,7 +137,9 @@ async function buildIntentInteractively(options: PublishCommandOptions) {
   // 1. Get source chain
   let sourceChain: ChainConfig | undefined;
   if (options.source) {
-    sourceChain = getChainByName(options.source) || getChainById(BigInt(options.source));
+    sourceChain =
+      getChainByName(options.source) ||
+      (/^\d+$/.test(options.source) ? getChainById(BigInt(options.source)) : undefined);
     if (!sourceChain) {
       throw new Error(`Unknown source chain: ${options.source}`);
     }
@@ -160,7 +162,9 @@ async function buildIntentInteractively(options: PublishCommandOptions) {
   // 2. Get destination chain
   let destChain: ChainConfig | undefined;
   if (options.destination) {
-    destChain = getChainByName(options.destination) || getChainById(BigInt(options.destination));
+    destChain =
+      getChainByName(options.destination) ||
+      (/^\d+$/.test(options.destination) ? getChainById(BigInt(options.destination)) : undefined);
     if (!destChain) {
       throw new Error(`Unknown destination chain: ${options.destination}`);
     }
@@ -401,10 +405,10 @@ async function buildIntentInteractively(options: PublishCommandOptions) {
       routeAmountDisplay = '0';
     }
 
-    // Get or prompt for portal address
+    // Get or prompt for source portal address
     if (sourceChain.portalAddress) {
       sourcePortal = sourceChain.portalAddress;
-      logger.log(`Using portal address from config: ${sourcePortal}`);
+      logger.log(`Using source portal from config: ${sourcePortal}`);
     } else {
       const { portalAddressInput } = await inquirer.prompt([
         {
@@ -422,6 +426,30 @@ async function buildIntentInteractively(options: PublishCommandOptions) {
         },
       ]);
       sourcePortal = AddressNormalizer.normalize(portalAddressInput, sourceChain.type);
+    }
+
+    // Get or prompt for destination portal address
+    let destPortal: UniversalAddress;
+    if (destChain.portalAddress) {
+      destPortal = destChain.portalAddress;
+      logger.log(`Using destination portal from config: ${destPortal}`);
+    } else {
+      const { destPortalAddressInput } = await inquirer.prompt([
+        {
+          type: 'input',
+          name: 'destPortalAddressInput',
+          message: `Enter destination portal address for ${destChain.name}:`,
+          validate: input => {
+            try {
+              AddressNormalizer.normalize(input, destChain.type);
+              return true;
+            } catch {
+              return 'Invalid address format';
+            }
+          },
+        },
+      ]);
+      destPortal = AddressNormalizer.normalize(destPortalAddressInput, destChain.type);
     }
 
     // Get or prompt for prover address
@@ -449,10 +477,7 @@ async function buildIntentInteractively(options: PublishCommandOptions) {
             data: encodeFunctionData({
               abi: erc20Abi,
               functionName: 'transfer',
-              args: [
-                AddressNormalizer.denormalize(normalizedRecipient, destChain.type) as `0x${string}`,
-                routeAmount,
-              ],
+              args: [AddressNormalizer.denormalizeToEvm(normalizedRecipient), routeAmount],
             }),
             value: 0n,
           },
@@ -462,7 +487,7 @@ async function buildIntentInteractively(options: PublishCommandOptions) {
     const route: Intent['route'] = {
       salt: `0x${crypto.randomBytes(32).toString('hex')}` as Hex,
       deadline: routeDeadline,
-      portal: sourcePortal,
+      portal: destPortal,
       nativeAmount: 0n,
       tokens: routeTokens,
       calls: routeCalls,

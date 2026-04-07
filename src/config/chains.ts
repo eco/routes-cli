@@ -34,6 +34,16 @@ const chains: Record<string, ChainConfig> = {
     type: ChainType.EVM,
     env: 'production',
     rpcUrl: mainnet.rpcUrls.default.http[0],
+    portalAddress: AddressNormalizer.normalize(
+      '0xfD12115CD8F37C7667050eD8499EDa6B9d9c03bA',
+      ChainType.EVM
+    ),
+    provers: {
+      LayerZero: AddressNormalizer.normalize(
+        '0xc20c5c9f9311d8446f0345F8727066DaF1e3e06A',
+        ChainType.EVM
+      ),
+    },
     nativeCurrency: mainnet.nativeCurrency,
   },
   optimism: {
@@ -42,6 +52,16 @@ const chains: Record<string, ChainConfig> = {
     type: ChainType.EVM,
     env: 'production',
     rpcUrl: 'https://mainnet.optimism.io',
+    portalAddress: AddressNormalizer.normalize(
+      '0xfD12115CD8F37C7667050eD8499EDa6B9d9c03bA',
+      ChainType.EVM
+    ),
+    provers: {
+      LayerZero: AddressNormalizer.normalize(
+        '0xc20c5c9f9311d8446f0345F8727066DaF1e3e06A',
+        ChainType.EVM
+      ),
+    },
     nativeCurrency: {
       name: 'Ether',
       symbol: 'ETH',
@@ -62,6 +82,16 @@ const chains: Record<string, ChainConfig> = {
     type: ChainType.EVM,
     env: 'production',
     rpcUrl: 'https://mainnet.base.org',
+    portalAddress: AddressNormalizer.normalize(
+      '0xfD12115CD8F37C7667050eD8499EDa6B9d9c03bA',
+      ChainType.EVM
+    ),
+    provers: {
+      LayerZero: AddressNormalizer.normalize(
+        '0xc20c5c9f9311d8446f0345F8727066DaF1e3e06A',
+        ChainType.EVM
+      ),
+    },
     nativeCurrency: {
       name: 'Ether',
       symbol: 'ETH',
@@ -74,6 +104,16 @@ const chains: Record<string, ChainConfig> = {
     type: ChainType.EVM,
     env: 'production',
     rpcUrl: arbitrum.rpcUrls.default.http[0],
+    portalAddress: AddressNormalizer.normalize(
+      '0xfD12115CD8F37C7667050eD8499EDa6B9d9c03bA',
+      ChainType.EVM
+    ),
+    provers: {
+      LayerZero: AddressNormalizer.normalize(
+        '0xc20c5c9f9311d8446f0345F8727066DaF1e3e06A',
+        ChainType.EVM
+      ),
+    },
     nativeCurrency: {
       name: 'Ether',
       symbol: 'ETH',
@@ -86,6 +126,16 @@ const chains: Record<string, ChainConfig> = {
     type: ChainType.EVM,
     env: 'production',
     rpcUrl: polygon.rpcUrls.default.http[0],
+    portalAddress: AddressNormalizer.normalize(
+      '0xfD12115CD8F37C7667050eD8499EDa6B9d9c03bA',
+      ChainType.EVM
+    ),
+    provers: {
+      LayerZero: AddressNormalizer.normalize(
+        '0xc20c5c9f9311d8446f0345F8727066DaF1e3e06A',
+        ChainType.EVM
+      ),
+    },
     nativeCurrency: polygon.nativeCurrency,
   },
   ronin: {
@@ -123,7 +173,7 @@ const chains: Record<string, ChainConfig> = {
     env: 'development',
     rpcUrl: 'https://sepolia.base.org',
     portalAddress: AddressNormalizer.normalize(
-      '0x06EFdb68dbF245ECb49E3aE10Cd0f893B674443c',
+      '0x399Dbd5DF04f83103F77A58cBa2B7c4d3cdede97',
       ChainType.EVM
     ),
     provers: {
@@ -132,9 +182,9 @@ const chains: Record<string, ChainConfig> = {
         ChainType.EVM
       ),
       LayerZero: AddressNormalizer.normalize(
-        '0x0000000000000000000000000000000000000000',
+        '0x5Ae3569c6f5B6F80aa8f234AEf4b9c00b43aC32A',
         ChainType.EVM
-      ), // TODO
+      ),
     },
     nativeCurrency: {
       name: 'Ether',
@@ -228,11 +278,9 @@ const chains: Record<string, ChainConfig> = {
     type: ChainType.TVM,
     env: 'production',
     rpcUrl: 'https://api.trongrid.io',
+    portalAddress: AddressNormalizer.normalize('THABsbqqmfGtjBDvaeFTmaT5rnaz2fSXuE', ChainType.TVM),
     provers: {
-      LayerZero: AddressNormalizer.normalize(
-        '0x0000000000000000000000000000000000000000',
-        ChainType.TVM
-      ), // TODO
+      LayerZero: AddressNormalizer.normalize('TTL198uR3Q3RhLjffsMb8osUunLQeKmcqZ', ChainType.TVM),
     },
     nativeCurrency: {
       name: 'Tron',
@@ -246,11 +294,9 @@ const chains: Record<string, ChainConfig> = {
     type: ChainType.TVM,
     env: 'development',
     rpcUrl: 'https://api.shasta.trongrid.io',
+    portalAddress: AddressNormalizer.normalize('TVNJyezi2bUJZjnUnRYcpcq4vK9hX4yecP', ChainType.TVM),
     provers: {
-      LayerZero: AddressNormalizer.normalize(
-        '0x0000000000000000000000000000000000000000',
-        ChainType.TVM
-      ), // TODO
+      LayerZero: AddressNormalizer.normalize('TJQSbrRjqdodh3aFQwfQEasTSEnUxqmDMy', ChainType.TVM),
     },
     nativeCurrency: {
       name: 'Tron',

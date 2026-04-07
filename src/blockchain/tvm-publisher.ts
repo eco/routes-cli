@@ -52,29 +52,31 @@ export class TvmPublisher extends BasePublisher {
         throw new Error(`Unknown destination chain: ${destination}`);
       }
 
-      // Get Portal contract with ABI
-      const sourceToken = reward.tokens[0];
-      const tokenContract = this.tronWeb.contract(
-        erc20Abi,
-        AddressNormalizer.denormalizeToTvm(sourceToken.token)
-      );
+      // Approve reward tokens if any
+      if (reward.tokens.length > 0) {
+        const sourceToken = reward.tokens[0];
+        const tokenContract = this.tronWeb.contract(
+          erc20Abi,
+          AddressNormalizer.denormalizeToTvm(sourceToken.token)
+        );
 
-      logger.spinner('Approving tokens...');
+        logger.spinner('Approving tokens...');
 
-      const approvalTxId = await tokenContract
-        .approve(portalAddress, sourceToken.amount)
-        .send({ from: senderAddress });
+        const approvalTxId = await tokenContract
+          .approve(portalAddress, sourceToken.amount)
+          .send({ from: senderAddress });
 
-      logger.updateSpinner('Waiting for approval confirmation...');
+        logger.updateSpinner('Waiting for approval confirmation...');
 
-      const approvalSuccessful = await this.waitForTransaction(approvalTxId);
+        const approvalSuccessful = await this.waitForTransaction(approvalTxId);
 
-      if (!approvalSuccessful) {
-        logger.fail('Token approval failed');
-        throw new Error('Approval failed');
+        if (!approvalSuccessful) {
+          logger.fail('Token approval failed');
+          throw new Error('Approval failed');
+        }
+
+        logger.succeed('Tokens approved');
       }
-
-      logger.succeed('Tokens approved');
 
       const portalContract = this.tronWeb.contract(portalAbi, portalAddress);
 
@@ -102,8 +104,8 @@ export class TvmPublisher extends BasePublisher {
       logger.updateSpinner('Waiting for transaction confirmation...');
 
       const { intentHash } = PortalHashUtils.getIntentHashFromReward(
-        destination,
         source,
+        destination,
         encodedRoute as Hex,
         reward
       );

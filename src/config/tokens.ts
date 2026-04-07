@@ -95,7 +95,7 @@ export const TOKEN_CONFIGS: Record<string, TokenConfig> = {
       ), // Base
       '728126428': AddressNormalizer.normalize('TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t', ChainType.TVM), // Tron
       '2494104990': AddressNormalizer.normalize(
-        'TG3XXyExBkPp9nzdajDZsozEu4BkaSJozs',
+        'TTWQgxc52wHxuuG9sy2D7XFkNcSSzKK7ZB',
         ChainType.TVM
       ), // Tron Shasta
       '1399811149': AddressNormalizer.normalizeSvm(

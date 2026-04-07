@@ -184,10 +184,7 @@ export class AddressNormalizer {
       // Remove padding
       const unpadded = unpadFrom32Bytes(address);
 
-      // Remove 0x prefix
-      const hexAddress = unpadded.startsWith('0x41')
-        ? unpadded.substring(2)
-        : '41' + unpadded.substring(2);
+      const hexAddress = '41' + unpadded.substring(2);
 
       // Convert to base58 Tron address
       const base58Address = TronWeb.address.fromHex(hexAddress);
@@ -305,15 +302,16 @@ export class AddressNormalizer {
         if (!TronWeb.isAddress(base58)) {
           throw new Error(`Invalid Tron hex address: ${address}`);
         }
-        hexAddress = hexTronAddr.toLowerCase();
+        // Strip the '41' prefix — store only the 20-byte EVM-compatible payload
+        hexAddress = '0x' + hexTronAddr.toLowerCase().substring(4);
       } else {
         // Assume it's base58 format
         if (!TronWeb.isAddress(address)) {
           throw new Error(`Invalid Tron base58 address: ${address}`);
         }
-        // Convert to hex (Tron addresses are 21 bytes, first byte is 0x41)
+        // Convert to hex (Tron addresses are 21 bytes, first byte is 0x41) then strip the prefix
         const tronHex = TronWeb.address.toHex(address);
-        hexAddress = '0x' + tronHex.toLowerCase();
+        hexAddress = '0x' + tronHex.toLowerCase().substring(2);
       }
 
       // Pad to 32 bytes
