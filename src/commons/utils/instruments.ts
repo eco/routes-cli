@@ -1,7 +1,7 @@
 import { BN, web3 } from '@coral-xyz/anchor';
 
-import { Intent } from '@/core/interfaces/intent';
-import { AddressNormalizer } from '@/core/utils/address-normalizer';
+import { AddressNormalizer } from '@/blockchain/utils/address-normalizer';
+import { Intent } from '@/shared/types';
 
 import { PortalIdlTypes } from '../types/portal-idl.type';
 import * as PortalIdlCoder from '../types/portal-idl-coder.type';

@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /**
  * Logger utility module for enhanced CLI output
  * Uses ora for spinners and cli-table3 for structured data display
@@ -119,6 +120,34 @@ export class Logger {
     console.log(chalk.gray(message));
   }
 
+  private detectDarkMode(): boolean {
+    const bg = process.env.COLORFGBG?.split(';').pop();
+    if (bg) {
+      const value = parseInt(bg, 10);
+      return Number.isNaN(value) ? true : value < 7;
+    }
+    return true;
+  }
+
+  /**
+   * Display the ECO ASCII art logo
+   */
+  logo(): void {
+    const lines = [
+      ' ██████╗  ██████╗  ██████╗ ',
+      '██╔════╝ ██╔════╝ ██╔═══██╗',
+      '█████╗   ██║      ██║   ██║',
+      '██╔══╝   ██║      ██║   ██║',
+      '╚██████╗ ╚██████╗ ╚██████╔╝',
+    ];
+    const isDark = this.detectDarkMode();
+    const logoColor = isDark ? chalk.white : chalk.hex('#1C538D');
+    console.log('');
+    lines.forEach(line => console.log(logoColor(line)));
+    console.log(logoColor(' ╚═════╝  ╚═════╝  ╚═════╝ ') + logoColor.bold(' CLI'));
+    console.log('');
+  }
+
   /**
    * Title/header message
    */
@@ -136,7 +165,7 @@ export class Logger {
   /**
    * Create a table for displaying data
    */
-  table(options?: any): any {
+  table(options?: ConstructorParameters<typeof Table>[0]): InstanceType<typeof Table> {
     return new Table(
       options || {
         head: [],
@@ -175,7 +204,11 @@ export class Logger {
   /**
    * Display a data table with headers
    */
-  displayTable(headers: string[], rows: (string | number | boolean)[][], options?: any): void {
+  displayTable(
+    headers: string[],
+    rows: (string | number | boolean)[][],
+    options?: ConstructorParameters<typeof Table>[0]
+  ): void {
     const table = this.table({
       head: headers.map(h => chalk.cyan(h)),
       ...options,

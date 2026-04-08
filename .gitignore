@@ -3,6 +3,10 @@ node_modules/
 
 # Build output
 dist/
+bundle/
+
+# Generated docs
+docs/api/
 
 # Environment files
 .env
@@ -33,3 +37,4 @@ coverage/
 
 CLAUDE.md
 thoughts/
+.worktrees/

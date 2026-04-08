@@ -21,7 +21,7 @@ module.exports = defineConfig([
       sourceType: 'module',
 
       parserOptions: {
-        project: 'tsconfig.json',
+        projectService: true,
         tsconfigRootDir: __dirname,
       },
 
@@ -40,9 +40,19 @@ module.exports = defineConfig([
 
     rules: {
       '@typescript-eslint/interface-name-prefix': 'off',
-      '@typescript-eslint/explicit-function-return-type': 'off',
+      '@typescript-eslint/explicit-function-return-type': [
+        'error',
+        {
+          allowExpressions: true,
+          allowTypedFunctionExpressions: true,
+        },
+      ],
       '@typescript-eslint/explicit-module-boundary-types': 'off',
-      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-explicit-any': 'error',
+      '@typescript-eslint/no-floating-promises': 'error',
+      '@typescript-eslint/require-await': 'error',
+      'no-console': ['error', { allow: ['warn', 'error'] }],
+      '@typescript-eslint/no-unsafe-assignment': 'warn',
 
       '@typescript-eslint/no-unused-vars': [
         'error',
@@ -66,7 +76,13 @@ module.exports = defineConfig([
       '@typescript-eslint/member-ordering': 'off',
     },
   },
-  globalIgnores(['**/.eslintrc.js']),
+  globalIgnores(['**/.eslintrc.js', 'src/scripts/**']),
+  {
+    files: ['src/cli/**/*.ts'],
+    rules: {
+      'no-console': 'off',
+    },
+  },
   {
     files: ['**/*.ts', '**/*.tsx'],
 

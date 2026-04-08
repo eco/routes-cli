@@ -2,7 +2,7 @@ import { BorshCoder, Idl } from '@coral-xyz/anchor';
 
 import { getPortalIdlByNetwork, Network } from '@/commons/idls/portal.idl';
 
-export function getPortalBorshCoder(network: Network) {
+export function getPortalBorshCoder(network: Network): BorshCoder {
   const idl = getPortalIdlByNetwork(network);
   return new BorshCoder(idl as unknown as Idl);
 }

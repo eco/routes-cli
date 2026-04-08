@@ -36,8 +36,9 @@ export async function decodeTransactionLogs(
     const events = parseEventsFromLogs(logs, program);
 
     return events;
-  } catch (error: any) {
-    logger.warn(`Failed to decode transaction logs: ${error.message}`);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    logger.warn(`Failed to decode transaction logs: ${message}`);
     // Return empty array if decoding fails - this is non-critical
     return [];
   }
@@ -61,8 +62,9 @@ function parseEventsFromLogs(logs: string[], program: Program): DecodedEvent[] {
     }
 
     return events;
-  } catch (error: any) {
-    logger.warn(`Failed to parse events from logs: ${error.message}`);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    logger.warn(`Failed to parse events from logs: ${message}`);
     return [];
   }
 }
@@ -88,44 +90,64 @@ export async function extractIntentPublishedEvent(
 
     // Transform the event data to our format
     return transformIntentPublishedEvent(intentPublishedEvent.data);
-  } catch (error: any) {
-    logger.warn(`Failed to extract IntentPublished event: ${error.message}`);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    logger.warn(`Failed to extract IntentPublished event: ${message}`);
     return null;
   }
+}
+
+/** Shape of the raw Anchor IntentPublished event data before transformation. */
+interface RawIntentPublishedData {
+  intentHash?: number[] | string;
+  destination?: { toString(): string } | string | number;
+  route?: number[] | string;
+  reward?: {
+    deadline?: { toString(): string };
+    creator?: { toString(): string };
+    prover?: { toString(): string };
+    nativeAmount?: { toString(): string };
+    tokens?: Array<{
+      token?: { toString(): string };
+      amount?: { toString(): string };
+    }>;
+  };
 }
 
 /**
  * Transforms raw event data to DecodedIntentPublished format
  */
-function transformIntentPublishedEvent(eventData: any): DecodedIntentPublished {
+function transformIntentPublishedEvent(eventData: Record<string, unknown>): DecodedIntentPublished {
   try {
+    const data = eventData as RawIntentPublishedData;
+
     // Convert intent_hash array to hex string if it's an array
-    const intentHash = Array.isArray(eventData.intentHash)
-      ? bufferToHex(Buffer.from(eventData.intentHash))
-      : eventData.intentHash;
+    const intentHash = Array.isArray(data.intentHash)
+      ? bufferToHex(Buffer.from(data.intentHash as number[]))
+      : (data.intentHash as string) || '';
 
     // Convert route bytes to hex string if it's an array
-    const route = Array.isArray(eventData.route)
-      ? bufferToHex(Buffer.from(eventData.route))
-      : eventData.route;
+    const route = Array.isArray(data.route)
+      ? bufferToHex(Buffer.from(data.route as number[]))
+      : (data.route as string) || '';
 
     return {
       intentHash,
-      destination: eventData.destination?.toString() || '',
+      destination: data.destination?.toString() || '',
       route,
       reward: {
-        deadline: eventData.reward?.deadline?.toString() || '0',
-        creator: eventData.reward?.creator?.toString() || '',
-        prover: eventData.reward?.prover?.toString() || '',
-        nativeAmount: eventData.reward?.nativeAmount?.toString() || '0',
+        deadline: data.reward?.deadline?.toString() || '0',
+        creator: data.reward?.creator?.toString() || '',
+        prover: data.reward?.prover?.toString() || '',
+        nativeAmount: data.reward?.nativeAmount?.toString() || '0',
         tokens:
-          eventData.reward?.tokens?.map((token: any) => ({
+          data.reward?.tokens?.map(token => ({
             token: token.token?.toString() || '',
             amount: token.amount?.toString() || '0',
           })) || [],
       },
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     throw new SvmError(
       SvmErrorType.TRANSACTION_FAILED,
       'Failed to transform IntentPublished event',
@@ -137,18 +159,19 @@ function transformIntentPublishedEvent(eventData: any): DecodedIntentPublished {
 /**
  * Decodes instruction data from a transaction
  */
-export async function decodeInstructionData(
-  program: Program,
-  instructionData: Buffer,
+export function decodeInstructionData(
+  _program: Program,
+  _instructionData: Buffer,
   instructionName: string
-): Promise<any> {
+): { name: string } | null {
   try {
     // For now, we'll just log the instruction name
     // Actual decoding would require the instruction discriminator
     logger.info(`Processing ${instructionName} instruction`);
     return { name: instructionName };
-  } catch (error: any) {
-    logger.warn(`Failed to decode instruction data: ${error.message}`);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    logger.warn(`Failed to decode instruction data: ${message}`);
     return null;
   }
 }
@@ -189,8 +212,8 @@ export async function logTransactionDetails(
         logger.info(`  Event ${index + 1}: ${event.name}`);
 
         if ('intentHash' in event.data)
-          event.data.intentHash = arrayToHex(event.data.intentHash[0]);
-        if ('route' in event.data) event.data.route = bufferToHex(event.data.route);
+          event.data.intentHash = arrayToHex((event.data.intentHash as number[][])[0]);
+        if ('route' in event.data) event.data.route = bufferToHex(event.data.route as Buffer);
 
         logger.info(`    Data: ${JSON.stringify(event.data, null, 2)}`);
       });
@@ -200,7 +223,8 @@ export async function logTransactionDetails(
     if (parsedTx.meta?.err) {
       logger.error(`Transaction Error: ${JSON.stringify(parsedTx.meta.err)}`);
     }
-  } catch (error: any) {
-    logger.warn(`Failed to log transaction details: ${error.message}`);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    logger.warn(`Failed to log transaction details: ${message}`);
   }
 }
