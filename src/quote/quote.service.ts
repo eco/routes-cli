@@ -96,40 +96,58 @@ export class QuoteService {
     const dAppID = this.config.getDappId();
     const isSolverV2 = type === 'solver-v2';
 
-    const request: QuoteRequestPayload = {
-      dAppID,
-      quoteRequest: {
-        sourceChainID: isSolverV2 ? params.source.toString() : Number(params.source),
-        sourceToken: params.rewardToken,
-        destinationChainID: isSolverV2 ? params.destination.toString() : Number(params.destination),
-        destinationToken: params.routeToken,
-        sourceAmount: params.amount.toString(),
-        funder: params.funder,
-        recipient: params.recipient,
-      },
+    const buildRequest = (chainIdsAsNumber: boolean): QuoteRequestPayload => {
+      const req: QuoteRequestPayload = {
+        dAppID,
+        quoteRequest: {
+          sourceChainID: chainIdsAsNumber ? Number(params.source) : params.source.toString(),
+          sourceToken: params.rewardToken,
+          destinationChainID: chainIdsAsNumber
+            ? Number(params.destination)
+            : params.destination.toString(),
+          destinationToken: params.routeToken,
+          sourceAmount: params.amount.toString(),
+          funder: params.funder,
+          recipient: params.recipient,
+        },
+      };
+      if (isSolverV2) {
+        req.quoteID = crypto.randomUUID();
+        req.intentExecutionTypes = ['SELF_PUBLISH'];
+      }
+      return req;
     };
 
-    if (isSolverV2) {
-      request.quoteID = crypto.randomUUID();
-      request.intentExecutionTypes = ['SELF_PUBLISH'];
+    const post = async (
+      request: QuoteRequestPayload
+    ): Promise<{ ok: boolean; status: number; raw: RawQuoteResponse }> => {
+      if (this.config.isDebug()) {
+        this.display.log(
+          `[DEBUG] Quote request: ${JSON.stringify({ url, request: JSON.stringify(request) })}`
+        );
+      }
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(request),
+      });
+      const body = (await res.json()) as RawQuoteResponse;
+      if (this.config.isDebug()) {
+        this.display.log(`[DEBUG] Quote response: ${JSON.stringify(body)}`);
+      }
+      return { ok: res.ok, status: res.status, raw: body };
+    };
+
+    // Default to string chain IDs for solver-v2 (legacy), numbers for v3.
+    let response = await post(buildRequest(!isSolverV2));
+
+    // Some solver-v2 deployments (e.g. solver-green) require numeric chain IDs per the
+    // OpenAPI spec. Retry once with numbers if the first attempt fails validation.
+    if (!response.ok && isSolverV2 && response.status === 400) {
+      response = await post(buildRequest(true));
     }
 
-    if (this.config.isDebug()) {
-      this.display.log(
-        `[DEBUG] Quote request: ${JSON.stringify({ url, request: JSON.stringify(request) })}`
-      );
-    }
-
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(request),
-    });
-
-    const raw = (await response.json()) as RawQuoteResponse;
-    if (this.config.isDebug()) {
-      this.display.log(`[DEBUG] Quote response: ${JSON.stringify(raw)}`);
-    }
+    const raw = response.raw;
     if (!response.ok) throw new Error(JSON.stringify(raw));
 
     // Solver-v2 returns the object directly; quote-service-v3 wraps in `data`
