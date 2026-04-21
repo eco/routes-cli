@@ -1,4 +1,16 @@
-import { arbitrum, bsc, hyperEvm, mainnet, polygon, ronin, sonic } from 'viem/chains';
+import {
+  apeChain,
+  arbitrum,
+  b3,
+  bsc,
+  hyperEvm,
+  mainnet,
+  manta,
+  polygon,
+  ronin,
+  sanko,
+  sonic,
+} from 'viem/chains';
 
 import { ChainType } from '@/shared/types';
 
@@ -86,6 +98,62 @@ export const RAW_CHAIN_CONFIGS: RawChainConfig[] = [
     env: 'production',
     rpcUrl: hyperEvm.rpcUrls.default.http[0],
     nativeCurrency: hyperEvm.nativeCurrency,
+  },
+  {
+    id: BigInt(sanko.id),
+    name: sanko.name,
+    type: ChainType.EVM,
+    env: 'production',
+    rpcUrl: 'https://sanko-mainnet.calderachain.xyz/http',
+    nativeCurrency: sanko.nativeCurrency,
+  },
+  {
+    id: 1380012617n,
+    name: 'RARI',
+    type: ChainType.EVM,
+    env: 'production',
+    rpcUrl: 'https://rari.calderachain.xyz/http',
+    nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+  },
+  {
+    id: BigInt(manta.id),
+    name: 'Manta Pacific',
+    type: ChainType.EVM,
+    env: 'production',
+    rpcUrl: 'https://manta-pacific.calderachain.xyz/http',
+    nativeCurrency: manta.nativeCurrency,
+  },
+  {
+    id: 466n,
+    name: 'Appchain',
+    type: ChainType.EVM,
+    env: 'production',
+    rpcUrl: 'https://rpc.appchain.xyz/http',
+    nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+  },
+  {
+    id: BigInt(b3.id),
+    name: b3.name,
+    type: ChainType.EVM,
+    env: 'production',
+    rpcUrl: 'https://mainnet-rpc.b3.fun/http',
+    nativeCurrency: b3.nativeCurrency,
+  },
+  {
+    id: BigInt(apeChain.id),
+    name: apeChain.name,
+    type: ChainType.EVM,
+    env: 'production',
+    rpcUrl: 'https://rpc.apechain.com/http',
+    nativeCurrency: apeChain.nativeCurrency,
+  },
+  {
+    id: 360n,
+    name: 'Molten',
+    type: ChainType.EVM,
+    env: 'production',
+    rpcUrl: 'https://molten.calderachain.xyz/http',
+    nativeCurrency: { name: 'MOLTEN', symbol: 'MOLTEN', decimals: 18 },
   },
 
   // EVM - Development

@@ -77,6 +77,24 @@ export const TOKEN_CONFIGS: Record<string, TokenConfig> = {
       '1399811150': AddressNormalizer.normalizeSvm(
         '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU' as SvmAddress
       ),
+      '1996': AddressNormalizer.normalizeEvm(
+        '0x13D675BC5e659b11CFA331594cF35A20815dCF02' as EvmAddress
+      ), // Sanko
+      '1380012617': AddressNormalizer.normalizeEvm(
+        '0x46B991aCbD9290967a3A9e02f14895c2F9FE809A' as EvmAddress
+      ), // RARI
+      '169': AddressNormalizer.normalizeEvm(
+        '0xb73603C5d87fA094B7314C74ACE2e64D165016fb' as EvmAddress
+      ), // Manta Pacific
+      '466': AddressNormalizer.normalizeEvm(
+        '0x675C3ce7F43b00045a4Dab954AF36160fb57cB45' as EvmAddress
+      ), // Appchain
+      '8333': AddressNormalizer.normalizeEvm(
+        '0x2Af198A85F9AA11cd6042A0596FbF23978514DA3' as EvmAddress
+      ), // B3
+      '360': AddressNormalizer.normalizeEvm(
+        '0xDf0195C990a94006869959a9c77add160164207e' as EvmAddress
+      ), // Molten
       // Add more as needed
     },
   },
@@ -106,7 +124,36 @@ export const TOKEN_CONFIGS: Record<string, TokenConfig> = {
       '1399811149': AddressNormalizer.normalizeSvm(
         'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB' as SvmAddress
       ),
+      '1380012617': AddressNormalizer.normalizeEvm(
+        '0x362FAE9A75B27BBc550aAc28a7c1F96C8D483120' as EvmAddress
+      ), // RARI
+      '169': AddressNormalizer.normalizeEvm(
+        '0xf417F5A458eC102B90352F697D6e2Ac3A3d2851f' as EvmAddress
+      ), // Manta Pacific
       // Add more as needed
+    },
+  },
+  USDCe: {
+    symbol: 'USDCe',
+    name: 'Bridged USDC',
+    decimals: 6,
+    addresses: {
+      '1380012617': AddressNormalizer.normalizeEvm(
+        '0xFbDa5F676cB37624f28265A144A48B0d6e87d3b6' as EvmAddress
+      ), // RARI
+      '33139': AddressNormalizer.normalizeEvm(
+        '0xF1815bd50389c46847f0Bda824eC8da914045D14' as EvmAddress
+      ), // ApeChain
+    },
+  },
+  ApeUSD: {
+    symbol: 'ApeUSD',
+    name: 'ApeChain USD',
+    decimals: 18,
+    addresses: {
+      '33139': AddressNormalizer.normalizeEvm(
+        '0xA2235d059F80e176D931Ef76b6C51953Eb3fBEf4' as EvmAddress
+      ), // ApeChain
     },
   },
   USDG: {

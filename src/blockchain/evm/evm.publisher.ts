@@ -320,14 +320,21 @@ export class EvmPublisher extends BasePublisher {
   private getChain(chainId: bigint): Chain {
     const id = Number(chainId);
     const viemChain = Object.values(chains).find((chain: Chain) => chain.id === id);
+    if (viemChain) return viemChain;
 
-    if (!viemChain) {
-      throw new Error(
-        `Chain ID ${id} is not supported. Please use a chain that exists in viem/chains. ` +
-          `Popular chains include: Ethereum (1), Optimism (10), Base (8453), Arbitrum (42161), Polygon (137), BSC (56).`
-      );
+    const local = this.chains.findChainById(chainId);
+    if (local) {
+      return {
+        id,
+        name: local.name,
+        nativeCurrency: local.nativeCurrency,
+        rpcUrls: { default: { http: [local.rpcUrl] } },
+      } as Chain;
     }
 
-    return viemChain;
+    throw new Error(
+      `Chain ID ${id} is not supported. Please use a chain that exists in viem/chains or add it to chains.config.ts. ` +
+        `Popular chains include: Ethereum (1), Optimism (10), Base (8453), Arbitrum (42161), Polygon (137), BSC (56).`
+    );
   }
 }
