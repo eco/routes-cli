@@ -11,7 +11,7 @@ export interface RewardParams {
   sourceChain: ChainConfig;
   creator: UniversalAddress;
   prover: UniversalAddress;
-  rewardToken: UniversalAddress;
+  rewardToken?: UniversalAddress;
   rewardAmount: bigint;
   deadline?: number;
 }
@@ -36,6 +36,16 @@ export class IntentBuilder {
   buildReward(params: RewardParams): Intent['reward'] {
     const deadlineOffset = BigInt(this.config.getDeadlineOffsetSeconds());
     const deadline = params.deadline ?? BigInt(Math.floor(Date.now() / 1000)) + deadlineOffset;
+
+    if (!params.rewardToken) {
+      return {
+        deadline: BigInt(deadline),
+        creator: params.creator,
+        prover: params.prover,
+        nativeAmount: 0n,
+        tokens: [],
+      };
+    }
 
     const rewardEvmAddr = this.normalizer.denormalizeToEvm(params.rewardToken);
     const isNative = rewardEvmAddr === '0x0000000000000000000000000000000000000000';
