@@ -6,7 +6,7 @@ import { parseUnits } from 'viem';
 import { AddressNormalizerService } from '@/blockchain/address-normalizer.service';
 import { ChainRegistryService } from '@/blockchain/chain-registry.service';
 import { TokenConfig } from '@/config/tokens.config';
-import { ChainConfig } from '@/shared/types';
+import { ChainConfig, UniversalAddress } from '@/shared/types';
 
 @Injectable()
 export class PromptService {
@@ -31,10 +31,11 @@ export class PromptService {
     chain: ChainConfig,
     tokens: TokenConfig[],
     label: string
-  ): Promise<{ address: string; decimals: number; symbol?: string }> {
+  ): Promise<{ address: string; decimals: number; symbol?: string } | null> {
     const availableTokens = tokens.filter(t => !!t.addresses[chain.id.toString()]);
     const choices = [
       ...availableTokens.map(t => ({ name: `${t.symbol} - ${t.name}`, value: t.symbol })),
+      { name: 'None (no tokens)', value: 'NONE' },
       { name: 'Custom Token Address', value: 'CUSTOM' },
     ];
 
@@ -46,6 +47,10 @@ export class PromptService {
         choices,
       },
     ]);
+
+    if (tokenChoice === 'NONE') {
+      return null;
+    }
 
     if (tokenChoice === 'CUSTOM') {
       const handler = this.registry.get(chain.type);
@@ -186,9 +191,6 @@ export class PromptService {
         type: 'input',
         name: 'prover',
         message: `Enter prover contract address on ${chain.name}:`,
-        default: chain.proverAddress
-          ? (this.normalizer.denormalize(chain.proverAddress, chain.type) as string)
-          : undefined,
         validate: (input: string) => {
           if (!input || input.trim() === '') return 'Prover address is required';
           if (!handler.validateAddress(input)) {
@@ -199,5 +201,32 @@ export class PromptService {
       },
     ]);
     return prover as string;
+  }
+
+  /**
+   * Select a prover for the given source/destination chain pair.
+   * Uses the intersection of prover keys from both chains to offer a named list.
+   * Falls back to a free-text address prompt when no intersection exists.
+   */
+  async selectProver(sourceChain: ChainConfig, destChain: ChainConfig): Promise<UniversalAddress> {
+    const sourceProvers = sourceChain.provers ?? {};
+    const destProvers = destChain.provers ?? {};
+    const commonTypes = Object.keys(sourceProvers).filter(k => k in destProvers);
+
+    if (commonTypes.length > 0) {
+      const { proverType } = await inquirer.prompt([
+        {
+          type: 'list',
+          name: 'proverType',
+          message: `Select prover for ${sourceChain.name} → ${destChain.name}:`,
+          choices: commonTypes.map(k => ({ name: k, value: k })),
+        },
+      ]);
+      return sourceProvers[proverType as string] as UniversalAddress;
+    }
+
+    const raw = await this.inputManualProver(sourceChain);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return this.normalizer.normalize(raw as any, sourceChain.type);
   }
 }

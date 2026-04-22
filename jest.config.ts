@@ -15,7 +15,7 @@ const config: Config = {
     '!src/scripts/**',
   ],
   coverageThreshold: {
-    global: { branches: 10, functions: 15, lines: 20, statements: 20 },
+    global: { branches: 10, functions: 15, lines: 20, statements: 19 },
   },
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',

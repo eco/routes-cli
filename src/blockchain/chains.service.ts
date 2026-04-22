@@ -36,9 +36,14 @@ export class ChainsService implements OnModuleInit {
         ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
           this.normalizer.normalize(raw.portalAddress as any, raw.type)
         : undefined,
-      proverAddress: raw.proverAddress
-        ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          this.normalizer.normalize(raw.proverAddress as any, raw.type)
+      provers: raw.provers
+        ? Object.fromEntries(
+            Object.entries(raw.provers).map(([k, v]) => [
+              k,
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              this.normalizer.normalize(v as any, raw.type),
+            ])
+          )
         : undefined,
     };
   }

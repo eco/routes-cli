@@ -103,8 +103,8 @@ export class TvmPublisher extends BasePublisher {
         logger.updateSpinner('Waiting for transaction confirmation...');
 
         const { intentHash } = PortalHashUtils.getIntentHashFromReward(
-          destination,
           source,
+          destination,
           encodedRoute as Hex,
           reward
         );

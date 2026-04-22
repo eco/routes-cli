@@ -101,7 +101,7 @@ export const TOKEN_CONFIGS: Record<string, TokenConfig> = {
         'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t' as TronAddress
       ), // Tron
       '2494104990': AddressNormalizer.normalizeTvm(
-        'TG3XXyExBkPp9nzdajDZsozEu4BkaSJozs' as TronAddress
+        'TTWQgxc52wHxuuG9sy2D7XFkNcSSzKK7ZB' as TronAddress
       ), // Tron Shasta
       '1399811149': AddressNormalizer.normalizeSvm(
         'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB' as SvmAddress
