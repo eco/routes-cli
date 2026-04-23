@@ -129,6 +129,26 @@ export const TOKEN_CONFIGS: Record<string, TokenConfig> = {
       ), // BNB Smart Chain
     },
   },
+  TOSHI: {
+    symbol: 'TOSHI',
+    name: 'Toshi',
+    decimals: 18,
+    addresses: {
+      '8453': AddressNormalizer.normalizeEvm(
+        '0xac1bd2486aaf3b5c0fc3fd868558b082a531b2b4' as EvmAddress
+      ), // Base
+    },
+  },
+  DOGE: {
+    symbol: 'DOGE',
+    name: 'Binance-Peg Dogecoin',
+    decimals: 8,
+    addresses: {
+      '56': AddressNormalizer.normalizeEvm(
+        '0xba2ae424d960c26247dd6c32edc70b295c744c43' as EvmAddress
+      ), // BNB Smart Chain
+    },
+  },
   bUSDT: {
     symbol: 'bUSDT',
     name: 'Binance USDT',
@@ -184,6 +204,16 @@ export const TOKEN_CONFIGS: Record<string, TokenConfig> = {
       '2020': AddressNormalizer.normalizeEvm(
         '0xc99a6a985ed2cac1ef41640596c5a5f9f4e19ef5' as EvmAddress
       ), // Ronin WETH
+    },
+  },
+  WBTC: {
+    symbol: 'WBTC',
+    name: 'Wrapped BTC',
+    decimals: 8,
+    addresses: {
+      '10': AddressNormalizer.normalizeEvm(
+        '0x68f180fcce6836688e9084f035309e29bf0a2095' as EvmAddress
+      ), // Optimism
     },
   },
 };
