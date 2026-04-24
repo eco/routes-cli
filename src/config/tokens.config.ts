@@ -211,9 +211,21 @@ export const TOKEN_CONFIGS: Record<string, TokenConfig> = {
     name: 'Wrapped BTC',
     decimals: 8,
     addresses: {
+      '1': AddressNormalizer.normalizeEvm(
+        '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599' as EvmAddress
+      ), // Ethereum
       '10': AddressNormalizer.normalizeEvm(
         '0x68f180fcce6836688e9084f035309e29bf0a2095' as EvmAddress
       ), // Optimism
+      '8453': AddressNormalizer.normalizeEvm(
+        '0x0555E30da8f98308EdB960aa94C0Db47230d2B9c' as EvmAddress
+      ), // Base
+      '42161': AddressNormalizer.normalizeEvm(
+        '0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f' as EvmAddress
+      ), // Arbitrum
+      '137': AddressNormalizer.normalizeEvm(
+        '0x1BFD67037B42Cf73acF2047067bd4F2C47D9BfD6' as EvmAddress
+      ), // Polygon
     },
   },
 };
