@@ -22,7 +22,7 @@ export const RAW_CHAIN_CONFIGS: RawChainConfig[] = [
     env: 'production',
     rpcUrl: 'https://ethereum-rpc.publicnode.com',
     portalAddress: '0xfD12115CD8F37C7667050eD8499EDa6B9d9c03bA', // preprod portal
-    provers: { LayerZero: '0xc20c5c9f9311d8446f0345F8727066DaF1e3e06A' },
+    provers: { LayerZero: '0xD3918bE52B6B4f5aA00a09c7f62c1B3e91a278Bd' },
     nativeCurrency: mainnet.nativeCurrency,
   },
   {
@@ -32,7 +32,7 @@ export const RAW_CHAIN_CONFIGS: RawChainConfig[] = [
     env: 'production',
     rpcUrl: 'https://mainnet.optimism.io',
     portalAddress: '0xfD12115CD8F37C7667050eD8499EDa6B9d9c03bA', // preprod portal
-    provers: { LayerZero: '0xc20c5c9f9311d8446f0345F8727066DaF1e3e06A' },
+    provers: { LayerZero: '0xD3918bE52B6B4f5aA00a09c7f62c1B3e91a278Bd' },
     nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
   },
   {
@@ -50,7 +50,7 @@ export const RAW_CHAIN_CONFIGS: RawChainConfig[] = [
     env: 'production',
     rpcUrl: 'https://mainnet.base.org',
     portalAddress: '0xfD12115CD8F37C7667050eD8499EDa6B9d9c03bA', // preprod portal
-    provers: { LayerZero: '0xc20c5c9f9311d8446f0345F8727066DaF1e3e06A' },
+    provers: { LayerZero: '0xD3918bE52B6B4f5aA00a09c7f62c1B3e91a278Bd' },
     nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
   },
   {
@@ -60,7 +60,7 @@ export const RAW_CHAIN_CONFIGS: RawChainConfig[] = [
     env: 'production',
     rpcUrl: arbitrum.rpcUrls.default.http[0],
     portalAddress: '0xfD12115CD8F37C7667050eD8499EDa6B9d9c03bA', // preprod portal
-    provers: { LayerZero: '0xc20c5c9f9311d8446f0345F8727066DaF1e3e06A' },
+    provers: { LayerZero: '0xD3918bE52B6B4f5aA00a09c7f62c1B3e91a278Bd' },
     nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
   },
   {
@@ -70,7 +70,7 @@ export const RAW_CHAIN_CONFIGS: RawChainConfig[] = [
     env: 'production',
     rpcUrl: 'https://polygon.drpc.org',
     portalAddress: '0xfD12115CD8F37C7667050eD8499EDa6B9d9c03bA', // preprod portal
-    provers: { LayerZero: '0xc20c5c9f9311d8446f0345F8727066DaF1e3e06A' },
+    provers: { LayerZero: '0xD3918bE52B6B4f5aA00a09c7f62c1B3e91a278Bd' },
     nativeCurrency: polygon.nativeCurrency,
   },
   {
@@ -108,7 +108,7 @@ export const RAW_CHAIN_CONFIGS: RawChainConfig[] = [
     portalAddress: '0x399Dbd5DF04f83103F77A58cBa2B7c4d3cdede97',
     provers: {
       Hyperlane: '0x9523b6c0caac8122dbd5dd1c1d336ceba637038d',
-      LayerZero: '0x5Ae3569c6f5B6F80aa8f234AEf4b9c00b43aC32A',
+      LayerZero: '0x6D8D9E68627b8eb2D4A3c1110be3FE46Ff6e92A3',
     },
     nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
   },
@@ -159,8 +159,8 @@ export const RAW_CHAIN_CONFIGS: RawChainConfig[] = [
     type: ChainType.TVM,
     env: 'production',
     rpcUrl: 'https://api.trongrid.io',
-    portalAddress: 'THABsbqqmfGtjBDvaeFTmaT5rnaz2fSXuE',
-    provers: { LayerZero: 'TTL198uR3Q3RhLjffsMb8osUunLQeKmcqZ' },
+    portalAddress: 'TXKJXqCr6ecBtMbChFVkgqhLNMSCBFmBtJ',
+    provers: { LayerZero: 'TQo6R31fzxsZuvTHJACKsx6LwePABp1Nax' },
     nativeCurrency: { name: 'Tron', symbol: 'TRX', decimals: 6 },
   },
   {
@@ -169,8 +169,8 @@ export const RAW_CHAIN_CONFIGS: RawChainConfig[] = [
     type: ChainType.TVM,
     env: 'development',
     rpcUrl: 'https://api.shasta.trongrid.io',
-    portalAddress: 'TVNJyezi2bUJZjnUnRYcpcq4vK9hX4yecP',
-    provers: { LayerZero: 'TJQSbrRjqdodh3aFQwfQEasTSEnUxqmDMy' },
+    portalAddress: 'TScmM6ZoR6grho3pKCzX6M2MKBYVURG1s5',
+    provers: { LayerZero: 'TM6cLaN3LStBFi9AjrhLQ9cc6QiVu5nFsD' },
     nativeCurrency: { name: 'Tron', symbol: 'TRX', decimals: 6 },
   },
 
