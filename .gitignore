@@ -38,3 +38,6 @@ coverage/
 CLAUDE.md
 thoughts/
 .worktrees/
+
+# Per-run artifacts from scripts (state JSON + JSONL error logs)
+results/
