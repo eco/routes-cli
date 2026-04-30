@@ -86,8 +86,9 @@ export class SvmPublisher extends BasePublisher {
   }
 
   private async fundIntent(context: PublishContext): Promise<PublishResult> {
-    if (context.reward.tokens.length === 0) {
-      const errorMsg = 'Cannot fund intent: No reward tokens specified';
+    // A reward must carry value: either SPL tokens or native lamports.
+    if (context.reward.tokens.length === 0 && context.reward.nativeAmount === 0n) {
+      const errorMsg = 'Cannot fund intent: reward has no SPL tokens and no native amount';
       logger.error(errorMsg);
       return { success: false, error: errorMsg };
     }
