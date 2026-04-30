@@ -458,6 +458,7 @@ function buildRunnerDeps(input: DepsInput) {
         sourceAmount: s.defaultAmount,
         funder,
         recipient,
+        log: logger,
       }),
     submitEvm: (
       s: Scenario,
@@ -569,6 +570,7 @@ async function runDryRunScenario(
       sourceToken: s.srcToken,
       destinationToken: s.dstToken,
       sourceAmount: s.defaultAmount,
+      log: logger,
       funder,
       recipient,
     });

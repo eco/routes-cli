@@ -1,3 +1,5 @@
+import type { Logger } from './logger';
+
 export class QuoteShapeError extends Error {
   constructor(
     message: string,
@@ -18,6 +20,10 @@ export interface RequestQuoteInput {
   sourceAmount: bigint;
   funder: string;
   recipient: string;
+  /** Optional logger; when present, the request body and response body are
+   * recorded as `quote-request` / `quote-response` events so failures (and
+   * even successes) can be replayed by piping the matching events to curl. */
+  log?: Logger;
 }
 
 export interface QuoteResponseShape {
@@ -68,6 +74,8 @@ export async function requestQuote(input: RequestQuoteInput): Promise<QuoteEnvel
     },
   };
 
+  input.log?.info(input.scenarioId, 'quote-request', { url, body });
+
   const response = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -80,6 +88,12 @@ export async function requestQuote(input: RequestQuoteInput): Promise<QuoteEnvel
   } catch {
     parsed = null;
   }
+
+  input.log?.info(input.scenarioId, 'quote-response', {
+    status: response.status,
+    ok: response.ok,
+    body: parsed,
+  });
 
   if (!response.ok) {
     const message =
