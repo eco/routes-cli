@@ -9,6 +9,11 @@ export interface PollDestInput {
   timeoutMs: number;
   sleep: (ms: number) => Promise<void>;
   now: () => number;
+  /** Called when a single readBalance() iteration throws. The poll continues
+   * to the next iteration; cap is enforced via maxConsecutiveErrors. */
+  onReadError?: (err: unknown, consecutive: number) => void;
+  /** Throw if readBalance() fails this many times in a row (default 5). */
+  maxConsecutiveErrors?: number;
 }
 
 export type PollDestResult =
@@ -16,10 +21,30 @@ export type PollDestResult =
   | { timedOut: true };
 
 export async function pollDestBalance(input: PollDestInput): Promise<PollDestResult> {
-  const { readBalance, balanceBefore, intervalMs, timeoutMs, sleep, now } = input;
+  const {
+    readBalance,
+    balanceBefore,
+    intervalMs,
+    timeoutMs,
+    sleep,
+    now,
+    onReadError,
+    maxConsecutiveErrors = 5,
+  } = input;
   const start = now();
+  let consecutiveErrors = 0;
   while (now() - start < timeoutMs) {
-    const balance = await readBalance();
+    let balance: bigint;
+    try {
+      balance = await readBalance();
+      consecutiveErrors = 0;
+    } catch (err) {
+      consecutiveErrors++;
+      onReadError?.(err, consecutiveErrors);
+      if (consecutiveErrors >= maxConsecutiveErrors) throw err;
+      await sleep(intervalMs);
+      continue;
+    }
     const delta = balance - balanceBefore;
     if (delta > 0n) {
       return { timedOut: false, delta, finalBalance: balance };

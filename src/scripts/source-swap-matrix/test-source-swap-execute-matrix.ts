@@ -85,6 +85,24 @@ function rpcFor(chain: number, alchemyKey: string | undefined): string {
   throw new Error(`no EVM RPC mapping for chain ${chain}`);
 }
 
+function rpcHost(url: string): string {
+  try {
+    return new URL(url).host;
+  } catch {
+    return url;
+  }
+}
+
+function isFreeSvm(url: string): boolean {
+  const host = rpcHost(url).toLowerCase();
+  return (
+    host.endsWith('mainnet-beta.solana.com') ||
+    host.endsWith('publicnode.com') ||
+    host.endsWith('rpc.ankr.com') ||
+    host.endsWith('llamarpc.com')
+  );
+}
+
 function assertNoMainnetScenarios(scenarios: readonly Scenario[]): void {
   for (const s of scenarios) {
     if (s.srcVm === 'evm' && BANNED_EVM_CHAINS.has(s.srcChain)) {
@@ -94,6 +112,42 @@ function assertNoMainnetScenarios(scenarios: readonly Scenario[]): void {
       throw new Error(`refusing to run ${s.id}: dst chain ${s.dstChain} is mainnet (gas-banned)`);
     }
   }
+}
+
+/**
+ * Retry an RPC call with linear backoff. The matrix's polling loop already
+ * tolerates transient errors via its own retry-via-loop semantics, but the
+ * initial snapshot read happens once — a single network blip there fails
+ * the whole scenario. Keep `attempts` small; persistent RPC failure should
+ * still surface, just not on the first jitter.
+ */
+async function withRetry<T>(
+  label: string,
+  fn: () => Promise<T>,
+  opts: {
+    attempts?: number;
+    delayMs?: number;
+    log?: { warn: (sid: string | undefined, evt: string, msg: string, det?: unknown) => void };
+    scenarioId?: string;
+  } = {}
+): Promise<T> {
+  const attempts = opts.attempts ?? 3;
+  const delayMs = opts.delayMs ?? 500;
+  let lastErr: unknown;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastErr = err;
+      const msg = err instanceof Error ? err.message : String(err);
+      opts.log?.warn(opts.scenarioId, `rpc-retry:${label}`, msg, {
+        attempt: i + 1,
+        of: attempts,
+      });
+      if (i < attempts - 1) await new Promise(r => setTimeout(r, delayMs * (i + 1)));
+    }
+  }
+  throw lastErr;
 }
 
 async function readEvmBalance(
@@ -117,6 +171,9 @@ async function readSplBalance(
   owner: PublicKey,
   mint: string
 ): Promise<bigint> {
+  // WSOL deliveries: solver swaps via Jupiter then closes the WSOL ATA in the
+  // same fulfillment tx, system-transferring native lamports to the recipient.
+  // So polling native lamports captures the inbound amount.
   if (mint === 'So11111111111111111111111111111111111111112') {
     return BigInt(await connection.getBalance(owner));
   }
@@ -147,6 +204,15 @@ async function main() {
   console.log(pc.bold('Wallets:'));
   console.log(`  EVM: ${evmAddress}`);
   console.log(`  SVM: ${svmAddress}`);
+  const svmRpc = opts.svmRpcUrl ?? 'https://api.mainnet-beta.solana.com';
+  const evmAlchemyOk = !!opts.alchemyKey;
+  console.log(pc.bold('RPCs:'));
+  console.log(
+    `  EVM:    ${rpcHost(rpcFor(8453, opts.alchemyKey))}${evmAlchemyOk ? '' : pc.yellow(' (PUBLIC — likely rate-limited; set ALCHEMY_API_KEY)')}`
+  );
+  console.log(
+    `  SVM:    ${rpcHost(svmRpc)}${isFreeSvm(svmRpc) ? pc.yellow(' (PUBLIC/FREE — likely rate-limited; set SVM_RPC_URL to a paid endpoint)') : ''}`
+  );
   console.log(`${pc.bold('Solver:')} ${opts.solverUrl}`);
   console.log();
 
@@ -250,7 +316,12 @@ async function main() {
         x => x.srcVm === 'evm' && x.srcChain === s.srcChain && x.srcToken === s.srcToken
       );
       const required = sameTokenScenarios.reduce((acc, x) => acc + x.defaultAmount, 0n);
-      const portalCandidate = await fetchSourcePortalForChain(opts.solverUrl, s);
+      const portalCandidate = await fetchSourcePortalForChain(
+        opts.solverUrl,
+        s,
+        evmAddress,
+        svmAddress
+      );
       await ensureErc20Approval({
         publicClient: evmPublicByChain.get(s.srcChain)!,
         walletClient: evmWalletByChain.get(s.srcChain)!,
@@ -485,36 +556,35 @@ function buildRunnerDeps(input: DepsInput) {
         sourceToken: s.srcToken,
         sourceAmount: s.defaultAmount,
       }),
-    snapshotDestBalance: async (s: Scenario) => {
-      if (s.dstVm === 'evm') {
-        return readEvmBalance(evmPublicByChain.get(s.dstChain)!, s.dstToken, evmAddress);
-      }
-      return readSplBalance(svmConnection, svmKeypair.publicKey, s.dstToken);
-    },
+    snapshotDestBalance: async (s: Scenario) =>
+      withRetry(
+        'snapshot-dest-balance',
+        async () => {
+          if (s.dstVm === 'evm') {
+            return readEvmBalance(evmPublicByChain.get(s.dstChain)!, s.dstToken, evmAddress);
+          }
+          return readSplBalance(svmConnection, svmKeypair.publicKey, s.dstToken);
+        },
+        { log: logger, scenarioId: s.id }
+      ),
     pollDestBalance: async (s: Scenario, balanceBefore: bigint) =>
       pollDestBalance({
-        // Swallow transient RPC errors — return the unchanged baseline so the
-        // poll loop sleeps and retries instead of crashing the scenario. We
-        // surface the blip via logger so it's discoverable in the JSONL.
-        readBalance: async () => {
-          try {
-            return s.dstVm === 'evm'
-              ? await readEvmBalance(evmPublicByChain.get(s.dstChain)!, s.dstToken, evmAddress)
-              : await readSplBalance(svmConnection, svmKeypair.publicKey, s.dstToken);
-          } catch (err) {
-            logger.warn(
-              s.id,
-              'dest-balance-read-error',
-              err instanceof Error ? err.message : String(err)
-            );
-            return balanceBefore;
-          }
-        },
+        readBalance: async () =>
+          s.dstVm === 'evm'
+            ? readEvmBalance(evmPublicByChain.get(s.dstChain)!, s.dstToken, evmAddress)
+            : readSplBalance(svmConnection, svmKeypair.publicKey, s.dstToken),
         balanceBefore,
         intervalMs: 10_000,
         timeoutMs: opts.scenarioTimeoutMs,
         sleep: ms => new Promise(r => setTimeout(r, ms)),
         now: () => Date.now(),
+        onReadError: (err, consecutive) =>
+          logger.warn(
+            s.id,
+            'dest-balance-read-error',
+            err instanceof Error ? err.message : String(err),
+            { consecutive }
+          ),
       }),
     scanSourcePortal: async (
       s: Scenario,
@@ -535,7 +605,14 @@ function buildRunnerDeps(input: DepsInput) {
   };
 }
 
-async function fetchSourcePortalForChain(solverUrl: string, scenario: Scenario): Promise<Address> {
+async function fetchSourcePortalForChain(
+  solverUrl: string,
+  scenario: Scenario,
+  evmAddress: string,
+  svmAddress: string
+): Promise<Address> {
+  const funder = scenario.srcVm === 'evm' ? evmAddress : svmAddress;
+  const recipient = scenario.dstVm === 'evm' ? evmAddress : svmAddress;
   const probe = await requestQuote({
     solverUrl,
     scenarioId: `${scenario.id}-portal-probe`,
@@ -544,10 +621,13 @@ async function fetchSourcePortalForChain(solverUrl: string, scenario: Scenario):
     sourceToken: scenario.srcToken,
     destinationToken: scenario.dstToken,
     sourceAmount: scenario.defaultAmount,
-    funder: '0x0000000000000000000000000000000000000001',
-    recipient: '0x0000000000000000000000000000000000000001',
-  }).catch(() => null);
-  if (!probe) throw new Error(`could not retrieve sourcePortal address for ${scenario.id}`);
+    funder,
+    recipient,
+  }).catch(err => {
+    throw new Error(
+      `portal probe failed for ${scenario.id}: ${err instanceof Error ? err.message : String(err)}`
+    );
+  });
   return probe.contracts.sourcePortal as Address;
 }
 

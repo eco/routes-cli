@@ -30,9 +30,10 @@ const TOKENS = {
   // system_program. Cannot be used as DESTINATION — magenta validates dst
   // SPL mints and the System Program isn't a mint.
   SOL_NATIVE: '11111111111111111111111111111111',
-  // Wrapped SOL SPL mint. Used as DESTINATION for EVM→SVM rows where the
-  // destination token is "SOL" — magenta resolves this to native SOL on the
-  // dest side via Jupiter unwrap.
+  // Wrapped SOL SPL mint. Used as DESTINATION for EVM→SVM "SOL" rows so we
+  // exercise the real fulfillment path; magenta/Jupiter unwraps to native
+  // SOL on delivery, which is why the dst-balance reader special-cases this
+  // mint and reads native lamports.
   WSOL_MINT: 'So11111111111111111111111111111111111111112',
 } as const;
 

@@ -69,14 +69,11 @@ export async function checkBalances(input: BalanceCheckInput): Promise<BalanceCh
 
   const rows = await Promise.all(
     Array.from(groups.values()).map(async ({ key, ids, required }) => {
-      const have =
+      const have = await retryRead(() =>
         key.vm === 'evm'
-          ? await readEvmBalance(
-              input.evmPublicByChain.get(key.chain)!,
-              key.token,
-              input.evmAddress
-            )
-          : await readSvmBalance(input.svmConnection, new PublicKey(input.svmAddress), key.token);
+          ? readEvmBalance(input.evmPublicByChain.get(key.chain)!, key.token, input.evmAddress)
+          : readSvmBalance(input.svmConnection, new PublicKey(input.svmAddress), key.token)
+      );
       const runsRemaining = required > 0n ? Number(have / required) : 0;
       const row: BalanceCheckRow = {
         scenarioIds: ids,
@@ -153,4 +150,20 @@ async function readSvmBalance(
 function chainLabel(chainId: number): string {
   if (chainId === 1399811149) return 'sol';
   return chainId.toString();
+}
+
+// Small retry around the startup balance reads. The polling loop has its
+// own retry-via-loop semantics; this is just so a single transient SVM RPC
+// blip doesn't drop a balance row to "Have: 0".
+async function retryRead<T>(fn: () => Promise<T>, attempts = 3, delayMs = 500): Promise<T> {
+  let lastErr: unknown;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastErr = err;
+      if (i < attempts - 1) await new Promise(r => setTimeout(r, delayMs * (i + 1)));
+    }
+  }
+  throw lastErr;
 }
