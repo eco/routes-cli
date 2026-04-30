@@ -149,6 +149,16 @@ export const TOKEN_CONFIGS: Record<string, TokenConfig> = {
       ), // BNB Smart Chain
     },
   },
+  PENGU: {
+    symbol: 'PENGU',
+    name: 'Pudgy Penguins',
+    decimals: 6,
+    addresses: {
+      '1399811149': AddressNormalizer.normalizeSvm(
+        '2zMMhcVQEXDtdE6vsFS7S7D5oUodfJHE8vd1gnBouauv' as SvmAddress
+      ), // Solana
+    },
+  },
   bUSDT: {
     symbol: 'bUSDT',
     name: 'Binance USDT',
@@ -187,6 +197,21 @@ export const TOKEN_CONFIGS: Record<string, TokenConfig> = {
       '11155420': AddressNormalizer.normalizeEvm(
         '0x0000000000000000000000000000000000000000' as EvmAddress
       ), // Optimism Sepolia
+    },
+  },
+  SOL: {
+    symbol: 'SOL',
+    name: 'Solana',
+    decimals: 9,
+    addresses: {
+      // SVM native sentinel → System Program ID (32 zero bytes), analogous to
+      // EVM's zero address. WSOL_MINT (So111...112) stays a separate SPL token.
+      '1399811149': AddressNormalizer.normalizeSvm(
+        '11111111111111111111111111111111' as SvmAddress
+      ), // Solana
+      '1399811150': AddressNormalizer.normalizeSvm(
+        '11111111111111111111111111111111' as SvmAddress
+      ), // Solana Devnet
     },
   },
   WETH: {
