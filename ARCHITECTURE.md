@@ -335,7 +335,7 @@ TVM_RPC_URL_2      default: https://tron.publicnode.com  (fallback)
 SVM_RPC_URL        default: https://api.mainnet-beta.solana.com
 SVM_RPC_URL_2      default: https://solana.publicnode.com  (fallback)
 SOLVER_URL         optional; enables solver-v2 quote endpoint
-QUOTES_API_URL     optional; enables preprod quote endpoint
+QUOTES_ENDPOINT_URL optional; uses this URL as the quotes endpoint
 NODE_CHAINS_ENV    'production' (default) | 'development'
 DEBUG              optional; enables verbose logging + stack traces
 ```
@@ -406,7 +406,7 @@ IntentService.buildIntent(config: IntentConfig)
 
 **Endpoint selection (priority order):**
 1. `SOLVER_URL` → `{SOLVER_URL}/api/v2/quote/reverse`
-2. `QUOTES_API_URL` or `QUOTES_PREPROD` → `https://quotes-preprod.eco.com/api/v3/quotes/single`
+2. `QUOTES_ENDPOINT_URL` → uses the exact value as the endpoint URL
 3. Default → `https://quotes.eco.com/api/v3/quotes/single`
 
 **Request:**
