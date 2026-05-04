@@ -8,11 +8,12 @@
   },
   "files": [
     "bundle",
+    "scripts/postinstall.js",
     "README.md",
     "LICENSE"
   ],
   "scripts": {
-    "build": "tsc --noEmit && ncc build src/main.ts -o bundle --no-cache && cp scripts/postinstall.js bundle/postinstall.js",
+    "build": "tsc --noEmit && ncc build src/main.ts -o bundle --no-cache",
     "dev": "ts-node --transpile-only -r tsconfig-paths/register src/main.ts",
     "dev:testnet": "NODE_CHAINS_ENV=development ts-node --transpile-only -r tsconfig-paths/register src/main.ts",
     "start": "node bundle/index.js",
@@ -31,7 +32,7 @@
     "typecheck": "tsc --noEmit",
     "prepare": "husky",
     "docs": "typedoc",
-    "postinstall": "node bundle/postinstall.js"
+    "postinstall": "node scripts/postinstall.js"
   },
   "keywords": [
     "blockchain",
