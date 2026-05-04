@@ -11,6 +11,7 @@ export interface RawChainConfig {
   portalAddress?: string; // raw string, normalized lazily by ChainsService
   proverAddress?: string;
   nativeCurrency: { name: string; symbol: string; decimals: number };
+  fulfillmentChainId?: bigint;
 }
 
 export const RAW_CHAIN_CONFIGS: RawChainConfig[] = [
@@ -85,6 +86,15 @@ export const RAW_CHAIN_CONFIGS: RawChainConfig[] = [
     type: ChainType.EVM,
     env: 'production',
     rpcUrl: hyperEvm.rpcUrls.default.http[0],
+    nativeCurrency: hyperEvm.nativeCurrency,
+  },
+  {
+    id: 1337n,
+    name: 'Hypercore',
+    type: ChainType.EVM,
+    env: 'production',
+    rpcUrl: '',
+    fulfillmentChainId: BigInt(hyperEvm.id),
     nativeCurrency: hyperEvm.nativeCurrency,
   },
 

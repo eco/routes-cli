@@ -92,9 +92,14 @@ export class PublishCommand extends CommandRunner {
     this.display.title('🎨 Interactive Intent Publishing');
 
     const allChains = this.chains.listChains();
+    const sourceChains = this.chains.listSourceChains();
     const sourceChain = options.source
       ? this.chains.resolveChain(options.source)
-      : await this.prompt.selectChain(allChains, 'Select source chain:');
+      : await this.prompt.selectChain(sourceChains, 'Select source chain:');
+
+    if (sourceChain.fulfillmentChainId !== undefined) {
+      throw new Error(`${sourceChain.name} cannot be a source chain — it has no RPC of its own.`);
+    }
 
     const destChain = options.destination
       ? this.chains.resolveChain(options.destination)
@@ -103,10 +108,15 @@ export class PublishCommand extends CommandRunner {
           'Select destination chain:'
         );
 
+    // For facade chains (e.g. Hypercore), all operational lookups delegate to the
+    // underlying chain (e.g. hyperEVM). Only `destChain.id` carries the facade tag
+    // through to the published intent's `destination` field and the quote request.
+    const destOp = this.chains.getOperationalChain(destChain);
+
     const tokens = Object.values(TOKEN_CONFIGS);
 
     this.display.section('📏 Route Configuration (Destination Chain)');
-    const routeToken = await this.prompt.selectToken(destChain, tokens, 'route');
+    const routeToken = await this.prompt.selectToken(destOp, tokens, 'route');
 
     this.display.section('💰 Reward Configuration (Source Chain)');
     const rewardToken = await this.prompt.selectToken(sourceChain, tokens, 'reward');
@@ -116,15 +126,13 @@ export class PublishCommand extends CommandRunner {
     );
 
     this.display.section('👤 Recipient Configuration');
-    const destKey =
-      resolveKey(options, destChain.type) ?? this.config.getKeyForChainType(destChain.type);
-    const recipientDefault = destKey ? deriveAddress(destKey, destChain.type) : undefined;
+    const destKey = resolveKey(options, destOp.type) ?? this.config.getKeyForChainType(destOp.type);
+    const recipientDefault = destKey ? deriveAddress(destKey, destOp.type) : undefined;
     const recipientRaw =
-      options.recipient ??
-      (await this.prompt.inputAddress(destChain, 'recipient', recipientDefault));
+      options.recipient ?? (await this.prompt.inputAddress(destOp, 'recipient', recipientDefault));
     const recipient = this.normalizer.normalize(
       recipientRaw as Parameters<typeof this.normalizer.normalize>[0],
-      destChain.type
+      destOp.type
     );
 
     const rawKey =
@@ -174,14 +182,14 @@ export class PublishCommand extends CommandRunner {
         routeToken.decimals
       );
 
-      const destPortal = destChain.portalAddress!;
+      const destPortal = destOp.portalAddress!;
       const routeTokenUniversal = this.normalizer.normalize(
         routeToken.address as Parameters<typeof this.normalizer.normalize>[0],
-        destChain.type
+        destOp.type
       );
 
       const { encodedRoute: manualEncodedRoute } = this.intentBuilder.buildManualRoute({
-        destChain,
+        destChain: destOp,
         recipient,
         routeToken: routeTokenUniversal,
         routeAmount,

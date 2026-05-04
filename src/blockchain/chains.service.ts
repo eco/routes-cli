@@ -47,6 +47,15 @@ export class ChainsService implements OnModuleInit {
     return this.chains;
   }
 
+  listSourceChains(): ChainConfig[] {
+    return this.chains.filter(c => c.fulfillmentChainId === undefined);
+  }
+
+  getOperationalChain(chain: ChainConfig): ChainConfig {
+    if (chain.fulfillmentChainId === undefined) return chain;
+    return this.getChainById(chain.fulfillmentChainId);
+  }
+
   getChainById(id: bigint): ChainConfig {
     const chain = this.chains.find(c => c.id === id);
     if (!chain) throw RoutesCliError.unsupportedChain(id);
