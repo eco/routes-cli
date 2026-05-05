@@ -24,8 +24,32 @@ export class ChainsService implements OnModuleInit {
       this.normalizeChain(c)
     );
 
+    ChainsService.validateFacadeReferences(this.chains, env);
+
     for (const chain of this.chains) {
       this.registry.registerChainId(chain.id);
+    }
+  }
+
+  // Asserts that every facade chain in the list points at a loaded, non-facade
+  // chain. Catches: unresolved fulfillmentChainId, fulfillment chain filtered
+  // out by env, and chained delegation (facade → facade).
+  static validateFacadeReferences(chains: ChainConfig[], env: string): void {
+    for (const chain of chains) {
+      if (chain.fulfillmentChainId === undefined) continue;
+      const target = chains.find(c => c.id === chain.fulfillmentChainId);
+      if (!target) {
+        throw new Error(
+          `Chain "${chain.name}" (${chain.id}) has fulfillmentChainId ${chain.fulfillmentChainId} ` +
+            `which is not loaded in env "${env}". Add the target chain or remove the facade.`
+        );
+      }
+      if (target.fulfillmentChainId !== undefined) {
+        throw new Error(
+          `Chain "${chain.name}" (${chain.id}) delegates to "${target.name}" (${target.id}), ` +
+            `which is itself a facade. Chained delegation is not supported.`
+        );
+      }
     }
   }
 

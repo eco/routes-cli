@@ -20,6 +20,12 @@ export class PublisherFactory {
   ) {}
 
   create(chain: ChainConfig): BasePublisher {
+    if (chain.fulfillmentChainId !== undefined) {
+      throw new Error(
+        `Cannot create a publisher for facade chain "${chain.name}" (${chain.id}). ` +
+          `Call ChainsService.getOperationalChain(chain) first to resolve to the underlying chain.`
+      );
+    }
     const rpcUrl = this.rpcService.getUrl(chain);
     switch (chain.type) {
       case ChainType.EVM:
