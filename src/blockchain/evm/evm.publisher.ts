@@ -277,11 +277,17 @@ export class EvmPublisher extends BasePublisher {
     try {
       const currentBlock = await publicClient.getBlockNumber();
 
+      // Pin both bounds so the queried range is deterministic. Without an
+      // explicit toBlock viem defaults to "latest", which the RPC evaluates
+      // at request time — so the actual range becomes 1000 + N (N = blocks
+      // produced between getBlockNumber() and the RPC call). HyperEVM caps
+      // eth_getLogs at 1000 blocks and rejects ranges of 1001+.
       const events = await publicClient.getContractEvents({
         address: evmPortalAddress,
         abi: portalAbi,
         eventName: 'IntentFulfilled',
-        fromBlock: currentBlock - 1_000n,
+        fromBlock: currentBlock - 999n,
+        toBlock: currentBlock,
         args: { intentHash: intentHash as Hex },
       });
 
