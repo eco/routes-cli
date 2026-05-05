@@ -57,9 +57,7 @@ export class AddressNormalizer {
   static denormalizeToTvm(address: UniversalAddress): TronAddress {
     try {
       const unpadded = unpadFrom32Bytes(address);
-      const hexAddress = unpadded.startsWith('0x41')
-        ? unpadded.substring(2)
-        : '41' + unpadded.substring(2);
+      const hexAddress = '41' + unpadded.substring(2);
       const base58Address = TronWeb.address.fromHex(hexAddress);
       if (!TronWeb.isAddress(base58Address)) {
         throw new Error(`Invalid Tron address after denormalization: ${base58Address}`);
@@ -101,13 +99,15 @@ export class AddressNormalizer {
         if (!TronWeb.isAddress(base58)) {
           throw new Error(`Invalid Tron hex address: ${address}`);
         }
-        hexAddress = hexTronAddr.toLowerCase();
+        // Strip the '41' prefix — store only the 20-byte EVM-compatible payload
+        hexAddress = '0x' + hexTronAddr.toLowerCase().substring(4);
       } else {
         if (!TronWeb.isAddress(address)) {
           throw new Error(`Invalid Tron base58 address: ${address}`);
         }
+        // Convert to hex (Tron addresses are 21 bytes, first byte is 0x41) then strip the prefix
         const tronHex = TronWeb.address.toHex(address);
-        hexAddress = '0x' + tronHex.toLowerCase();
+        hexAddress = '0x' + tronHex.toLowerCase().substring(2);
       }
       return padTo32Bytes(hexAddress) as UniversalAddress;
     } catch (error) {

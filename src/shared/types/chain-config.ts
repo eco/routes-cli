@@ -8,7 +8,7 @@ export interface ChainConfig {
   type: ChainType;
   rpcUrl: string;
   portalAddress?: UniversalAddress;
-  proverAddress?: UniversalAddress;
+  provers?: Record<string, UniversalAddress>;
   nativeCurrency: {
     name: string;
     symbol: string;

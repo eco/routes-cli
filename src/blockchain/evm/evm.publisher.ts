@@ -152,6 +152,7 @@ export class EvmPublisher extends BasePublisher {
             const approvalReceipt = await publicClient.waitForTransactionReceipt({
               hash: approveTx,
               confirmations: 2,
+              timeout: 120_000,
             });
 
             if (approvalReceipt.status !== 'success') {
@@ -190,7 +191,7 @@ export class EvmPublisher extends BasePublisher {
         });
 
         logger.updateSpinner('Waiting for transaction confirmation...');
-        const receipt = await publicClient.waitForTransactionReceipt({ hash });
+        const receipt = await publicClient.waitForTransactionReceipt({ hash, timeout: 120_000 });
         logger.succeed('Transaction confirmed');
 
         if (receipt.status === 'success') {

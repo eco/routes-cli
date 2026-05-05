@@ -110,10 +110,14 @@ export class PublishCommand extends CommandRunner {
 
     this.display.section('💰 Reward Configuration (Source Chain)');
     const rewardToken = await this.prompt.selectToken(sourceChain, tokens, 'reward');
-    const { parsed: rewardAmount } = await this.prompt.inputAmount(
-      rewardToken.symbol ?? 'tokens',
-      rewardToken.decimals
-    );
+    let rewardAmount = 0n;
+    if (rewardToken) {
+      const { parsed } = await this.prompt.inputAmount(
+        rewardToken.symbol ?? 'tokens',
+        rewardToken.decimals
+      );
+      rewardAmount = parsed;
+    }
 
     this.display.section('👤 Recipient Configuration');
     const destKey =
@@ -143,59 +147,81 @@ export class PublishCommand extends CommandRunner {
     let proverAddress: UniversalAddress | undefined;
     let quote: QuoteResult | undefined;
 
-    try {
-      this.display.spinner('Getting quote...');
-      quote = await this.quoteService.getQuote({
-        source: sourceChain.id,
-        destination: destChain.id,
-        amount: rewardAmount,
-        funder: senderAddress,
-        recipient: recipientRaw,
-        routeToken: routeToken.address,
-        rewardToken: rewardToken.address,
-      });
-      this.display.succeed('Quote received');
-      this.display.displayQuote(quote, rewardToken, rewardAmount, routeToken);
-      encodedRoute = quote.encodedRoute;
-      sourcePortal = this.normalizer.normalize(
-        quote.sourcePortal as Parameters<typeof this.normalizer.normalize>[0],
-        sourceChain.type
-      );
-      proverAddress = this.normalizer.normalize(
-        quote.prover as Parameters<typeof this.normalizer.normalize>[0],
-        sourceChain.type
-      );
-    } catch (error) {
-      console.error(error);
-      this.display.warn('Quote service unavailable — using manual configuration');
+    if (routeToken && rewardToken) {
+      try {
+        this.display.spinner('Getting quote...');
+        quote = await this.quoteService.getQuote({
+          source: sourceChain.id,
+          destination: destChain.id,
+          amount: rewardAmount,
+          funder: senderAddress,
+          recipient: recipientRaw,
+          routeToken: routeToken.address,
+          rewardToken: rewardToken.address,
+        });
+        this.display.succeed('Quote received');
+        this.display.displayQuote(quote, rewardToken, rewardAmount, routeToken);
+        encodedRoute = quote.encodedRoute;
+        sourcePortal = this.normalizer.normalize(
+          quote.sourcePortal as Parameters<typeof this.normalizer.normalize>[0],
+          sourceChain.type
+        );
+        proverAddress = this.normalizer.normalize(
+          quote.prover as Parameters<typeof this.normalizer.normalize>[0],
+          sourceChain.type
+        );
+      } catch (error) {
+        console.error(error);
+        this.display.warn('Quote service unavailable — using manual configuration');
 
-      const { parsed: routeAmount } = await this.prompt.inputAmount(
-        routeToken.symbol ?? 'tokens',
-        routeToken.decimals
-      );
+        const { parsed: routeAmount } = await this.prompt.inputAmount(
+          routeToken.symbol ?? 'tokens',
+          routeToken.decimals
+        );
+
+        const destPortal = destChain.portalAddress!;
+        const routeTokenUniversal = this.normalizer.normalize(
+          routeToken.address as Parameters<typeof this.normalizer.normalize>[0],
+          destChain.type
+        );
+
+        const { encodedRoute: manualEncodedRoute } = this.intentBuilder.buildManualRoute({
+          destChain,
+          recipient,
+          routeToken: routeTokenUniversal,
+          routeAmount,
+          portal: destPortal,
+        });
+        encodedRoute = manualEncodedRoute;
+      }
+    } else {
+      this.display.warn('No tokens selected — using manual route configuration');
 
       const destPortal = destChain.portalAddress!;
-      const routeTokenUniversal = this.normalizer.normalize(
-        routeToken.address as Parameters<typeof this.normalizer.normalize>[0],
-        destChain.type
-      );
-
       const { encodedRoute: manualEncodedRoute } = this.intentBuilder.buildManualRoute({
         destChain,
         recipient,
-        routeToken: routeTokenUniversal,
-        routeAmount,
+        routeToken: this.normalizer.normalize(
+          '0x0000000000000000000000000000000000000000' as Parameters<
+            typeof this.normalizer.normalize
+          >[0],
+          destChain.type
+        ),
+        routeAmount: 0n,
         portal: destPortal,
       });
       encodedRoute = manualEncodedRoute;
     }
 
-    // Source portal: CLI arg → interactive prompt (quote already set above if available)
+    // Source portal: CLI arg → chain config → interactive prompt
     if (!sourcePortal && options.portalAddress) {
       sourcePortal = this.normalizer.normalize(
         options.portalAddress as Parameters<typeof this.normalizer.normalize>[0],
         sourceChain.type
       );
+    }
+    if (!sourcePortal && sourceChain.portalAddress) {
+      sourcePortal = sourceChain.portalAddress;
     }
     if (!sourcePortal) {
       const raw = await this.prompt.inputManualPortal(sourceChain);
@@ -205,28 +231,23 @@ export class PublishCommand extends CommandRunner {
       );
     }
 
-    // Prover address: CLI arg → chain config → interactive prompt (quote already set above if available)
+    // Prover address: CLI arg → interactive prover selection (chain provers dict or manual)
     if (!proverAddress && options.proverAddress) {
       proverAddress = this.normalizer.normalize(
         options.proverAddress as Parameters<typeof this.normalizer.normalize>[0],
         sourceChain.type
       );
     }
-    if (!proverAddress && sourceChain.proverAddress) {
-      proverAddress = sourceChain.proverAddress;
-    }
     if (!proverAddress) {
-      const raw = await this.prompt.inputManualProver(sourceChain);
-      proverAddress = this.normalizer.normalize(
-        raw as Parameters<typeof this.normalizer.normalize>[0],
-        sourceChain.type
-      );
+      proverAddress = await this.prompt.selectProver(sourceChain, destChain);
     }
 
-    const rewardTokenUniversal = this.normalizer.normalize(
-      rewardToken.address as Parameters<typeof this.normalizer.normalize>[0],
-      sourceChain.type
-    );
+    const rewardTokenUniversal = rewardToken
+      ? this.normalizer.normalize(
+          rewardToken.address as Parameters<typeof this.normalizer.normalize>[0],
+          sourceChain.type
+        )
+      : undefined;
 
     const reward = this.intentBuilder.buildReward({
       sourceChain,

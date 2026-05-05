@@ -51,7 +51,7 @@ export class ConfigService {
   }
 
   getQuoteEndpoint(): { url: string; type: 'solver-v2' | 'preprod' | 'production' } {
-    const solverUrl = this.config.get<string>('SOLVER_URL');
+    const solverUrl = this.config.get<string>('SOLVER_URL')?.replace(/\/$/, '');
     if (solverUrl) {
       return { url: `${solverUrl}/api/v2/quote/reverse`, type: 'solver-v2' };
     }
