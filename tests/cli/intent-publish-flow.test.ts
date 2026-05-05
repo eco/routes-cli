@@ -208,6 +208,30 @@ describe('IntentPublishFlow.publish', () => {
     expect(publisherFactory.create).not.toHaveBeenCalled();
   });
 
+  it('quoteDestinationChainIdOverride only affects the quote request — published intent uses destChain.id', async () => {
+    const { flow, quoteService, publisher } = buildFlow();
+    await flow.publish({
+      sourceChain: SOURCE_CHAIN,
+      destChain: DEST_CHAIN, // id 10n
+      options: { privateKey: TEST_PRIVATE_KEY },
+      overrides: {
+        rewardToken: TOKEN_USDC,
+        routeToken: TOKEN_USDC,
+        rewardAmount: 1_000_000n,
+        recipientRaw: '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045',
+        quoteDestinationChainIdOverride: 1337n,
+      },
+    });
+    // Quote request was tagged with the override.
+    const quoteCall = quoteService.getQuote.mock.calls[0][0] as { destination: bigint };
+    expect(quoteCall.destination).toBe(1337n);
+    // Published intent uses destChain.id, NOT the override (and not the quote's
+    // echoed destinationChainId — that's intentionally ignored when override
+    // is in effect, in case the solver echoes back the synthetic tag).
+    const publishCall = publisher.publish.mock.calls[0] as [bigint, bigint, ...unknown[]];
+    expect(publishCall[1]).toBe(DEST_CHAIN.id);
+  });
+
   it('throws when the user does not confirm', async () => {
     const { flow, prompt, publisher } = buildFlow();
     prompt.confirmPublish.mockResolvedValueOnce(false);
