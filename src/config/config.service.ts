@@ -50,16 +50,40 @@ export class ConfigService {
     return map[chainType][variant] || undefined;
   }
 
-  getQuoteEndpoint(): { url: string; type: 'solver-v2' | 'custom' | 'production' } {
+  getQuoteEndpoint(): {
+    url: string;
+    type: 'solver-v2' | 'gateway' | 'custom' | 'production';
+    apiKey?: string;
+  } {
     const solverUrl = this.config.get<string>('SOLVER_URL');
     if (solverUrl) {
-      return { url: `${solverUrl}/api/v2/quote/reverse`, type: 'solver-v2' };
+      return {
+        url: `${solverUrl}/api/v2/quote/reverse`,
+        type: 'solver-v2',
+        apiKey: this.config.get<string>('QUOTES_API_KEY'),
+      };
+    }
+    const gatewayUrl = this.config.get<string>('API_GATEWAY_URL');
+    if (gatewayUrl) {
+      return {
+        url: gatewayUrl,
+        type: 'gateway',
+        apiKey: this.config.get<string>('API_GATEWAY_KEY'),
+      };
     }
     const endpointUrl = this.config.get<string>('QUOTES_ENDPOINT_URL');
     if (endpointUrl) {
-      return { url: endpointUrl, type: 'custom' };
+      return {
+        url: endpointUrl,
+        type: 'custom',
+        apiKey: this.config.get<string>('QUOTES_API_KEY'),
+      };
     }
-    return { url: 'https://quotes.eco.com/api/v3/quotes/single', type: 'production' };
+    return {
+      url: 'https://quotes.eco.com/api/v3/quotes/single',
+      type: 'production',
+      apiKey: this.config.get<string>('QUOTES_API_KEY'),
+    };
   }
 
   getDeadlineOffsetSeconds(): number {

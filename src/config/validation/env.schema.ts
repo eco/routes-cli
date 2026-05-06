@@ -18,6 +18,9 @@ export const EnvSchema = z.object({
 
   SOLVER_URL: z.string().url().optional(),
   QUOTES_ENDPOINT_URL: z.string().url().optional(),
+  QUOTES_API_KEY: z.string().min(1).optional(),
+  API_GATEWAY_URL: z.string().url().optional(),
+  API_GATEWAY_KEY: z.string().min(1).optional(),
 
   NODE_CHAINS_ENV: z.enum(['production', 'development']).default('production'),
   DEBUG: z.string().optional(),

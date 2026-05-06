@@ -69,6 +69,24 @@ interface RawQuoteResponse {
   };
 }
 
+interface GatewayQuoteEntry {
+  quoteID?: string;
+  solverID?: string;
+  receiveSignedIntentUrl?: string;
+  quoteData: {
+    contracts: {
+      sourcePortal: Address;
+      prover: Address;
+      destinationPortal: Address;
+    };
+    quoteResponse: SolverV2QuoteData;
+  };
+}
+
+interface GatewayResponse {
+  data?: GatewayQuoteEntry[];
+}
+
 interface QuoteRequestPayload {
   dAppID: string;
   quoteRequest: {
@@ -92,7 +110,7 @@ export class QuoteService {
   ) {}
 
   async getQuote(params: QuoteRequest): Promise<QuoteResult> {
-    const { url, type } = this.config.getQuoteEndpoint();
+    const { url, type, apiKey } = this.config.getQuoteEndpoint();
     const dAppID = this.config.getDappId();
     const isSolverV2 = type === 'solver-v2';
 
@@ -122,9 +140,12 @@ export class QuoteService {
 
     const startTime = performance.now();
 
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (apiKey) headers['x-api-key'] = apiKey;
+
     const response = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify(request),
     });
 
@@ -136,6 +157,30 @@ export class QuoteService {
       this.display.log(`[DEBUG] Quote response: ${JSON.stringify(raw)}`);
     }
     if (!response.ok) throw new Error(JSON.stringify(raw));
+
+    if (type === 'gateway') {
+      const gw = raw as unknown as GatewayResponse;
+      if (!gw.data || gw.data.length === 0) {
+        throw new Error('Invalid gateway response: no quotes returned');
+      }
+      const entry = gw.data[0];
+      const contracts = entry.quoteData?.contracts;
+      if (!contracts?.sourcePortal || !contracts?.prover) {
+        throw new Error('Quote response missing required contract addresses');
+      }
+      const q = entry.quoteData.quoteResponse;
+      return {
+        encodedRoute: q.encodedRoute,
+        sourcePortal: contracts.sourcePortal,
+        prover: contracts.prover,
+        deadline: q.deadline,
+        destinationAmount: q.destinationAmount,
+        estimatedFulfillTimeSec: q.estimatedFulfillTimeSec,
+        intentExecutionType: q.intentExecutionType,
+        destinationPortalAddress: contracts.destinationPortal,
+        destinationChainId: q.destinationChainID,
+      };
+    }
 
     // Solver-v2 returns the object directly; quote-service-v3 wraps in `data`
     const data: RawQuoteResponse = isSolverV2
