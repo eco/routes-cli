@@ -253,6 +253,22 @@ export const TOKEN_CONFIGS: Record<string, TokenConfig> = {
       ), // Polygon
     },
   },
+  cbBTC: {
+    symbol: 'cbBTC',
+    name: 'Coinbase Wrapped BTC',
+    decimals: 8,
+    addresses: {
+      '1': AddressNormalizer.normalizeEvm(
+        '0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf' as EvmAddress
+      ), // Ethereum
+      '8453': AddressNormalizer.normalizeEvm(
+        '0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf' as EvmAddress
+      ), // Base
+      '42161': AddressNormalizer.normalizeEvm(
+        '0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf' as EvmAddress
+      ), // Arbitrum
+    },
+  },
 };
 
 /**
