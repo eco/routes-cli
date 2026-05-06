@@ -20,6 +20,7 @@ const config: Config = {
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
     '^ora$': '<rootDir>/tests/__mocks__/ora.ts',
+    '^inquirer$': '<rootDir>/tests/__mocks__/inquirer.ts',
   },
   setupFilesAfterEnv: ['<rootDir>/tests/setup/register-chain-handlers.ts'],
   transform: {

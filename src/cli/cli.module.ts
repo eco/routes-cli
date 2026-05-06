@@ -10,12 +10,14 @@ import { PublishCommand } from './commands/publish.command';
 import { StatusCommand } from './commands/status.command';
 import { TokensCommand } from './commands/tokens.command';
 import { DisplayModule } from './services/display.module';
+import { IntentPublishFlow } from './services/intent-publish-flow.service';
 import { PromptService } from './services/prompt.service';
 
 @Module({
   imports: [QuoteModule, IntentModule, StatusModule, DisplayModule],
   providers: [
     PromptService,
+    IntentPublishFlow,
     PublishCommand,
     StatusCommand,
     ConfigCommand,
