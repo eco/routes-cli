@@ -20,7 +20,13 @@ import { hexToArray, hexToBuffer } from './svm-buffer-utils';
 import { SVM_CONFIRMATION_CONFIG, SVM_ERROR_MESSAGES, SVM_LOG_MESSAGES } from './svm-constants';
 import { extractIntentPublishedEvent, logTransactionDetails } from './svm-decode';
 import { prepareTokenTransferAccounts } from './svm-token-operations';
-import { PublishContext, SvmError, SvmErrorType, TransactionResultWithDecoding } from './svm-types';
+import {
+  PublishContext,
+  SvmError,
+  SvmErrorType,
+  TokenTransferAccount,
+  TransactionResultWithDecoding,
+} from './svm-types';
 
 /**
  * Converts Intent reward to Solana-specific format.
@@ -125,7 +131,7 @@ async function buildTokenTransferAccounts(
   rewardToken: UniversalAddress,
   funderKeypair: Keypair,
   vaultPda: PublicKey
-) {
+): Promise<TokenTransferAccount[]> {
   const tokenMint = new PublicKey(AddressNormalizer.denormalizeToSvm(rewardToken));
   const funderTokenAccount = await getAssociatedTokenAddress(tokenMint, funderKeypair.publicKey);
   const vaultTokenAccount = await getAssociatedTokenAddress(
