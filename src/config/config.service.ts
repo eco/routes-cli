@@ -50,13 +50,14 @@ export class ConfigService {
     return map[chainType][variant] || undefined;
   }
 
-  getQuoteEndpoint(): { url: string; type: 'solver-v2' | 'preprod' | 'production' } {
+  getQuoteEndpoint(): { url: string; type: 'solver-v2' | 'custom' | 'production' } {
     const solverUrl = this.config.get<string>('SOLVER_URL');
     if (solverUrl) {
       return { url: `${solverUrl}/api/v2/quote/reverse`, type: 'solver-v2' };
     }
-    if (this.config.get('QUOTES_API_URL') || this.config.get('QUOTES_PREPROD')) {
-      return { url: 'https://quotes-preprod.eco.com/api/v3/quotes/single', type: 'preprod' };
+    const endpointUrl = this.config.get<string>('QUOTES_ENDPOINT_URL');
+    if (endpointUrl) {
+      return { url: endpointUrl, type: 'custom' };
     }
     return { url: 'https://quotes.eco.com/api/v3/quotes/single', type: 'production' };
   }

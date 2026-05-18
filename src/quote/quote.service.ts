@@ -120,14 +120,19 @@ export class QuoteService {
       );
     }
 
+    const startTime = performance.now();
+
     const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(request),
     });
 
+    const elapsed = (performance.now() - startTime).toFixed(2);
+
     const raw = (await response.json()) as RawQuoteResponse;
     if (this.config.isDebug()) {
+      this.display.log(`[DEBUG] Quote response time: ${elapsed}ms`);
       this.display.log(`[DEBUG] Quote response: ${JSON.stringify(raw)}`);
     }
     if (!response.ok) throw new Error(JSON.stringify(raw));

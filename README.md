@@ -124,7 +124,7 @@ Copy `.env.example` to `.env`. All variables except the private keys are optiona
 | `EVM_RPC_URL` | No | Override RPC for all EVM chains |
 | `SVM_RPC_URL` | No | Override Solana RPC (default: mainnet-beta) |
 | `SOLVER_URL` | No | Use a custom solver endpoint for quotes |
-| `QUOTES_PREPROD` | No | Force preprod quote service (set to `true`) |
+| `QUOTES_ENDPOINT_URL` | No | Use this exact URL as the quotes endpoint |
 | `PORTAL_ADDRESS_ETH` | No | Override Ethereum portal contract |
 | `PORTAL_ADDRESS_BASE` | No | Override Base portal contract |
 | `PORTAL_ADDRESS_OPTIMISM` | No | Override Optimism portal contract |

@@ -17,8 +17,7 @@ export const EnvSchema = z.object({
   SVM_RPC_URL_2: z.string().url().default('https://solana.publicnode.com'),
 
   SOLVER_URL: z.string().url().optional(),
-  QUOTES_API_URL: z.string().optional(),
-  QUOTES_PREPROD: z.string().optional(),
+  QUOTES_ENDPOINT_URL: z.string().url().optional(),
 
   NODE_CHAINS_ENV: z.enum(['production', 'development']).default('production'),
   DEBUG: z.string().optional(),

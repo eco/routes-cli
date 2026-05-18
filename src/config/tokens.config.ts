@@ -129,6 +129,36 @@ export const TOKEN_CONFIGS: Record<string, TokenConfig> = {
       ), // BNB Smart Chain
     },
   },
+  TOSHI: {
+    symbol: 'TOSHI',
+    name: 'Toshi',
+    decimals: 18,
+    addresses: {
+      '8453': AddressNormalizer.normalizeEvm(
+        '0xac1bd2486aaf3b5c0fc3fd868558b082a531b2b4' as EvmAddress
+      ), // Base
+    },
+  },
+  DOGE: {
+    symbol: 'DOGE',
+    name: 'Binance-Peg Dogecoin',
+    decimals: 8,
+    addresses: {
+      '56': AddressNormalizer.normalizeEvm(
+        '0xba2ae424d960c26247dd6c32edc70b295c744c43' as EvmAddress
+      ), // BNB Smart Chain
+    },
+  },
+  PENGU: {
+    symbol: 'PENGU',
+    name: 'Pudgy Penguins',
+    decimals: 6,
+    addresses: {
+      '1399811149': AddressNormalizer.normalizeSvm(
+        '2zMMhcVQEXDtdE6vsFS7S7D5oUodfJHE8vd1gnBouauv' as SvmAddress
+      ), // Solana
+    },
+  },
   bUSDT: {
     symbol: 'bUSDT',
     name: 'Binance USDT',
@@ -169,6 +199,21 @@ export const TOKEN_CONFIGS: Record<string, TokenConfig> = {
       ), // Optimism Sepolia
     },
   },
+  SOL: {
+    symbol: 'SOL',
+    name: 'Solana',
+    decimals: 9,
+    addresses: {
+      // SVM native sentinel → System Program ID (32 zero bytes), analogous to
+      // EVM's zero address. WSOL_MINT (So111...112) stays a separate SPL token.
+      '1399811149': AddressNormalizer.normalizeSvm(
+        '11111111111111111111111111111111' as SvmAddress
+      ), // Solana
+      '1399811150': AddressNormalizer.normalizeSvm(
+        '11111111111111111111111111111111' as SvmAddress
+      ), // Solana Devnet
+    },
+  },
   WETH: {
     symbol: 'WETH',
     name: 'Wrap Ether',
@@ -184,6 +229,28 @@ export const TOKEN_CONFIGS: Record<string, TokenConfig> = {
       '2020': AddressNormalizer.normalizeEvm(
         '0xc99a6a985ed2cac1ef41640596c5a5f9f4e19ef5' as EvmAddress
       ), // Ronin WETH
+    },
+  },
+  WBTC: {
+    symbol: 'WBTC',
+    name: 'Wrapped BTC',
+    decimals: 8,
+    addresses: {
+      '1': AddressNormalizer.normalizeEvm(
+        '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599' as EvmAddress
+      ), // Ethereum
+      '10': AddressNormalizer.normalizeEvm(
+        '0x68f180fcce6836688e9084f035309e29bf0a2095' as EvmAddress
+      ), // Optimism
+      '8453': AddressNormalizer.normalizeEvm(
+        '0x0555E30da8f98308EdB960aa94C0Db47230d2B9c' as EvmAddress
+      ), // Base
+      '42161': AddressNormalizer.normalizeEvm(
+        '0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f' as EvmAddress
+      ), // Arbitrum
+      '137': AddressNormalizer.normalizeEvm(
+        '0x1BFD67037B42Cf73acF2047067bd4F2C47D9BfD6' as EvmAddress
+      ), // Polygon
     },
   },
 };

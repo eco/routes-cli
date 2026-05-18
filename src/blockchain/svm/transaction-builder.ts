@@ -9,7 +9,7 @@ import { getAssociatedTokenAddress } from '@solana/spl-token';
 import { Connection, Keypair, PublicKey, Transaction } from '@solana/web3.js';
 
 import { AddressNormalizer } from '@/blockchain/utils/address-normalizer';
-import { ChainType, Intent } from '@/shared/types';
+import { ChainType, Intent, UniversalAddress } from '@/shared/types';
 import { logger } from '@/utils/logger';
 
 import { PublishResult } from '../base.publisher';
@@ -20,7 +20,13 @@ import { hexToArray, hexToBuffer } from './svm-buffer-utils';
 import { SVM_CONFIRMATION_CONFIG, SVM_ERROR_MESSAGES, SVM_LOG_MESSAGES } from './svm-constants';
 import { extractIntentPublishedEvent, logTransactionDetails } from './svm-decode';
 import { prepareTokenTransferAccounts } from './svm-token-operations';
-import { PublishContext, SvmError, SvmErrorType, TransactionResultWithDecoding } from './svm-types';
+import {
+  PublishContext,
+  SvmError,
+  SvmErrorType,
+  TokenTransferAccount,
+  TransactionResultWithDecoding,
+} from './svm-types';
 
 /**
  * Converts Intent reward to Solana-specific format.
@@ -76,28 +82,19 @@ export async function buildFundingTransaction(
   program: Program,
   context: PublishContext
 ): Promise<Transaction> {
-  if (context.reward.tokens.length === 0) {
+  if (context.reward.tokens.length === 0 && context.reward.nativeAmount === 0n) {
     throw new SvmError(SvmErrorType.INVALID_CONFIG, SVM_ERROR_MESSAGES.NO_REWARD_TOKENS);
   }
 
   const vaultPda = calculateVaultPDA(context.intentHash, context.portalProgramId);
   logger.info(SVM_LOG_MESSAGES.VAULT_PDA(vaultPda.toString()));
 
-  const tokenMint = new PublicKey(
-    AddressNormalizer.denormalizeToSvm(context.reward.tokens[0].token)
-  );
-  const funderTokenAccount = await getAssociatedTokenAddress(tokenMint, context.keypair.publicKey);
-  const vaultTokenAccount = await getAssociatedTokenAddress(
-    tokenMint,
-    vaultPda,
-    true // allowOwnerOffCurve for PDA
-  );
-
-  const tokenTransferAccounts = prepareTokenTransferAccounts(
-    funderTokenAccount,
-    vaultTokenAccount,
-    tokenMint
-  );
+  // Native-only rewards do not need any SPL transfer accounts; lamports are
+  // moved from `funder` -> `vault` by Portal's `fund` ix via the system_program.
+  const tokenTransferAccounts =
+    context.reward.tokens.length === 0
+      ? []
+      : await buildTokenTransferAccounts(context.reward.tokens[0].token, context.keypair, vaultPda);
 
   logger.info(SVM_LOG_MESSAGES.BUILD_FUNDING_TX);
 
@@ -128,6 +125,21 @@ export async function buildFundingTransaction(
     .transaction();
 
   return transaction;
+}
+
+async function buildTokenTransferAccounts(
+  rewardToken: UniversalAddress,
+  funderKeypair: Keypair,
+  vaultPda: PublicKey
+): Promise<TokenTransferAccount[]> {
+  const tokenMint = new PublicKey(AddressNormalizer.denormalizeToSvm(rewardToken));
+  const funderTokenAccount = await getAssociatedTokenAddress(tokenMint, funderKeypair.publicKey);
+  const vaultTokenAccount = await getAssociatedTokenAddress(
+    tokenMint,
+    vaultPda,
+    true // allowOwnerOffCurve for PDA
+  );
+  return prepareTokenTransferAccounts(funderTokenAccount, vaultTokenAccount, tokenMint);
 }
 
 /**
