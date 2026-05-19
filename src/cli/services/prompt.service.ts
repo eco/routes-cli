@@ -227,6 +227,13 @@ export class PromptService {
       return (sourceProvers as any)[proverType as string] as UniversalAddress;
     }
 
+    const sourceKeys = Object.keys(sourceProvers).join(', ') || '<none>';
+    const destKeys = Object.keys(destProvers).join(', ') || '<none>';
+    console.warn(
+      `[selectProver] No shared prover type between ${sourceChain.name} (${sourceKeys}) ` +
+        `and ${destChain.name} (${destKeys}). ` +
+        `Enter a prover address manually or press Ctrl-C to abort.`
+    );
     const raw = await this.inputManualProver(sourceChain);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return this.normalizer.normalize(raw as any, sourceChain.type);
