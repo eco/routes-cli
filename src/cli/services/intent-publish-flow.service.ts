@@ -50,6 +50,12 @@ export interface PublishFlowOverrides {
   routeToken?: TokenSelection;
   rewardAmount?: bigint;
   recipientRaw?: string;
+  // When set, this chainId is sent as the `destination` in the quote request
+  // (the signal to the quote/solver pipeline that this is e.g. a Hypercore
+  // intent). The published on-chain intent's `destination` field always uses
+  // the operational destChain's id — solver echoes from the quote response
+  // are ignored when this override is in effect.
+  quoteDestinationChainIdOverride?: bigint;
 }
 
 export interface PublishFlowResult {
@@ -103,6 +109,11 @@ export class IntentPublishFlow {
 
     const { publishKeyHandle, senderAddress } = this.resolveSender(sourceChain, options);
 
+    // chainId sent in the quote request only — feature commands tag the quote
+    // with a synthetic destination (e.g. 1337 for Hypercore) while the actual
+    // on-chain intent below targets the operational destChain.
+    const quoteDestinationChainId = overrides.quoteDestinationChainIdOverride ?? destChain.id;
+
     const {
       encodedRoute,
       sourcePortal: portalFromQuote,
@@ -111,6 +122,7 @@ export class IntentPublishFlow {
     } = await this.fetchQuoteOrManualRoute({
       sourceChain,
       destChain,
+      quoteDestinationChainId,
       rewardToken,
       routeToken,
       rewardAmount,
@@ -154,9 +166,15 @@ export class IntentPublishFlow {
       return null;
     }
 
-    const destinationChainId = quote?.destinationChainId
-      ? BigInt(quote.destinationChainId)
-      : destChain.id;
+    // When the caller overrode the quote's destination, ignore any echo-back
+    // from the quote response — the on-chain intent should always target the
+    // operational destChain.
+    const destinationChainId =
+      overrides.quoteDestinationChainIdOverride !== undefined
+        ? destChain.id
+        : quote?.destinationChainId
+          ? BigInt(quote.destinationChainId)
+          : destChain.id;
 
     const publisher = this.publisherFactory.create(sourceChain);
     const result = await publisher.publish(
@@ -227,6 +245,7 @@ export class IntentPublishFlow {
   private async fetchQuoteOrManualRoute(args: {
     sourceChain: ChainConfig;
     destChain: ChainConfig;
+    quoteDestinationChainId: bigint;
     rewardToken: TokenSelection | null;
     routeToken: TokenSelection | null;
     rewardAmount: bigint;
@@ -242,6 +261,7 @@ export class IntentPublishFlow {
     const {
       sourceChain,
       destChain,
+      quoteDestinationChainId,
       rewardToken,
       routeToken,
       rewardAmount,
@@ -255,7 +275,7 @@ export class IntentPublishFlow {
         this.display.spinner('Getting quote...');
         const quote = await this.quoteService.getQuote({
           source: sourceChain.id,
-          destination: destChain.id,
+          destination: quoteDestinationChainId,
           amount: rewardAmount,
           funder: senderAddress,
           recipient: recipientRaw,
