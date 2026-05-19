@@ -121,7 +121,6 @@ export const RAW_CHAIN_CONFIGS: RawChainConfig[] = [
     portalAddress: '0x06EFdb68dbF245ECb49E3aE10Cd0f893B674443c',
     provers: {
       Hyperlane: '0x9523b6c0caac8122dbd5dd1c1d336ceba637038d',
-      LayerZero: '0x0000000000000000000000000000000000000000', // TODO
     },
     nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
   },
@@ -134,7 +133,6 @@ export const RAW_CHAIN_CONFIGS: RawChainConfig[] = [
     portalAddress: '0x06EFdb68dbF245ECb49E3aE10Cd0f893B674443c',
     provers: {
       Hyperlane: '0x9523b6c0caac8122dbd5dd1c1d336ceba637038d',
-      LayerZero: '0x0000000000000000000000000000000000000000', // TODO
     },
     nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
   },
@@ -147,7 +145,6 @@ export const RAW_CHAIN_CONFIGS: RawChainConfig[] = [
     portalAddress: '0x06EFdb68dbF245ECb49E3aE10Cd0f893B674443c',
     provers: {
       Hyperlane: '0x9523b6c0caac8122dbd5dd1c1d336ceba637038d',
-      LayerZero: '0x0000000000000000000000000000000000000000', // TODO
     },
     nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
   },
