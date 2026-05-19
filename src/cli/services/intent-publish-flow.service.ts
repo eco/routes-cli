@@ -8,11 +8,13 @@ import { privateKeyToAccount } from 'viem/accounts';
 import { AddressNormalizerService } from '@/blockchain/address-normalizer.service';
 import { PublishResult } from '@/blockchain/base.publisher';
 import { PublisherFactory } from '@/blockchain/publisher-factory.service';
+import { getErrorMessage } from '@/commons/utils/error-handler';
 import { ConfigService } from '@/config/config.service';
 import { TOKEN_CONFIGS } from '@/config/tokens.config';
 import { IntentBuilder } from '@/intent/intent-builder.service';
 import { IntentStorage } from '@/intent/intent-storage.service';
 import { QuoteResult, QuoteService } from '@/quote/quote.service';
+import { RoutesCliError } from '@/shared/errors';
 import { KeyHandle } from '@/shared/security';
 import {
   BlockchainAddress,
@@ -289,8 +291,9 @@ export class IntentPublishFlow {
       );
       return { encodedRoute: quote.encodedRoute, sourcePortal, proverAddress, quote };
     } catch (error) {
-      console.error(error);
-      this.display.warn('Quote service unavailable — using manual configuration');
+      if (error instanceof RoutesCliError) throw error;
+      this.display.warn(`Quote failed: ${getErrorMessage(error)}`);
+      this.display.warn('Falling back to manual configuration');
 
       const { parsed: routeAmount } = await this.prompt.inputAmount(
         routeToken.symbol ?? 'tokens',
