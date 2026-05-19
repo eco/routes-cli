@@ -33,6 +33,7 @@ export interface PublishFlowOptions {
   recipient?: string;
   portalAddress?: string;
   proverAddress?: string;
+  proverType?: string;
   dryRun?: boolean;
   watch?: boolean;
 }
@@ -379,6 +380,30 @@ export class IntentPublishFlow {
         options.proverAddress as Parameters<AddressNormalizerService['normalize']>[0],
         sourceChain.type
       );
+    }
+    if (options.proverType) {
+      const addr = (sourceChain.provers as Record<string, UniversalAddress> | undefined)?.[
+        options.proverType
+      ];
+      if (!addr) {
+        throw new Error(
+          `Prover type '${options.proverType}' is not configured for ${sourceChain.name}. ` +
+            `Available: ${Object.keys(sourceChain.provers ?? {}).join(', ') || '<none>'}`
+        );
+      }
+      return addr;
+    }
+    // Auto-select when there is exactly one common prover type — avoids a
+    // one-item list prompt on every mainnet publish.
+    const sourceProvers = sourceChain.provers ?? {};
+    const destProvers = destChain.provers ?? {};
+    const commonTypes = Object.keys(sourceProvers).filter(k => k in destProvers);
+    if (commonTypes.length === 1) {
+      const onlyType = commonTypes[0];
+      this.display.log(
+        `Using prover '${onlyType}' on ${sourceChain.name}: ${(sourceProvers as Record<string, UniversalAddress>)[onlyType]}`
+      );
+      return (sourceProvers as Record<string, UniversalAddress>)[onlyType];
     }
     return this.prompt.selectProver(sourceChain, destChain);
   }
