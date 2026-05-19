@@ -96,10 +96,7 @@ export class IntentPublishFlow {
       overrides.rewardToken ?? (await this.prompt.selectToken(sourceChain, tokens, 'reward'));
     const rewardAmount =
       overrides.rewardAmount ??
-      (rewardToken
-        ? (await this.prompt.inputAmount(rewardToken.symbol ?? 'tokens', rewardToken.decimals))
-            .parsed
-        : 0n);
+      (await this.prompt.inputAmount(rewardToken.symbol ?? 'tokens', rewardToken.decimals)).parsed;
 
     this.display.section('👤 Recipient Configuration');
     const recipientRaw = await this.resolveRecipientRaw(destChain, options, overrides);
@@ -140,12 +137,10 @@ export class IntentPublishFlow {
       options
     );
 
-    const rewardTokenUniversal = rewardToken
-      ? this.normalizer.normalize(
-          rewardToken.address as Parameters<AddressNormalizerService['normalize']>[0],
-          sourceChain.type
-        )
-      : undefined;
+    const rewardTokenUniversal = this.normalizer.normalize(
+      rewardToken.address as Parameters<AddressNormalizerService['normalize']>[0],
+      sourceChain.type
+    );
 
     const reward = this.intentBuilder.buildReward({
       sourceChain,
@@ -247,8 +242,8 @@ export class IntentPublishFlow {
     sourceChain: ChainConfig;
     destChain: ChainConfig;
     quoteDestinationChainId: bigint;
-    rewardToken: TokenSelection | null;
-    routeToken: TokenSelection | null;
+    rewardToken: TokenSelection;
+    routeToken: TokenSelection;
     rewardAmount: bigint;
     senderAddress: string;
     recipientRaw: string;
@@ -271,80 +266,57 @@ export class IntentPublishFlow {
       recipient,
     } = args;
 
-    if (routeToken && rewardToken) {
-      try {
-        this.display.spinner('Getting quote...');
-        const quote = await this.quoteService.getQuote({
-          source: sourceChain.id,
-          destination: quoteDestinationChainId,
-          amount: rewardAmount,
-          funder: senderAddress,
-          recipient: recipientRaw,
-          routeToken: routeToken.address,
-          rewardToken: rewardToken.address,
-        });
-        this.display.succeed('Quote received');
-        this.display.displayQuote(quote, rewardToken, rewardAmount, routeToken);
-        const sourcePortal = this.normalizer.normalize(
-          quote.sourcePortal as Parameters<AddressNormalizerService['normalize']>[0],
-          sourceChain.type
-        );
-        const proverAddress = this.normalizer.normalize(
-          quote.prover as Parameters<AddressNormalizerService['normalize']>[0],
-          sourceChain.type
-        );
-        return { encodedRoute: quote.encodedRoute, sourcePortal, proverAddress, quote };
-      } catch (error) {
-        console.error(error);
-        this.display.warn('Quote service unavailable — using manual configuration');
-
-        const { parsed: routeAmount } = await this.prompt.inputAmount(
-          routeToken.symbol ?? 'tokens',
-          routeToken.decimals
-        );
-
-        const destPortal = destChain.portalAddress;
-        if (!destPortal) {
-          throw new Error(
-            `Cannot fall back to manual route: no portal address configured for ${destChain.name}.`
-          );
-        }
-        const routeTokenUniversal = this.normalizer.normalize(
-          routeToken.address as Parameters<AddressNormalizerService['normalize']>[0],
-          destChain.type
-        );
-
-        const { encodedRoute } = this.intentBuilder.buildManualRoute({
-          destChain,
-          recipient,
-          routeToken: routeTokenUniversal,
-          routeAmount,
-          portal: destPortal,
-        });
-        return { encodedRoute };
-      }
-    }
-
-    this.display.warn('No tokens selected — using manual route configuration');
-    const destPortal = destChain.portalAddress;
-    if (!destPortal) {
-      throw new Error(
-        `Cannot use manual route: no portal address configured for ${destChain.name}.`
+    try {
+      this.display.spinner('Getting quote...');
+      const quote = await this.quoteService.getQuote({
+        source: sourceChain.id,
+        destination: quoteDestinationChainId,
+        amount: rewardAmount,
+        funder: senderAddress,
+        recipient: recipientRaw,
+        routeToken: routeToken.address,
+        rewardToken: rewardToken.address,
+      });
+      this.display.succeed('Quote received');
+      this.display.displayQuote(quote, rewardToken, rewardAmount, routeToken);
+      const sourcePortal = this.normalizer.normalize(
+        quote.sourcePortal as Parameters<AddressNormalizerService['normalize']>[0],
+        sourceChain.type
       );
-    }
-    const { encodedRoute } = this.intentBuilder.buildManualRoute({
-      destChain,
-      recipient,
-      routeToken: this.normalizer.normalize(
-        '0x0000000000000000000000000000000000000000' as Parameters<
-          AddressNormalizerService['normalize']
-        >[0],
+      const proverAddress = this.normalizer.normalize(
+        quote.prover as Parameters<AddressNormalizerService['normalize']>[0],
+        sourceChain.type
+      );
+      return { encodedRoute: quote.encodedRoute, sourcePortal, proverAddress, quote };
+    } catch (error) {
+      console.error(error);
+      this.display.warn('Quote service unavailable — using manual configuration');
+
+      const { parsed: routeAmount } = await this.prompt.inputAmount(
+        routeToken.symbol ?? 'tokens',
+        routeToken.decimals
+      );
+
+      const destPortal = destChain.portalAddress;
+      if (!destPortal) {
+        throw new Error(
+          `Cannot fall back to manual route: no portal address configured for ${destChain.name}.`
+        );
+      }
+      const routeTokenUniversal = this.normalizer.normalize(
+        routeToken.address as Parameters<AddressNormalizerService['normalize']>[0],
         destChain.type
-      ),
-      routeAmount: 0n,
-      portal: destPortal,
-    });
-    return { encodedRoute };
+      );
+
+      const { encodedRoute } = this.intentBuilder.buildManualRoute({
+        destChain,
+        recipient,
+        routeToken: routeTokenUniversal,
+        routeAmount,
+        portal: destPortal,
+      });
+      return { encodedRoute };
+    }
   }
 
   // Source portal priority: quote → CLI option → manual prompt.

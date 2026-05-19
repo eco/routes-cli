@@ -31,11 +31,10 @@ export class PromptService {
     chain: ChainConfig,
     tokens: TokenConfig[],
     label: string
-  ): Promise<{ address: string; decimals: number; symbol?: string } | null> {
+  ): Promise<{ address: string; decimals: number; symbol?: string }> {
     const availableTokens = tokens.filter(t => !!t.addresses[chain.id.toString()]);
     const choices = [
       ...availableTokens.map(t => ({ name: `${t.symbol} - ${t.name}`, value: t.symbol })),
-      { name: 'None (no tokens)', value: 'NONE' },
       { name: 'Custom Token Address', value: 'CUSTOM' },
     ];
 
@@ -47,10 +46,6 @@ export class PromptService {
         choices,
       },
     ]);
-
-    if (tokenChoice === 'NONE') {
-      return null;
-    }
 
     if (tokenChoice === 'CUSTOM') {
       const handler = this.registry.get(chain.type);
