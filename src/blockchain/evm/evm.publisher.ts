@@ -15,6 +15,7 @@ import {
   parseEventLogs,
   type PublicClient,
   Transport,
+  WaitForTransactionReceiptTimeoutError,
   type WalletClient,
 } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
@@ -148,12 +149,24 @@ export class EvmPublisher extends BasePublisher {
               args: [finalPortalAddress, maxUint256],
             });
 
+            logger.log(`Approval tx submitted: ${approveTx}`);
             logger.updateSpinner('Waiting for approval confirmation...');
-            const approvalReceipt = await publicClient.waitForTransactionReceipt({
-              hash: approveTx,
-              confirmations: 2,
-              timeout: 120_000,
-            });
+            let approvalReceipt;
+            try {
+              approvalReceipt = await publicClient.waitForTransactionReceipt({
+                hash: approveTx,
+                confirmations: 2,
+                timeout: 120_000,
+              });
+            } catch (err) {
+              if (err instanceof WaitForTransactionReceiptTimeoutError) {
+                throw new Error(
+                  `Approval tx ${approveTx} not confirmed within 120s on chain ${source}. ` +
+                    `The tx may still mine — check the block explorer before retrying.`
+                );
+              }
+              throw err;
+            }
 
             if (approvalReceipt.status !== 'success') {
               logger.fail(`Token approval failed for ${tokenAddress}`);
@@ -190,8 +203,20 @@ export class EvmPublisher extends BasePublisher {
           value: reward.nativeAmount,
         });
 
+        logger.log(`Publish tx submitted: ${hash}`);
         logger.updateSpinner('Waiting for transaction confirmation...');
-        const receipt = await publicClient.waitForTransactionReceipt({ hash, timeout: 120_000 });
+        let receipt;
+        try {
+          receipt = await publicClient.waitForTransactionReceipt({ hash, timeout: 120_000 });
+        } catch (err) {
+          if (err instanceof WaitForTransactionReceiptTimeoutError) {
+            throw new Error(
+              `Publish tx ${hash} not confirmed within 120s on chain ${source}. ` +
+                `The tx may still mine — check the block explorer before retrying to avoid double-submit.`
+            );
+          }
+          throw err;
+        }
         logger.succeed('Transaction confirmed');
 
         if (receipt.status === 'success') {
