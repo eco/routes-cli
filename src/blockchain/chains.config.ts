@@ -1,6 +1,6 @@
 import { arbitrum, bsc, hyperEvm, mainnet, polygon, ronin, sonic } from 'viem/chains';
 
-import { ChainType } from '@/shared/types';
+import { ChainType, ProverType } from '@/shared/types';
 
 export interface RawChainConfig {
   id: bigint;
@@ -9,7 +9,7 @@ export interface RawChainConfig {
   type: ChainType;
   rpcUrl: string;
   portalAddress?: string; // raw string, normalized lazily by ChainsService
-  provers?: Record<string, string>;
+  provers?: Partial<Record<ProverType, string>>;
   nativeCurrency: { name: string; symbol: string; decimals: number };
 }
 

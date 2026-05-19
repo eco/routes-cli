@@ -37,13 +37,13 @@ export class ChainsService implements OnModuleInit {
           this.normalizer.normalize(raw.portalAddress as any, raw.type)
         : undefined,
       provers: raw.provers
-        ? Object.fromEntries(
+        ? (Object.fromEntries(
             Object.entries(raw.provers).map(([k, v]) => [
               k,
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               this.normalizer.normalize(v as any, raw.type),
             ])
-          )
+          ) as ChainConfig['provers'])
         : undefined,
     };
   }

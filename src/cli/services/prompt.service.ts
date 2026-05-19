@@ -211,7 +211,8 @@ export class PromptService {
   async selectProver(sourceChain: ChainConfig, destChain: ChainConfig): Promise<UniversalAddress> {
     const sourceProvers = sourceChain.provers ?? {};
     const destProvers = destChain.provers ?? {};
-    const commonTypes = Object.keys(sourceProvers).filter(k => k in destProvers);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const commonTypes = (Object.keys(sourceProvers) as any[]).filter(k => k in destProvers);
 
     if (commonTypes.length > 0) {
       const { proverType } = await inquirer.prompt([
@@ -222,7 +223,8 @@ export class PromptService {
           choices: commonTypes.map(k => ({ name: k, value: k })),
         },
       ]);
-      return sourceProvers[proverType as string] as UniversalAddress;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return (sourceProvers as any)[proverType as string] as UniversalAddress;
     }
 
     const raw = await this.inputManualProver(sourceChain);
