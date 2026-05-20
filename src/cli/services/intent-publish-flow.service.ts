@@ -357,16 +357,19 @@ export class IntentPublishFlow {
       );
     }
     if (options.proverType) {
-      const addr = (sourceChain.provers as Record<string, UniversalAddress> | undefined)?.[
+      const sourceAddr = (sourceChain.provers as Record<string, UniversalAddress> | undefined)?.[
         options.proverType
       ];
-      if (!addr) {
+      const destSupports = options.proverType in (destChain.provers ?? {});
+      if (!sourceAddr || !destSupports) {
+        const sourceKeys = Object.keys(sourceChain.provers ?? {}).join(', ') || '<none>';
+        const destKeys = Object.keys(destChain.provers ?? {}).join(', ') || '<none>';
         throw new Error(
-          `Prover type '${options.proverType}' is not configured for ${sourceChain.name}. ` +
-            `Available: ${Object.keys(sourceChain.provers ?? {}).join(', ') || '<none>'}`
+          `Prover type '${options.proverType}' is not configured on both chains. ` +
+            `${sourceChain.name}: [${sourceKeys}], ${destChain.name}: [${destKeys}].`
         );
       }
-      return addr;
+      return sourceAddr;
     }
     // Auto-select when there is exactly one common prover type — avoids a
     // one-item list prompt on every mainnet publish.
