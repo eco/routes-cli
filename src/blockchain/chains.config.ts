@@ -107,7 +107,7 @@ export const RAW_CHAIN_CONFIGS: RawChainConfig[] = [
     rpcUrl: 'https://sepolia.base.org',
     portalAddress: '0x399Dbd5DF04f83103F77A58cBa2B7c4d3cdede97',
     provers: {
-      Hyperlane: '0x9523b6c0caac8122dbd5dd1c1d336ceba637038d',
+      Hyperlane: '0x9523b6c0cAaC8122DbD5Dd1c1d336CEBA637038D',
       LayerZero: '0x6D8D9E68627b8eb2D4A3c1110be3FE46Ff6e92A3',
     },
     nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
@@ -120,7 +120,7 @@ export const RAW_CHAIN_CONFIGS: RawChainConfig[] = [
     rpcUrl: 'https://sepolia.optimism.io',
     portalAddress: '0x06EFdb68dbF245ECb49E3aE10Cd0f893B674443c',
     provers: {
-      Hyperlane: '0x9523b6c0caac8122dbd5dd1c1d336ceba637038d',
+      Hyperlane: '0x9523b6c0cAaC8122DbD5Dd1c1d336CEBA637038D',
     },
     nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
   },
@@ -132,7 +132,7 @@ export const RAW_CHAIN_CONFIGS: RawChainConfig[] = [
     rpcUrl: 'https://rpc.testnet.plasm.technology',
     portalAddress: '0x06EFdb68dbF245ECb49E3aE10Cd0f893B674443c',
     provers: {
-      Hyperlane: '0x9523b6c0caac8122dbd5dd1c1d336ceba637038d',
+      Hyperlane: '0x9523b6c0cAaC8122DbD5Dd1c1d336CEBA637038D',
     },
     nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
   },
@@ -144,7 +144,7 @@ export const RAW_CHAIN_CONFIGS: RawChainConfig[] = [
     rpcUrl: 'https://rpc.sepolia.org',
     portalAddress: '0x06EFdb68dbF245ECb49E3aE10Cd0f893B674443c',
     provers: {
-      Hyperlane: '0x9523b6c0caac8122dbd5dd1c1d336ceba637038d',
+      Hyperlane: '0x9523b6c0cAaC8122DbD5Dd1c1d336CEBA637038D',
     },
     nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
   },
