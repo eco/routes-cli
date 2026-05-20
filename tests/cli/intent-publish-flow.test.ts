@@ -11,7 +11,7 @@ const SOURCE_CHAIN: ChainConfig = {
   rpcUrl: 'https://mainnet.base.org',
   provers: {
     LayerZero:
-      '0xprover000000000000000000000000000000000000000000000000000000000' as unknown as UniversalAddress,
+      '0xprover0000000000000000000000000000000000000000000000000000000000' as unknown as UniversalAddress,
   },
   nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
 };
