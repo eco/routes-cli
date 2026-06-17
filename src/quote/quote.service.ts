@@ -25,6 +25,8 @@ export interface QuoteResult {
   intentExecutionType?: 'SELF_PUBLISH' | 'GASLESS';
   destinationPortalAddress: Address;
   destinationChainId?: number;
+  receivedAt: number; // Unix ms — when the CLI received the quote response
+  quoteId?: string; // Present for gateway (server) and solver-v2 (client-generated) shapes
 }
 
 // Internal API response types
@@ -151,6 +153,7 @@ export class QuoteService {
 
     const elapsed = (performance.now() - startTime).toFixed(2);
 
+    const receivedAt = Date.now();
     const raw = (await response.json()) as RawQuoteResponse;
     if (this.config.isDebug()) {
       this.display.log(`[DEBUG] Quote response time: ${elapsed}ms`);
@@ -158,8 +161,14 @@ export class QuoteService {
     }
     if (!response.ok) throw new Error(JSON.stringify(raw));
 
-    if (type === 'gateway') {
-      const gw = raw as unknown as GatewayResponse;
+    // The Eco swap service (…/exactIn/swap) returns the gateway array shape
+    // (`data: [{ quoteData }]`) whether it's reached via API_GATEWAY_URL or via
+    // QUOTES_ENDPOINT_URL (e.g. pointing the custom endpoint at production swap
+    // while the gateway stays on pre-production). Detect it by shape so either
+    // env var works. The v3 single endpoint wraps an object in `data`, so an
+    // array specifically indicates the gateway/swap shape.
+    const gw = raw as unknown as GatewayResponse;
+    if (type === 'gateway' || Array.isArray(gw.data)) {
       if (!gw.data || gw.data.length === 0) {
         throw new Error('Invalid gateway response: no quotes returned');
       }
@@ -179,6 +188,8 @@ export class QuoteService {
         intentExecutionType: q.intentExecutionType,
         destinationPortalAddress: contracts.destinationPortal,
         destinationChainId: q.destinationChainID,
+        receivedAt,
+        quoteId: entry.quoteID,
       };
     }
 
@@ -206,6 +217,8 @@ export class QuoteService {
         intentExecutionType: q.intentExecutionType,
         destinationPortalAddress: data.contracts.destinationPortal,
         destinationChainId: q.destinationChainID,
+        receivedAt,
+        quoteId: request.quoteID,
       };
     }
 
@@ -222,6 +235,7 @@ export class QuoteService {
       estimatedFulfillTimeSec: data.quoteResponse.estimatedFulfillTimeSec,
       intentExecutionType: data.quoteResponse.intentExecutionType,
       destinationPortalAddress: data.contracts.destinationPortal,
+      receivedAt,
     };
   }
 }

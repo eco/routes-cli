@@ -3,7 +3,7 @@ import { Injectable } from '@nestjs/common';
 import { Keypair } from '@solana/web3.js';
 import { Command, CommandRunner, Option } from 'nest-commander';
 import { TronWeb } from 'tronweb';
-import { Hex } from 'viem';
+import { Hex, parseUnits } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 
 import { AddressNormalizerService } from '@/blockchain/address-normalizer.service';
@@ -92,28 +92,38 @@ export class PublishCommand extends CommandRunner {
     this.display.title('🎨 Interactive Intent Publishing');
 
     const allChains = this.chains.listChains();
+    const tokens = Object.values(TOKEN_CONFIGS);
+
     const sourceChain = options.source
       ? this.chains.resolveChain(options.source)
-      : await this.prompt.selectChain(allChains, 'Select source chain:');
+      : this.config.getDefaultSource()
+        ? this.chains.resolveChain(this.config.getDefaultSource()!)
+        : await this.prompt.selectChain(allChains, 'Select source chain:');
 
     const destChain = options.destination
       ? this.chains.resolveChain(options.destination)
-      : await this.prompt.selectChain(
-          allChains.filter(c => c.id !== sourceChain.id),
-          'Select destination chain:'
-        );
-
-    const tokens = Object.values(TOKEN_CONFIGS);
+      : this.config.getDefaultDestination()
+        ? this.chains.resolveChain(this.config.getDefaultDestination()!)
+        : await this.prompt.selectChain(
+            allChains.filter(c => c.id !== sourceChain.id),
+            'Select destination chain:'
+          );
 
     this.display.section('📏 Route Configuration (Destination Chain)');
-    const routeToken = await this.prompt.selectToken(destChain, tokens, 'route');
+    const routeToken = this.config.getDefaultRouteToken()
+      ? this.prompt.resolveTokenBySymbol(destChain, tokens, this.config.getDefaultRouteToken()!)
+      : await this.prompt.selectToken(destChain, tokens, 'route');
 
     this.display.section('💰 Reward Configuration (Source Chain)');
-    const rewardToken = await this.prompt.selectToken(sourceChain, tokens, 'reward');
-    const { parsed: rewardAmount } = await this.prompt.inputAmount(
-      rewardToken.symbol ?? 'tokens',
-      rewardToken.decimals
-    );
+    const rewardToken = this.config.getDefaultRewardToken()
+      ? this.prompt.resolveTokenBySymbol(sourceChain, tokens, this.config.getDefaultRewardToken()!)
+      : await this.prompt.selectToken(sourceChain, tokens, 'reward');
+
+    const defaultRewardAmount = this.config.getDefaultRewardAmount();
+    const rewardAmount = defaultRewardAmount
+      ? parseUnits(defaultRewardAmount, rewardToken.decimals)
+      : (await this.prompt.inputAmount(rewardToken.symbol ?? 'tokens', rewardToken.decimals))
+          .parsed;
 
     this.display.section('👤 Recipient Configuration');
     const destKey =
@@ -240,8 +250,7 @@ export class PublishCommand extends CommandRunner {
       rewardAmount,
     });
 
-    // Display summary + confirm
-    const confirmed = await this.prompt.confirmPublish();
+    const confirmed = this.config.getSkipPublishConfirm() || (await this.prompt.confirmPublish());
     if (!confirmed) throw new Error('Publication cancelled by user');
 
     if (options.dryRun) {

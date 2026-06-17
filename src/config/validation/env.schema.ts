@@ -27,6 +27,16 @@ export const EnvSchema = z.object({
 
   DAPP_ID: z.string().default('eco-routes-cli'),
   DEADLINE_OFFSET_SECONDS: z.coerce.number().positive().default(9000),
+
+  DEFAULT_SOURCE: z.string().min(1).optional(),
+  DEFAULT_DESTINATION: z.string().min(1).optional(),
+  DEFAULT_ROUTE_TOKEN: z.string().min(1).optional(),
+  DEFAULT_REWARD_TOKEN: z.string().min(1).optional(),
+  DEFAULT_REWARD_AMOUNT: z.string().min(1).optional(),
+  SKIP_PUBLISH_CONFIRM: z
+    .enum(['true', 'false', '1', '0'])
+    .optional()
+    .transform(v => v === 'true' || v === '1'),
 });
 
 export type EnvConfig = z.infer<typeof EnvSchema>;

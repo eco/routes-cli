@@ -267,6 +267,9 @@ export const TOKEN_CONFIGS: Record<string, TokenConfig> = {
       '42161': AddressNormalizer.normalizeEvm(
         '0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf' as EvmAddress
       ), // Arbitrum
+      '1399811149': AddressNormalizer.normalizeSvm(
+        'cbbtcf3aa214zXHbiAZQwf4122FBYbraNdFqgw4iMij' as SvmAddress
+      ), // Solana
     },
   },
 };

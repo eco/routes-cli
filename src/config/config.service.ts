@@ -63,20 +63,24 @@ export class ConfigService {
         apiKey: this.config.get<string>('QUOTES_API_KEY'),
       };
     }
-    const gatewayUrl = this.config.get<string>('API_GATEWAY_URL');
-    if (gatewayUrl) {
-      return {
-        url: gatewayUrl,
-        type: 'gateway',
-        apiKey: this.config.get<string>('API_GATEWAY_KEY'),
-      };
-    }
+    // An explicitly-set quotes URL takes priority over the gateway, so you can
+    // point at e.g. the production swap service while API_GATEWAY_URL stays on
+    // pre-production. The response shape (single vs gateway array) is detected
+    // in QuoteService, so a swap endpoint works under this 'custom' type too.
     const endpointUrl = this.config.get<string>('QUOTES_ENDPOINT_URL');
     if (endpointUrl) {
       return {
         url: endpointUrl,
         type: 'custom',
         apiKey: this.config.get<string>('QUOTES_API_KEY'),
+      };
+    }
+    const gatewayUrl = this.config.get<string>('API_GATEWAY_URL');
+    if (gatewayUrl) {
+      return {
+        url: gatewayUrl,
+        type: 'gateway',
+        apiKey: this.config.get<string>('API_GATEWAY_KEY'),
       };
     }
     return {
@@ -100,5 +104,29 @@ export class ConfigService {
 
   isDebug(): boolean {
     return !!this.config.get('DEBUG');
+  }
+
+  getDefaultSource(): string | undefined {
+    return this.config.get<string>('DEFAULT_SOURCE');
+  }
+
+  getDefaultDestination(): string | undefined {
+    return this.config.get<string>('DEFAULT_DESTINATION');
+  }
+
+  getDefaultRouteToken(): string | undefined {
+    return this.config.get<string>('DEFAULT_ROUTE_TOKEN');
+  }
+
+  getDefaultRewardToken(): string | undefined {
+    return this.config.get<string>('DEFAULT_REWARD_TOKEN');
+  }
+
+  getDefaultRewardAmount(): string | undefined {
+    return this.config.get<string>('DEFAULT_REWARD_AMOUNT');
+  }
+
+  getSkipPublishConfirm(): boolean {
+    return this.config.get<boolean>('SKIP_PUBLISH_CONFIRM') ?? false;
   }
 }

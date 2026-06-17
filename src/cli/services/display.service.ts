@@ -120,7 +120,11 @@ export class DisplayService {
       ['Portal', quote.sourcePortal],
       ['Prover', quote.prover],
       ['Deadline', new Date(quote.deadline * 1000).toLocaleString()],
+      ['Received At', new Date(quote.receivedAt).toLocaleString()],
     ];
+    if (quote.quoteId) {
+      rows.push(['Quote ID', quote.quoteId]);
+    }
     if (quote.estimatedFulfillTimeSec !== undefined) {
       rows.push(['Est. Fulfill Time', `${quote.estimatedFulfillTimeSec}s`]);
     }

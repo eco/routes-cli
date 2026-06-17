@@ -27,6 +27,32 @@ export class PromptService {
     return chain;
   }
 
+  resolveTokenBySymbol(
+    chain: ChainConfig,
+    tokens: TokenConfig[],
+    symbol: string
+  ): { address: string; decimals: number; symbol?: string } {
+    const token = tokens.find(t => t.symbol.toUpperCase() === symbol.toUpperCase());
+    if (!token) {
+      throw new Error(`Token ${symbol} not found`);
+    }
+
+    const tokenAddress = token.addresses[chain.id.toString()];
+    if (!tokenAddress) {
+      const chainIds = Object.keys(token.addresses).join(', ');
+      throw new Error(
+        `Token ${token.symbol} is not deployed on ${chain.name} (${chain.id}). ` +
+          `It is configured for chain IDs: ${chainIds || 'none'}.`
+      );
+    }
+
+    return {
+      address: this.normalizer.denormalize(tokenAddress, chain.type) as string,
+      decimals: token.decimals,
+      symbol: token.symbol,
+    };
+  }
+
   async selectToken(
     chain: ChainConfig,
     tokens: TokenConfig[],
@@ -77,17 +103,7 @@ export class PromptService {
       return { address: address as string, decimals: parseInt(decimals as string) };
     }
 
-    const token = availableTokens.find(t => t.symbol === tokenChoice);
-    if (!token) throw new Error(`Token ${tokenChoice as string} not found`);
-
-    const tokenAddress = token.addresses[chain.id.toString()];
-    if (!tokenAddress) throw new Error(`Token ${token.symbol} not available on chain ${chain.id}`);
-
-    return {
-      address: this.normalizer.denormalize(tokenAddress, chain.type) as string,
-      decimals: token.decimals,
-      symbol: token.symbol,
-    };
+    return this.resolveTokenBySymbol(chain, availableTokens, tokenChoice as string);
   }
 
   async inputAmount(
