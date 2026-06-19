@@ -39,12 +39,12 @@ export class ConfigService {
         fallback: '',
       },
       [ChainType.TVM]: {
-        primary: this.config.get<string>('TVM_RPC_URL') ?? 'https://api.trongrid.io',
-        fallback: this.config.get<string>('TVM_RPC_URL_2') ?? 'https://tron.publicnode.com',
+        primary: this.config.get<string>('TVM_RPC_URL') ?? '',
+        fallback: this.config.get<string>('TVM_RPC_URL_2') ?? '',
       },
       [ChainType.SVM]: {
-        primary: this.config.get<string>('SVM_RPC_URL') ?? 'https://api.mainnet-beta.solana.com',
-        fallback: this.config.get<string>('SVM_RPC_URL_2') ?? 'https://solana.publicnode.com',
+        primary: this.config.get<string>('SVM_RPC_URL') ?? '',
+        fallback: this.config.get<string>('SVM_RPC_URL_2') ?? '',
       },
     };
     return map[chainType][variant] || undefined;

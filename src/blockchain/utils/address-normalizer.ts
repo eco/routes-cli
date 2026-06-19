@@ -59,9 +59,11 @@ export class AddressNormalizer {
       const unpadded = unpadFrom32Bytes(address);
       // Guard against old-format universals that already carry the 0x41 prefix
       // (e.g. values stored before the 20-byte normalization change).
-      const hexAddress = unpadded.startsWith('0x41')
-        ? unpadded.substring(2)
-        : '41' + unpadded.substring(2);
+      // Use length instead of prefix: '0x' + 42 hex = 21 bytes (old format, 0x41 already present);
+      // '0x' + 40 hex = 20 bytes (new format, needs 41 prepended). A prefix check
+      // would misfire on 20-byte bodies that happen to start with 41.
+      const hexAddress =
+        unpadded.length === 44 ? unpadded.substring(2) : '41' + unpadded.substring(2);
       const base58Address = TronWeb.address.fromHex(hexAddress);
       if (!TronWeb.isAddress(base58Address)) {
         throw new Error(`Invalid Tron address after denormalization: ${base58Address}`);

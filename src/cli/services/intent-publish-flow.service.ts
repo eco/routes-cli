@@ -7,6 +7,7 @@ import { privateKeyToAccount } from 'viem/accounts';
 
 import { AddressNormalizerService } from '@/blockchain/address-normalizer.service';
 import { PublishResult } from '@/blockchain/base.publisher';
+import { PortalEncoderService } from '@/blockchain/encoding/portal-encoder.service';
 import { PublisherFactory } from '@/blockchain/publisher-factory.service';
 import { getErrorMessage } from '@/commons/utils/error-handler';
 import { ConfigService } from '@/config/config.service';
@@ -14,7 +15,7 @@ import { TOKEN_CONFIGS } from '@/config/tokens.config';
 import { IntentBuilder } from '@/intent/intent-builder.service';
 import { IntentStorage } from '@/intent/intent-storage.service';
 import { QuoteResult, QuoteService } from '@/quote/quote.service';
-import { RoutesCliError } from '@/shared/errors';
+import { ErrorCode, RoutesCliError } from '@/shared/errors';
 import { KeyHandle } from '@/shared/security';
 import {
   BlockchainAddress,
@@ -77,7 +78,8 @@ export class IntentPublishFlow {
     private readonly intentStorage: IntentStorage,
     private readonly prompt: PromptService,
     private readonly display: DisplayService,
-    private readonly statusService: StatusService
+    private readonly statusService: StatusService,
+    private readonly encoder: PortalEncoderService
   ) {}
 
   async publish(args: {
@@ -185,7 +187,7 @@ export class IntentPublishFlow {
     );
 
     if (!result.success) {
-      this.display.fail('Publishing failed');
+      this.display.fail(`Publishing failed: ${result.error ?? 'unknown error'}`);
       throw new Error(result.error);
     }
 
@@ -281,6 +283,7 @@ export class IntentPublishFlow {
       });
       this.display.succeed('Quote received');
       this.display.displayQuote(quote, rewardToken, rewardAmount, routeToken);
+      this.validateQuoteRouteAmount(quote, destChain);
       const sourcePortal = this.normalizer.normalize(
         quote.sourcePortal as Parameters<AddressNormalizerService['normalize']>[0],
         sourceChain.type
@@ -429,6 +432,26 @@ export class IntentPublishFlow {
       this.display.warn(
         `Not fulfilled within ${estimatedSec * timeoutMultiplier}s — check manually: ` +
           `routes status ${intentHash} --chain ${destChain.name}`
+      );
+    }
+  }
+
+  private validateQuoteRouteAmount(quote: QuoteResult, destChain: ChainConfig): void {
+    let routeAmount: bigint;
+    try {
+      const route = this.encoder.decode(quote.encodedRoute, destChain.type, 'route');
+      routeAmount = route.tokens.length > 0 ? route.tokens[0].amount : route.nativeAmount;
+    } catch {
+      return; // can't decode — skip the check
+    }
+
+    const quotedAmount = BigInt(quote.destinationAmount);
+    if (routeAmount !== quotedAmount) {
+      throw new RoutesCliError(
+        ErrorCode.QUOTE_SERVICE_ERROR,
+        `Quote amount mismatch: solver quoted ${quotedAmount} but encoded route calls for ${routeAmount}. ` +
+          `The intent would revert on-chain. Please retry — the solver may have returned a stale quote.`,
+        true
       );
     }
   }
