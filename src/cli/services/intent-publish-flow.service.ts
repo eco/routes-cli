@@ -8,11 +8,13 @@ import { privateKeyToAccount } from 'viem/accounts';
 import { AddressNormalizerService } from '@/blockchain/address-normalizer.service';
 import { PublishResult } from '@/blockchain/base.publisher';
 import { PublisherFactory } from '@/blockchain/publisher-factory.service';
+import { getErrorMessage } from '@/commons/utils/error-handler';
 import { ConfigService } from '@/config/config.service';
 import { TOKEN_CONFIGS } from '@/config/tokens.config';
 import { IntentBuilder } from '@/intent/intent-builder.service';
 import { IntentStorage } from '@/intent/intent-storage.service';
 import { QuoteResult, QuoteService } from '@/quote/quote.service';
+import { RoutesCliError } from '@/shared/errors';
 import { KeyHandle } from '@/shared/security';
 import {
   BlockchainAddress,
@@ -33,6 +35,7 @@ export interface PublishFlowOptions {
   recipient?: string;
   portalAddress?: string;
   proverAddress?: string;
+  proverType?: string;
   dryRun?: boolean;
   watch?: boolean;
 }
@@ -129,7 +132,12 @@ export class IntentPublishFlow {
     });
 
     const sourcePortal = await this.resolveSourcePortal(sourceChain, portalFromQuote, options);
-    const proverAddress = await this.resolveProver(sourceChain, proverFromQuote, options);
+    const proverAddress = await this.resolveProver(
+      sourceChain,
+      destChain,
+      proverFromQuote,
+      options
+    );
 
     const rewardTokenUniversal = this.normalizer.normalize(
       rewardToken.address as Parameters<AddressNormalizerService['normalize']>[0],
@@ -283,8 +291,9 @@ export class IntentPublishFlow {
       );
       return { encodedRoute: quote.encodedRoute, sourcePortal, proverAddress, quote };
     } catch (error) {
-      console.error(error);
-      this.display.warn('Quote service unavailable — using manual configuration');
+      if (error instanceof RoutesCliError) throw error;
+      this.display.warn(`Quote failed: ${getErrorMessage(error)}`);
+      this.display.warn('Falling back to manual configuration');
 
       const { parsed: routeAmount } = await this.prompt.inputAmount(
         routeToken.symbol ?? 'tokens',
@@ -333,9 +342,10 @@ export class IntentPublishFlow {
     );
   }
 
-  // Prover priority: quote → CLI option → chain config default → manual prompt.
+  // Prover priority: quote → CLI option → interactive prover selection (provers dict or manual).
   private async resolveProver(
     sourceChain: ChainConfig,
+    destChain: ChainConfig,
     fromQuote: UniversalAddress | undefined,
     options: PublishFlowOptions
   ): Promise<UniversalAddress> {
@@ -346,12 +356,34 @@ export class IntentPublishFlow {
         sourceChain.type
       );
     }
-    if (sourceChain.proverAddress) return sourceChain.proverAddress;
-    const raw = await this.prompt.inputManualProver(sourceChain);
-    return this.normalizer.normalize(
-      raw as Parameters<AddressNormalizerService['normalize']>[0],
-      sourceChain.type
-    );
+    if (options.proverType) {
+      const sourceAddr = (sourceChain.provers as Record<string, UniversalAddress> | undefined)?.[
+        options.proverType
+      ];
+      const destSupports = options.proverType in (destChain.provers ?? {});
+      if (!sourceAddr || !destSupports) {
+        const sourceKeys = Object.keys(sourceChain.provers ?? {}).join(', ') || '<none>';
+        const destKeys = Object.keys(destChain.provers ?? {}).join(', ') || '<none>';
+        throw new Error(
+          `Prover type '${options.proverType}' is not configured on both chains. ` +
+            `${sourceChain.name}: [${sourceKeys}], ${destChain.name}: [${destKeys}].`
+        );
+      }
+      return sourceAddr;
+    }
+    // Auto-select when there is exactly one common prover type — avoids a
+    // one-item list prompt on every mainnet publish.
+    const sourceProvers = sourceChain.provers ?? {};
+    const destProvers = destChain.provers ?? {};
+    const commonTypes = Object.keys(sourceProvers).filter(k => k in destProvers);
+    if (commonTypes.length === 1) {
+      const onlyType = commonTypes[0];
+      this.display.log(
+        `Using prover '${onlyType}' on ${sourceChain.name}: ${(sourceProvers as Record<string, UniversalAddress>)[onlyType]}`
+      );
+      return (sourceProvers as Record<string, UniversalAddress>)[onlyType];
+    }
+    return this.prompt.selectProver(sourceChain, destChain);
   }
 
   private async runWatchFlow(

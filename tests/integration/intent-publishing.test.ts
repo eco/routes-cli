@@ -63,7 +63,7 @@ const SOURCE_CHAIN: ChainConfig = {
   rpcUrl: 'https://cloudflare-eth.com',
   nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
   portalAddress: portalUniversal,
-  proverAddress: proverUniversal,
+  provers: { LayerZero: proverUniversal },
 };
 
 const DEST_CHAIN: ChainConfig = {

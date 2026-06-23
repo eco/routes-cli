@@ -95,6 +95,14 @@ export class PublishCommand extends CommandRunner {
     return val;
   }
 
+  @Option({
+    flags: '--prover-type <name>',
+    description: "Prover type to use (e.g. 'LayerZero', 'Hyperlane')",
+  })
+  parseProverType(val: string): string {
+    return val;
+  }
+
   @Option({ flags: '--dry-run', description: 'Validate without broadcasting' })
   parseDryRun(): boolean {
     return true;

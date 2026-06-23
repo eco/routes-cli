@@ -50,8 +50,8 @@ export class ConfigService {
     return map[chainType][variant] || undefined;
   }
 
-  getQuoteEndpoint(): { url: string; type: 'solver-v2' | 'custom' | 'production' } {
-    const solverUrl = this.config.get<string>('SOLVER_URL');
+  getQuoteEndpoint(): { url: string; type: 'solver-v2' | 'custom' | 'preprod' | 'production' } {
+    const solverUrl = this.config.get<string>('SOLVER_URL')?.replace(/\/$/, '');
     if (solverUrl) {
       return { url: `${solverUrl}/api/v2/quote/reverse`, type: 'solver-v2' };
     }

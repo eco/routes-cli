@@ -9,8 +9,10 @@ const SOURCE_CHAIN: ChainConfig = {
   type: ChainType.EVM,
   env: 'production',
   rpcUrl: 'https://mainnet.base.org',
-  proverAddress:
-    '0xprover000000000000000000000000000000000000000000000000000000000' as unknown as UniversalAddress,
+  provers: {
+    LayerZero:
+      '0xprover0000000000000000000000000000000000000000000000000000000000' as unknown as UniversalAddress,
+  },
   nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
 };
 
@@ -45,6 +47,7 @@ interface FlowMocks {
     inputAddress: jest.Mock;
     inputManualPortal: jest.Mock;
     inputManualProver: jest.Mock;
+    selectProver: jest.Mock;
     confirmPublish: jest.Mock;
   };
   publisher: { publish: jest.Mock };
@@ -62,6 +65,7 @@ function buildFlow(): FlowMocks {
     inputAddress: jest.fn().mockResolvedValue('0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045'),
     inputManualPortal: jest.fn().mockResolvedValue('0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045'),
     inputManualProver: jest.fn().mockResolvedValue('0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045'),
+    selectProver: jest.fn().mockResolvedValue(FAKE_UNIVERSAL),
     confirmPublish: jest.fn().mockResolvedValue(true),
   };
 

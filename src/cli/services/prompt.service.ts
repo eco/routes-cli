@@ -6,7 +6,7 @@ import { parseUnits } from 'viem';
 import { AddressNormalizerService } from '@/blockchain/address-normalizer.service';
 import { ChainRegistryService } from '@/blockchain/chain-registry.service';
 import { TokenConfig } from '@/config/tokens.config';
-import { ChainConfig } from '@/shared/types';
+import { ChainConfig, UniversalAddress } from '@/shared/types';
 
 @Injectable()
 export class PromptService {
@@ -186,9 +186,6 @@ export class PromptService {
         type: 'input',
         name: 'prover',
         message: `Enter prover contract address on ${chain.name}:`,
-        default: chain.proverAddress
-          ? (this.normalizer.denormalize(chain.proverAddress, chain.type) as string)
-          : undefined,
         validate: (input: string) => {
           if (!input || input.trim() === '') return 'Prover address is required';
           if (!handler.validateAddress(input)) {
@@ -199,5 +196,41 @@ export class PromptService {
       },
     ]);
     return prover as string;
+  }
+
+  /**
+   * Select a prover for the given source/destination chain pair.
+   * Uses the intersection of prover keys from both chains to offer a named list.
+   * Falls back to a free-text address prompt when no intersection exists.
+   */
+  async selectProver(sourceChain: ChainConfig, destChain: ChainConfig): Promise<UniversalAddress> {
+    const sourceProvers = sourceChain.provers ?? {};
+    const destProvers = destChain.provers ?? {};
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const commonTypes = (Object.keys(sourceProvers) as any[]).filter(k => k in destProvers);
+
+    if (commonTypes.length > 0) {
+      const { proverType } = await inquirer.prompt([
+        {
+          type: 'list',
+          name: 'proverType',
+          message: `Select prover for ${sourceChain.name} → ${destChain.name}:`,
+          choices: commonTypes.map(k => ({ name: k, value: k })),
+        },
+      ]);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return (sourceProvers as any)[proverType as string] as UniversalAddress;
+    }
+
+    const sourceKeys = Object.keys(sourceProvers).join(', ') || '<none>';
+    const destKeys = Object.keys(destProvers).join(', ') || '<none>';
+    console.warn(
+      `[selectProver] No shared prover type between ${sourceChain.name} (${sourceKeys}) ` +
+        `and ${destChain.name} (${destKeys}). ` +
+        `Enter a prover address manually or press Ctrl-C to abort.`
+    );
+    const raw = await this.inputManualProver(sourceChain);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return this.normalizer.normalize(raw as any, sourceChain.type);
   }
 }
