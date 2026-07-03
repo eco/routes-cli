@@ -1,0 +1,84 @@
+{
+  "pairs": [
+    {
+      "label": "SOL USDC->USDG (Paxos)",
+      "chainId": 1399811149,
+      "inputToken": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "outputToken": "2u1tszSeqZ3qBWF3uNGPFc8TzMk2tdiwknnRMWGWjGWH",
+      "amount": "0.1",
+      "inputDecimals": 6
+    },
+    {
+      "label": "SOL USDG->USDC (Paxos)",
+      "chainId": 1399811149,
+      "inputToken": "2u1tszSeqZ3qBWF3uNGPFc8TzMk2tdiwknnRMWGWjGWH",
+      "outputToken": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "amount": "0.1",
+      "inputDecimals": 6
+    },
+    {
+      "label": "SOL USDC->AUSD (Agora)",
+      "chainId": 1399811149,
+      "inputToken": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "outputToken": "AUSD1jCcCyPLybk1YnvPWsHQSrZ46dxwoMniN4N2UEB9",
+      "amount": "0.1",
+      "inputDecimals": 6
+    },
+    {
+      "label": "SOL AUSD->USDC (Agora)",
+      "chainId": 1399811149,
+      "inputToken": "AUSD1jCcCyPLybk1YnvPWsHQSrZ46dxwoMniN4N2UEB9",
+      "outputToken": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "amount": "0.1",
+      "inputDecimals": 6
+    },
+    {
+      "label": "ETH USDC->AUSD (Agora)",
+      "chainId": 1,
+      "inputToken": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+      "outputToken": "0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a",
+      "amount": "1.2",
+      "inputDecimals": 6
+    },
+    {
+      "label": "ETH AUSD->USDC (Agora)",
+      "chainId": 1,
+      "inputToken": "0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a",
+      "outputToken": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+      "amount": "1.2",
+      "inputDecimals": 6
+    },
+    {
+      "label": "BASE USDC->AUSD (Agora)",
+      "chainId": 8453,
+      "inputToken": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "outputToken": "0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a",
+      "amount": "0.1",
+      "inputDecimals": 6
+    },
+    {
+      "label": "BASE AUSD->USDC (Agora)",
+      "chainId": 8453,
+      "inputToken": "0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a",
+      "outputToken": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "amount": "0.1",
+      "inputDecimals": 6
+    },
+    {
+      "label": "POLYGON USDC->AUSD (Agora)",
+      "chainId": 137,
+      "inputToken": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
+      "outputToken": "0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a",
+      "amount": "0.1",
+      "inputDecimals": 6
+    },
+    {
+      "label": "POLYGON AUSD->USDC (Agora)",
+      "chainId": 137,
+      "inputToken": "0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a",
+      "outputToken": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
+      "amount": "0.1",
+      "inputDecimals": 6
+    }
+  ]
+}

@@ -1,11 +1,13 @@
 import { Module } from '@nestjs/common';
 
 import { IntentModule } from '@/intent/intent.module';
+import { MatrixModule } from '@/matrix/matrix.module';
 import { QuoteModule } from '@/quote/quote.module';
 import { StatusModule } from '@/status/status.module';
 
 import { ChainsCommand } from './commands/chains.command';
 import { ConfigCommand } from './commands/config.command';
+import { MatrixCommand } from './commands/matrix.command';
 import { PublishCommand } from './commands/publish.command';
 import { StatusCommand } from './commands/status.command';
 import { TokensCommand } from './commands/tokens.command';
@@ -13,7 +15,7 @@ import { DisplayModule } from './services/display.module';
 import { PromptService } from './services/prompt.service';
 
 @Module({
-  imports: [QuoteModule, IntentModule, StatusModule, DisplayModule],
+  imports: [QuoteModule, IntentModule, StatusModule, MatrixModule, DisplayModule],
   providers: [
     PromptService,
     PublishCommand,
@@ -21,6 +23,7 @@ import { PromptService } from './services/prompt.service';
     ConfigCommand,
     ChainsCommand,
     TokensCommand,
+    MatrixCommand,
   ],
 })
 export class CliModule {}
