@@ -42,6 +42,8 @@ export const SVM_CONFIRMATION_CONFIG = {
  */
 export const SVM_PDA_SEEDS = {
   VAULT: 'vault',
+  FULFILL_MARKER: 'fulfill_marker',
+  CLAIMED_MARKER: 'claimed_marker',
 };
 
 /**

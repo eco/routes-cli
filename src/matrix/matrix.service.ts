@@ -243,8 +243,9 @@ export class MatrixService {
     const tag = `[${index + 1}/${total}] ${pair.label}`;
     const chain = this.chains.getChainById(BigInt(pair.chainId));
 
-    // StatusService.getStatus is only implemented for EVM today (SVM throws).
-    if (chain.type !== ChainType.EVM) {
+    // getStatus is implemented for EVM (Portal events) and SVM (fulfill-marker PDA).
+    // TVM has no getStatus yet — skip its poll rather than throw.
+    if (chain.type === ChainType.TVM) {
       row.phase = 'POLL_UNSUPPORTED';
       row.error = `status polling not supported for ${chain.type}`;
       this.display.log(`${tag}  POLL_UNSUPPORTED (${chain.type})`);

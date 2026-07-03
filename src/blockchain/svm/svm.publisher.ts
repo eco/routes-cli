@@ -20,6 +20,7 @@ import { ChainsService } from '../chains.service';
 
 import { DefaultSvmClientFactory, SvmClientFactory } from './solana-client';
 import { PublishContext, SvmError, SvmErrorType } from './svm-types';
+import { calculateFulfillMarkerPDA } from './pda-manager';
 import { executeFunding } from './transaction-builder';
 
 @Injectable()
@@ -201,12 +202,34 @@ export class SvmPublisher extends BasePublisher {
     }
   }
 
-  override getStatus(
-    _intentHash: string,
-    _chain: ChainConfig,
-    _portalAddress?: UniversalAddress
+  override async getStatus(
+    intentHash: string,
+    chain: ChainConfig,
+    portalAddress?: UniversalAddress
   ): Promise<IntentStatus> {
-    return Promise.reject(new Error('getStatus not yet implemented for SVM'));
+    const portalProgramId = portalAddress
+      ? new PublicKey(AddressNormalizer.denormalize(portalAddress, ChainType.SVM))
+      : this.getPortalProgramId(chain.id);
+
+    // The Portal writes a fulfill-marker PDA (["fulfill_marker", intent_hash]) when
+    // an intent is fulfilled; its existence is the fulfilled signal. For same-chain
+    // (local) swaps fulfill+prove+withdraw settle atomically, so the tx that created
+    // the marker IS the settlement.
+    const fulfillMarker = calculateFulfillMarkerPDA(intentHash, portalProgramId);
+    const markerInfo = await this.connection.getAccountInfo(fulfillMarker);
+
+    if (!markerInfo) {
+      return { fulfilled: false };
+    }
+
+    const sigs = await this.connection.getSignaturesForAddress(fulfillMarker, { limit: 1 });
+    const sig = sigs[0];
+    return {
+      fulfilled: true,
+      fulfillmentTxHash: sig?.signature,
+      blockNumber: sig?.slot !== undefined ? BigInt(sig.slot) : undefined,
+      timestamp: sig?.blockTime ?? undefined,
+    };
   }
 
   private getPortalProgramId(chainId: bigint): PublicKey {
