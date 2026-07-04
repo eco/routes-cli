@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 
 import { IntentStatus } from '@/blockchain/base.publisher';
 import { PublisherFactory } from '@/blockchain/publisher-factory.service';
-import { ChainConfig } from '@/shared/types';
+import { ChainConfig, UniversalAddress } from '@/shared/types';
 
 export { IntentStatus };
 
@@ -10,9 +10,13 @@ export { IntentStatus };
 export class StatusService {
   constructor(private readonly publisherFactory: PublisherFactory) {}
 
-  async getStatus(intentHash: string, chain: ChainConfig): Promise<IntentStatus> {
+  async getStatus(
+    intentHash: string,
+    chain: ChainConfig,
+    portalAddress?: UniversalAddress
+  ): Promise<IntentStatus> {
     const publisher = this.publisherFactory.create(chain);
-    return publisher.getStatus(intentHash, chain);
+    return publisher.getStatus(intentHash, chain, portalAddress);
   }
 
   async watch(

@@ -33,6 +33,37 @@ export class GasService {
     }
   }
 
+  /**
+   * On-chain block timestamp (unix seconds) of a tx, or undefined if unavailable.
+   * Used to measure settlement latency from block times (fund block -> fulfill
+   * block) rather than wall-clock, which is submit-phase-biased in the harness.
+   */
+  async getTxTimestamp(chain: ChainConfig, txHash: string): Promise<number | undefined> {
+    try {
+      if (chain.type === ChainType.EVM) {
+        const viemChain = Object.values(viemChains).find(
+          (c: Chain) => c.id === Number(chain.id)
+        ) as Chain | undefined;
+        if (!viemChain) return undefined;
+        const client = createPublicClient({
+          chain: viemChain,
+          transport: http(this.rpc.getUrl(chain)),
+        });
+        const receipt = await client.getTransactionReceipt({ hash: txHash as Hex });
+        const block = await client.getBlock({ blockNumber: receipt.blockNumber });
+        return Number(block.timestamp);
+      }
+      if (chain.type === ChainType.SVM) {
+        const connection = new Connection(this.rpc.getUrl(chain), 'confirmed');
+        const tx = await connection.getTransaction(txHash, { maxSupportedTransactionVersion: 0 });
+        return tx?.blockTime ?? undefined;
+      }
+      return undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
   private async evmGas(chain: ChainConfig, txHash: string): Promise<GasCost> {
     const viemChain = Object.values(viemChains).find((c: Chain) => c.id === Number(chain.id)) as
       | Chain

@@ -28,7 +28,7 @@ import { ConfigService } from '@/config/config.service';
 import { IntentBuilder } from '@/intent/intent-builder.service';
 import { QuoteResult, QuoteService } from '@/quote/quote.service';
 import { deriveAddress, KeyHandle } from '@/shared/security';
-import { BlockchainAddress, ChainConfig, ChainType } from '@/shared/types';
+import { BlockchainAddress, ChainConfig, ChainType, UniversalAddress } from '@/shared/types';
 import { IntentStatus, StatusService } from '@/status/status.service';
 
 import { GasService } from './gas.service';
@@ -77,17 +77,23 @@ export class MatrixService {
     const startedAt = new Date().toISOString();
     const rows: MatrixRow[] = pairs.map(p => this.initRow(p));
 
-    const persist = async (): Promise<void> => {
-      const report: MatrixReport = {
-        runId,
-        configPath,
-        timeoutSec,
-        startedAt,
-        updatedAt: new Date().toISOString(),
-        rows,
-        aggregate: aggregate(rows),
-      };
-      await writeFile(reportPath, JSON.stringify(report, bigintReplacer, 2));
+    // Serialize writes: concurrent pollers (Phase 2) all call persist(), and
+    // parallel writeFile() to the same path can interleave and corrupt it.
+    let persistLock: Promise<void> = Promise.resolve();
+    const persist = (): Promise<void> => {
+      persistLock = persistLock.then(async () => {
+        const report: MatrixReport = {
+          runId,
+          configPath,
+          timeoutSec,
+          startedAt,
+          updatedAt: new Date().toISOString(),
+          rows,
+          aggregate: aggregate(rows),
+        };
+        await writeFile(reportPath, JSON.stringify(report, bigintReplacer, 2));
+      });
+      return persistLock;
     };
 
     await persist();
@@ -101,12 +107,35 @@ export class MatrixService {
       await persist();
     }
 
-    // Phase 2: poll each submitted intent.
-    for (let i = 0; i < pairs.length; i++) {
-      if (!rows[i].intentHash) continue;
-      await this.pollPair(pairs[i], rows[i], expectedClaimants, timeoutSec, i, pairs.length);
-      await persist();
-    }
+    // Phase 2: poll all submitted intents concurrently — one independent poller
+    // per intent. Polling is I/O-bound (RPC + sleeps), so cooperative scheduling
+    // on the event loop gives true parallel waiting; each intent's latency clock
+    // starts at its own submit. Funding (Phase 1) stays sequential to avoid
+    // same-wallet nonce races. allSettled + a per-poller try/catch guarantees one
+    // poller's failure never aborts its siblings.
+    const pollOutcomes = await Promise.allSettled(
+      pairs.map(async (pair, i) => {
+        if (!rows[i].intentHash) return;
+        try {
+          await this.pollPair(pair, rows[i], expectedClaimants, timeoutSec, i, pairs.length);
+        } catch (error) {
+          rows[i].phase = 'POLL_ERROR';
+          rows[i].error = errMsg(error);
+          this.display.log(
+            `[${i + 1}/${pairs.length}] ${pair.label}  POLL_ERROR (${rows[i].error})`
+          );
+        }
+        await persist();
+      })
+    );
+    // Backstop: surface any rejection that escaped the per-poller catch above.
+    pollOutcomes.forEach((outcome, i) => {
+      if (outcome.status === 'rejected' && rows[i].intentHash) {
+        rows[i].phase = 'POLL_ERROR';
+        rows[i].error = String(outcome.reason);
+      }
+    });
+    await persist();
 
     const agg = aggregate(rows);
     this.display.log(
@@ -199,6 +228,7 @@ export class MatrixService {
         quote.sourcePortal as BlockchainAddress,
         chain.type
       );
+      row.sourcePortal = sourcePortal;
       const prover = this.normalizer.normalize(quote.prover as BlockchainAddress, chain.type);
 
       const reward = this.intentBuilder.buildReward({
@@ -265,7 +295,12 @@ export class MatrixService {
       return;
     }
 
-    const status = await this.pollUntilFulfilled(row.intentHash!, chain, timeoutSec);
+    const status = await this.pollUntilFulfilled(
+      row.intentHash!,
+      chain,
+      timeoutSec,
+      row.sourcePortal as UniversalAddress | undefined
+    );
     if (!status || !status.fulfilled) {
       row.phase = 'TIMEOUT';
       this.display.log(`${tag}  TIMEOUT (>${timeoutSec}s)`);
@@ -281,7 +316,19 @@ export class MatrixService {
     row.fulfillmentTxHash = status.fulfillmentTxHash;
     row.fulfillmentBlock = status.blockNumber?.toString();
     row.fulfillmentTimestamp = status.timestamp;
-    if (row.submitTimeMs) {
+    // Settlement latency from on-chain block times (fund block -> fulfill block),
+    // not wall-clock: the harness submits all pairs before polling any, so a
+    // wall-clock delta is dominated by submit-phase duration + poll-queue position,
+    // not real latency. Fall back to wall-clock only if a block time is unavailable.
+    const fundTs = row.publishTxHash
+      ? await this.gasService.getTxTimestamp(chain, row.publishTxHash)
+      : undefined;
+    const fulfillTs = status.fulfillmentTxHash
+      ? await this.gasService.getTxTimestamp(chain, status.fulfillmentTxHash)
+      : undefined;
+    if (fundTs !== undefined && fulfillTs !== undefined) {
+      row.timeToFulfillSec = fulfillTs - fundTs;
+    } else if (row.submitTimeMs) {
       row.timeToFulfillSec = Math.round((Date.now() - row.submitTimeMs) / 1000);
     }
 
@@ -379,11 +426,12 @@ export class MatrixService {
     intentHash: string,
     chain: ChainConfig,
     timeoutSec: number,
+    portalAddress?: UniversalAddress,
     intervalMs = 10_000
   ): Promise<IntentStatus | null> {
     const deadline = Date.now() + timeoutSec * 1000;
     while (Date.now() < deadline) {
-      const status = await this.statusService.getStatus(intentHash, chain);
+      const status = await this.statusService.getStatus(intentHash, chain, portalAddress);
       if (status.fulfilled) return status;
       await new Promise(r => setTimeout(r, intervalMs));
     }

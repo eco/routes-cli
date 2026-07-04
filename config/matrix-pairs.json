@@ -1,9 +1,10 @@
 {
   "expectedClaimants": {
-    "1399811149": "GWGh86ifwLYa22Rk8c4Rzmg8dTd9HAsykgeyXQS9porW",
     "1": "0x022831E28085b0E64f8feea47C6D10675d09D521",
+    "137": "0x022831E28085b0E64f8feea47C6D10675d09D521",
     "8453": "0x022831E28085b0E64f8feea47C6D10675d09D521",
-    "137": "0x022831E28085b0E64f8feea47C6D10675d09D521"
+    "57073": "0x022831E28085b0E64f8feea47C6D10675d09D521",
+    "1399811149": "GWGh86ifwLYa22Rk8c4Rzmg8dTd9HAsykgeyXQS9porW"
   },
   "pairs": [
     {
@@ -43,7 +44,7 @@
       "chainId": 1,
       "inputToken": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
       "outputToken": "0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a",
-      "amount": "1.2",
+      "amount": "0.1",
       "inputDecimals": 6
     },
     {
@@ -51,7 +52,7 @@
       "chainId": 1,
       "inputToken": "0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a",
       "outputToken": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
-      "amount": "1.2",
+      "amount": "0.1",
       "inputDecimals": 6
     },
     {
@@ -83,6 +84,38 @@
       "chainId": 137,
       "inputToken": "0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a",
       "outputToken": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
+      "amount": "0.1",
+      "inputDecimals": 6
+    },
+    {
+      "chainId": 1,
+      "label": "ETH USDC->USDG (Paxos)",
+      "inputToken": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+      "outputToken": "0xe343167631d89B6Ffc58B88d6b7fB0228795491D",
+      "amount": "0.1",
+      "inputDecimals": 6
+    },
+    {
+      "chainId": 1,
+      "label": "ETH USDG->USDC (Paxos)",
+      "inputToken": "0xe343167631d89B6Ffc58B88d6b7fB0228795491D",
+      "outputToken": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+      "amount": "0.1",
+      "inputDecimals": 6
+    },
+    {
+      "chainId": 57073,
+      "label": "INK USDC->USDG (Paxos)",
+      "inputToken": "0x2D270e6886d130D724215A266106e6832161EAEd",
+      "outputToken": "0xe343167631d89B6Ffc58B88d6b7fB0228795491D",
+      "amount": "0.1",
+      "inputDecimals": 6
+    },
+    {
+      "chainId": 57073,
+      "label": "INK USDG->USDC (Paxos)",
+      "inputToken": "0xe343167631d89B6Ffc58B88d6b7fB0228795491D",
+      "outputToken": "0x2D270e6886d130D724215A266106e6832161EAEd",
       "amount": "0.1",
       "inputDecimals": 6
     }

@@ -45,7 +45,8 @@ export type MatrixPhase =
   | 'FULFILLED'
   | 'WITHDRAWAL_MISMATCH'
   | 'TIMEOUT'
-  | 'POLL_UNSUPPORTED';
+  | 'POLL_UNSUPPORTED'
+  | 'POLL_ERROR';
 
 export interface GasCost {
   /** Native token amount spent on the settlement tx (e.g. ETH, SOL), as a decimal string. */
@@ -69,6 +70,8 @@ export interface MatrixRow {
   phase: MatrixPhase;
   quoteOk: boolean;
   intentHash?: string;
+  /** Portal the intent was funded against (from the quote), for status polling. */
+  sourcePortal?: string;
   publishTxHash?: string;
   submitTimeMs?: number; // epoch ms when publish confirmed
   /** Local swaps settle atomically — the fulfillment tx is the settlement tx. */

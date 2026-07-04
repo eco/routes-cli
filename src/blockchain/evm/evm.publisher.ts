@@ -12,8 +12,10 @@ import {
   erc20Abi,
   Hex,
   maxUint256,
+  nonceManager,
   parseEventLogs,
   type PublicClient,
+  type TransactionReceipt,
   Transport,
   type WalletClient,
 } from 'viem';
@@ -58,7 +60,11 @@ export class EvmPublisher extends BasePublisher {
   ): Promise<PublishResult> {
     this.runPreflightChecks(source);
     return keyHandle.useAsync(async rawKey => {
-      const account = privateKeyToAccount(rawKey as Hex);
+      // Shared nonceManager gives authoritative client-side nonces (fetched once,
+      // then locally incremented + deduped per address+chainId across all sends in
+      // this process). Prevents the RPC pending-nonce-lag races ("replacement
+      // underpriced" / "nonce too low") from rapid same-wallet submits.
+      const account = privateKeyToAccount(rawKey as Hex, { nonceManager });
       return this.runSafely(async () => {
         const chain = this.getChain(source);
 
@@ -141,18 +147,21 @@ export class EvmPublisher extends BasePublisher {
           if (allowance < token.amount) {
             logger.spinner(`Approving token ${tokenAddress}...`);
 
-            const approveTx = await walletClient.writeContract({
-              address: tokenAddress,
-              abi: erc20Abi,
-              functionName: 'approve',
-              args: [finalPortalAddress, maxUint256],
-            });
-
             logger.updateSpinner('Waiting for approval confirmation...');
-            const approvalReceipt = await publicClient.waitForTransactionReceipt({
-              hash: approveTx,
-              confirmations: 2,
-            });
+            const approvalReceipt = await this.sendAndConfirm(
+              publicClient,
+              account,
+              Number(source),
+              () =>
+                walletClient.writeContract({
+                  address: tokenAddress,
+                  abi: erc20Abi,
+                  functionName: 'approve',
+                  args: [finalPortalAddress, maxUint256],
+                }),
+              `approve ${tokenAddress}`,
+              2
+            );
 
             if (approvalReceipt.status !== 'success') {
               logger.fail(`Token approval failed for ${tokenAddress}`);
@@ -183,14 +192,19 @@ export class EvmPublisher extends BasePublisher {
         });
 
         logger.spinner('Publishing intent to Portal contract...');
-        const hash = await walletClient.sendTransaction({
-          to: finalPortalAddress,
-          data,
-          value: reward.nativeAmount,
-        });
-
-        logger.updateSpinner('Waiting for transaction confirmation...');
-        const receipt = await publicClient.waitForTransactionReceipt({ hash });
+        const receipt = await this.sendAndConfirm(
+          publicClient,
+          account,
+          Number(source),
+          () =>
+            walletClient.sendTransaction({
+              to: finalPortalAddress,
+              data,
+              value: reward.nativeAmount,
+            }),
+          'publishAndFund'
+        );
+        const hash = receipt.transactionHash;
         logger.succeed('Transaction confirmed');
 
         if (receipt.status === 'success') {
@@ -214,6 +228,91 @@ export class EvmPublisher extends BasePublisher {
         }
       });
     });
+  }
+
+  /**
+   * Errors that mean the send was REJECTED at submission (nothing broadcast) —
+   * safe to retry with a fresh nonce. Both "underpriced" (a same-nonce tx is
+   * pending) and "nonce too low" (nonce < account's current nonce) are stale-nonce
+   * rejections from RPC nonce-view lag under rapid same-wallet sends; neither put a
+   * tx on-chain, so a retry can't double-fund.
+   */
+  private isRetriableSendError(msg: string): boolean {
+    const m = msg.toLowerCase();
+    return (
+      m.includes('replacement transaction underpriced') ||
+      m.includes('transaction underpriced') ||
+      m.includes('nonce too low') ||
+      m.includes('nonce provided for the transaction is lower')
+    );
+  }
+
+  /**
+   * Send a tx and wait for its receipt, hardened against the two transient
+   * failure modes seen with rapid same-wallet submits:
+   *  - "replacement transaction underpriced" (RPC pending-nonce lag): the send
+   *    was rejected and nothing was broadcast, so retry with a freshly-fetched
+   *    pending nonce after a short backoff.
+   *  - confirmation timeout: the tx IS on-chain but slow to confirm; re-check the
+   *    receipt directly and keep polling rather than fail — never re-send, so a
+   *    slow publishAndFund can never double-fund.
+   */
+  private async sendAndConfirm(
+    publicClient: PublicClient,
+    account: Account,
+    chainId: number,
+    send: () => Promise<Hex>,
+    label: string,
+    confirmations = 1
+  ): Promise<TransactionReceipt> {
+    const sleep = (ms: number): Promise<void> => new Promise(r => setTimeout(r, ms));
+    const maxSendAttempts = 4;
+    let hash: Hex | undefined;
+    for (let attempt = 1; attempt <= maxSendAttempts; attempt++) {
+      try {
+        hash = await send();
+        break;
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error);
+        if (attempt < maxSendAttempts && this.isRetriableSendError(msg)) {
+          // Re-sync the client-side nonce to chain, then retry. The rejected send
+          // never broadcast, so this cannot double-fund.
+          nonceManager.reset({ address: account.address, chainId });
+          logger.updateSpinner(
+            `${label}: transient send error, resyncing nonce & retrying (${attempt}/${maxSendAttempts})`
+          );
+          await sleep(2_000 * attempt);
+          continue;
+        }
+        throw error;
+      }
+    }
+
+    const maxWaitAttempts = 3;
+    for (let attempt = 1; attempt <= maxWaitAttempts; attempt++) {
+      try {
+        return await publicClient.waitForTransactionReceipt({
+          hash: hash as Hex,
+          confirmations,
+          timeout: 120_000,
+        });
+      } catch (error) {
+        const msg = (error instanceof Error ? error.message : String(error)).toLowerCase();
+        const isTimeout = msg.includes('timed out') || msg.includes('timeout');
+        if (attempt < maxWaitAttempts && isTimeout) {
+          const receipt = await publicClient
+            .getTransactionReceipt({ hash: hash as Hex })
+            .catch(() => null);
+          if (receipt) return receipt;
+          logger.updateSpinner(
+            `${label}: confirmation slow, still waiting (${attempt}/${maxWaitAttempts})`
+          );
+          continue;
+        }
+        throw error;
+      }
+    }
+    throw new Error(`${label}: transaction ${hash} not confirmed after retries`);
   }
 
   override async getBalance(address: string, chainId?: bigint): Promise<bigint> {
