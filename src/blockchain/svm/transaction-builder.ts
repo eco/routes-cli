@@ -72,7 +72,7 @@ export async function buildPublishTransaction(
  * Builds a funding transaction for Solana.
  */
 export async function buildFundingTransaction(
-  _connection: Connection,
+  connection: Connection,
   program: Program,
   context: PublishContext
 ): Promise<Transaction> {
@@ -88,7 +88,12 @@ export async function buildFundingTransaction(
   const tokenTransferAccounts =
     context.reward.tokens.length === 0
       ? []
-      : await buildTokenTransferAccounts(context.reward.tokens[0].token, context.keypair, vaultPda);
+      : await buildTokenTransferAccounts(
+          connection,
+          context.reward.tokens[0].token,
+          context.keypair,
+          vaultPda
+        );
 
   logger.info(SVM_LOG_MESSAGES.BUILD_FUNDING_TX);
 
@@ -122,16 +127,37 @@ export async function buildFundingTransaction(
 }
 
 async function buildTokenTransferAccounts(
+  connection: Connection,
   rewardToken: UniversalAddress,
   funderKeypair: Keypair,
   vaultPda: PublicKey
 ) {
   const tokenMint = new PublicKey(AddressNormalizer.denormalizeToSvm(rewardToken));
-  const funderTokenAccount = await getAssociatedTokenAddress(tokenMint, funderKeypair.publicKey);
+
+  // The ATA address is derived from the token program id, so a Token-2022 mint
+  // (e.g. USDG/AUSD) has a different ATA than a classic SPL mint. Read the mint
+  // account's owner to get the correct token program; using the wrong one yields
+  // an ATA the Portal rejects with InvalidTokenTransferAccounts (6006).
+  const mintInfo = await connection.getAccountInfo(tokenMint);
+  if (!mintInfo) {
+    throw new SvmError(
+      SvmErrorType.INVALID_CONFIG,
+      `Reward mint account not found: ${tokenMint.toString()}`
+    );
+  }
+  const tokenProgramId = mintInfo.owner;
+
+  const funderTokenAccount = await getAssociatedTokenAddress(
+    tokenMint,
+    funderKeypair.publicKey,
+    false,
+    tokenProgramId
+  );
   const vaultTokenAccount = await getAssociatedTokenAddress(
     tokenMint,
     vaultPda,
-    true // allowOwnerOffCurve for PDA
+    true, // allowOwnerOffCurve for PDA
+    tokenProgramId
   );
   return prepareTokenTransferAccounts(funderTokenAccount, vaultTokenAccount, tokenMint);
 }
