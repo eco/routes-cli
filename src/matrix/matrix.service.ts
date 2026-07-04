@@ -17,7 +17,7 @@ import { join } from 'node:path';
 
 import { Injectable } from '@nestjs/common';
 
-import { parseUnits } from 'viem';
+import { formatUnits, parseUnits } from 'viem';
 
 import { AddressNormalizerService } from '@/blockchain/address-normalizer.service';
 import { ChainsService } from '@/blockchain/chains.service';
@@ -33,7 +33,13 @@ import { IntentStatus, StatusService } from '@/status/status.service';
 
 import { GasService } from './gas.service';
 import { MatrixConfigFile, MatrixPairConfig, MatrixReport, MatrixRow } from './matrix.types';
-import { aggregate, DEFAULT_TOKEN_DECIMALS, pairToQuoteRequest } from './matrix.util';
+import {
+  aggregate,
+  assertWithdrawal,
+  DEFAULT_TOKEN_DECIMALS,
+  pairToQuoteRequest,
+} from './matrix.util';
+import { WithdrawalVerifierService } from './withdrawal-verifier.service';
 
 const DEFAULT_CONFIG_PATH = 'config/matrix-pairs.json';
 const DEFAULT_TIMEOUT_SEC = 180;
@@ -54,13 +60,14 @@ export class MatrixService {
     private readonly intentBuilder: IntentBuilder,
     private readonly statusService: StatusService,
     private readonly gasService: GasService,
+    private readonly withdrawalVerifier: WithdrawalVerifierService,
     private readonly display: DisplayService
   ) {}
 
   async run(options: MatrixRunOptions = {}): Promise<MatrixReport> {
     const configPath = options.configPath ?? DEFAULT_CONFIG_PATH;
     const timeoutSec = options.timeoutSec ?? DEFAULT_TIMEOUT_SEC;
-    const pairs = this.loadConfig(configPath);
+    const { pairs, expectedClaimants } = this.loadConfig(configPath);
 
     const runId = new Date().toISOString().replace(/[:.]/g, '-');
     const outDir = join(process.cwd(), 'results', `matrix-${runId}`);
@@ -97,13 +104,14 @@ export class MatrixService {
     // Phase 2: poll each submitted intent.
     for (let i = 0; i < pairs.length; i++) {
       if (!rows[i].intentHash) continue;
-      await this.pollPair(pairs[i], rows[i], timeoutSec, i, pairs.length);
+      await this.pollPair(pairs[i], rows[i], expectedClaimants, timeoutSec, i, pairs.length);
       await persist();
     }
 
     const agg = aggregate(rows);
     this.display.log(
       `Done. submitted=${agg.submitted}/${agg.total} fulfilled=${agg.fulfilled} ` +
+        `withdrawalVerified=${agg.withdrawalVerified} ` +
         `successRate=${(agg.successRate * 100).toFixed(0)}% | report=${reportPath}`
     );
 
@@ -118,13 +126,16 @@ export class MatrixService {
     };
   }
 
-  private loadConfig(configPath: string): MatrixPairConfig[] {
+  private loadConfig(configPath: string): {
+    pairs: MatrixPairConfig[];
+    expectedClaimants: Record<string, string>;
+  } {
     const raw = readFileSync(join(process.cwd(), configPath), 'utf8');
     const parsed = JSON.parse(raw) as MatrixConfigFile;
     if (!parsed.pairs || !Array.isArray(parsed.pairs) || parsed.pairs.length === 0) {
       throw new Error(`Matrix config ${configPath} has no pairs`);
     }
-    return parsed.pairs;
+    return { pairs: parsed.pairs, expectedClaimants: parsed.expectedClaimants ?? {} };
   }
 
   private initRow(pair: MatrixPairConfig): MatrixRow {
@@ -142,6 +153,7 @@ export class MatrixService {
       fulfilled: false,
       proven: false,
       withdrawn: false,
+      withdrawalVerified: false,
     };
   }
 
@@ -236,6 +248,7 @@ export class MatrixService {
   private async pollPair(
     pair: MatrixPairConfig,
     row: MatrixRow,
+    expectedClaimants: Record<string, string>,
     timeoutSec: number,
     index: number,
     total: number
@@ -259,12 +272,12 @@ export class MatrixService {
       return;
     }
 
-    // Local swap: fulfill+prove+withdraw are atomic, so a fulfilled intent is
-    // also proven and withdrawn, and the fulfillment tx is the settlement tx.
+    // Fulfilled. Local swaps settle fulfill+prove+withdraw atomically, so the
+    // fulfillment tx IS the settlement — but we do NOT trust the mirror: the
+    // withdrawal (reward amount + claimant) is always verified on-chain below.
     row.phase = 'FULFILLED';
     row.fulfilled = true;
-    row.proven = true;
-    row.withdrawn = true;
+    row.proven = true; // proof precondition for the atomic settlement = fulfilled.
     row.fulfillmentTxHash = status.fulfillmentTxHash;
     row.fulfillmentBlock = status.blockNumber?.toString();
     row.fulfillmentTimestamp = status.timestamp;
@@ -278,8 +291,82 @@ export class MatrixService {
       row.gasCost = { unavailable: 'no fulfillment tx hash' };
     }
 
+    await this.verifyWithdrawal(pair, row, chain, status, expectedClaimants, tag);
+  }
+
+  /**
+   * ALWAYS-on withdrawal verification: fetch the settlement tx, extract the raw
+   * amount + claimant for the reward token (= inputToken), and assert
+   * amount === reward and claimant matches (differs from funder; matches
+   * expectedClaimant when configured). Only then is the row a success.
+   */
+  private async verifyWithdrawal(
+    pair: MatrixPairConfig,
+    row: MatrixRow,
+    chain: ChainConfig,
+    status: IntentStatus,
+    expectedClaimants: Record<string, string>,
+    tag: string
+  ): Promise<void> {
+    if (!status.fulfillmentTxHash) {
+      row.phase = 'WITHDRAWAL_MISMATCH';
+      row.error = 'no settlement tx hash to verify withdrawal';
+      this.display.log(`${tag}  WITHDRAWAL_MISMATCH (${row.error})`);
+      return;
+    }
+
+    const decimals = pair.inputDecimals ?? DEFAULT_TOKEN_DECIMALS;
+    const expectedAmount = parseUnits(pair.amount, decimals);
+    const expectedClaimant = pair.expectedClaimant ?? expectedClaimants[String(pair.chainId)];
+    const funder = deriveAddress(this.resolveKey(chain.type)!, chain.type);
+
+    const facts = await this.withdrawalVerifier.verify(
+      chain,
+      row.intentHash!,
+      status.fulfillmentTxHash,
+      pair.inputToken
+    );
+
+    if ('error' in facts) {
+      row.phase = 'WITHDRAWAL_MISMATCH';
+      row.error = `withdrawal verification failed: ${facts.error}`;
+      this.display.log(`${tag}  WITHDRAWAL_MISMATCH (${row.error})`);
+      return;
+    }
+
+    row.claimant = facts.claimant;
+    row.withdrawnAmount = facts.withdrawnAmount.toString();
+    row.withdrawnAmountHuman = formatUnits(facts.withdrawnAmount, decimals);
+    if (expectedClaimant) row.expectedClaimant = expectedClaimant;
+
+    const check = assertWithdrawal({
+      chainType: chain.type,
+      withdrawnAmount: facts.withdrawnAmount,
+      expectedAmount,
+      claimant: facts.claimant,
+      funder,
+      expectedClaimant,
+    });
+
+    // SVM claimed-marker PDA is an independent "withdrawn" signal. When SVM
+    // returns it explicitly false, treat the withdrawal as not settled.
+    const claimedMarkerOk = facts.claimedMarkerPresent !== false;
+
+    if (!check.ok || !claimedMarkerOk) {
+      row.phase = check.failPhase ?? 'WITHDRAWAL_MISMATCH';
+      row.error = check.ok ? 'claimed-marker PDA not found' : check.error;
+      this.display.log(
+        `${tag}  WITHDRAWAL_MISMATCH withdrawn=${row.withdrawnAmountHuman} ` +
+          `claimant=${facts.claimant} (${row.error})`
+      );
+      return;
+    }
+
+    row.withdrawn = true;
+    row.withdrawalVerified = true;
     this.display.log(
-      `${tag}  FULFILLED tx=${status.fulfillmentTxHash ?? 'n/a'} ` +
+      `${tag}  FULFILLED+WITHDRAWN tx=${status.fulfillmentTxHash} ` +
+        `withdrawn=${row.withdrawnAmountHuman} claimant=${facts.claimant} ` +
         `gas=${row.gasCost?.native ?? 'n/a'}${row.gasCost?.symbol ? ' ' + row.gasCost.symbol : ''}`
     );
   }

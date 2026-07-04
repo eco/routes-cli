@@ -1,4 +1,10 @@
 {
+  "expectedClaimants": {
+    "1399811149": "GWGh86ifwLYa22Rk8c4Rzmg8dTd9HAsykgeyXQS9porW",
+    "1": "0x022831E28085b0E64f8feea47C6D10675d09D521",
+    "8453": "0x022831E28085b0E64f8feea47C6D10675d09D521",
+    "137": "0x022831E28085b0E64f8feea47C6D10675d09D521"
+  },
   "pairs": [
     {
       "label": "SOL USDC->USDG (Paxos)",

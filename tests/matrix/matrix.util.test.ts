@@ -27,6 +27,7 @@ function baseRow(over: Partial<MatrixRow> = {}): MatrixRow {
     fulfilled: false,
     proven: false,
     withdrawn: false,
+    withdrawalVerified: false,
     ...over,
   };
 }
@@ -104,20 +105,34 @@ describe('percentile', () => {
 });
 
 describe('aggregate', () => {
-  it('counts submitted/fulfilled/failures and computes success rate', () => {
+  it('counts submitted/fulfilled/withdrawalVerified/failures and success rate', () => {
     const rows: MatrixRow[] = [
-      baseRow({ phase: 'FULFILLED', quoteOk: true, intentHash: '0x1', fulfilled: true }),
-      baseRow({ phase: 'SUBMITTED', quoteOk: true, intentHash: '0x2' }),
+      baseRow({
+        phase: 'FULFILLED',
+        quoteOk: true,
+        intentHash: '0x1',
+        fulfilled: true,
+        withdrawn: true,
+        withdrawalVerified: true,
+      }),
+      // Fulfilled but withdrawal NOT verified — does NOT count toward success.
+      baseRow({
+        phase: 'WITHDRAWAL_MISMATCH',
+        quoteOk: true,
+        intentHash: '0x2',
+        fulfilled: true,
+      }),
       baseRow({ phase: 'QUOTE_FAILED' }),
       baseRow({ phase: 'PUBLISH_FAILED', quoteOk: true }),
     ];
     const agg = aggregate(rows);
     expect(agg.total).toBe(4);
     expect(agg.submitted).toBe(2);
-    expect(agg.fulfilled).toBe(1);
+    expect(agg.fulfilled).toBe(2);
+    expect(agg.withdrawalVerified).toBe(1);
     expect(agg.quoteFailures).toBe(1);
     expect(agg.publishFailures).toBe(1);
-    expect(agg.successRate).toBe(0.5); // 1 fulfilled / 2 submitted
+    expect(agg.successRate).toBe(0.5); // 1 withdrawalVerified / 2 submitted
   });
 
   it('is safe with zero submitted (no divide-by-zero)', () => {

@@ -22,10 +22,18 @@ export interface MatrixPairConfig {
   inputDecimals?: number;
   /** Optional per-pair slippage override (bps). */
   slippageBps?: number;
+  /**
+   * Expected reward claimant (the solver-controlled address the withdrawn reward
+   * MUST settle to). Overrides the top-level `expectedClaimants[chainId]`.
+   * Matched case-insensitively for EVM, exact base58 for SVM.
+   */
+  expectedClaimant?: string;
 }
 
 export interface MatrixConfigFile {
   pairs: MatrixPairConfig[];
+  /** Per-chain default expected claimant, keyed by chainId (as a string). */
+  expectedClaimants?: Record<string, string>;
 }
 
 /** Terminal phase state for a pair. */
@@ -35,6 +43,7 @@ export type MatrixPhase =
   | 'PUBLISH_FAILED'
   | 'SUBMITTED'
   | 'FULFILLED'
+  | 'WITHDRAWAL_MISMATCH'
   | 'TIMEOUT'
   | 'POLL_UNSUPPORTED';
 
@@ -64,9 +73,26 @@ export interface MatrixRow {
   submitTimeMs?: number; // epoch ms when publish confirmed
   /** Local swaps settle atomically — the fulfillment tx is the settlement tx. */
   fulfilled: boolean;
-  /** Mirrors `fulfilled`: a local swap that is fulfilled is also proven+withdrawn (atomic). */
+  /**
+   * True once the proof precondition holds (for atomic local swaps this is
+   * implied by settlement, so it tracks `withdrawn`'s precondition = fulfilled).
+   */
   proven: boolean;
+  /**
+   * True ONLY when the settlement's on-chain withdrawal signal is present AND
+   * the amount+claimant assertions pass. Never mirrors `fulfilled` blindly.
+   */
   withdrawn: boolean;
+  /** True when the withdrawal was verified (amount + claimant checks passed). */
+  withdrawalVerified: boolean;
+  /** Reward amount withdrawn to the claimant, raw smallest-units, as a string. */
+  withdrawnAmount?: string;
+  /** Human-decimal form of `withdrawnAmount` (using inputDecimals). */
+  withdrawnAmountHuman?: string;
+  /** Address the withdrawn reward settled to (the solver's claimant). */
+  claimant?: string;
+  /** Expected claimant used for the assertion (from config), if any. */
+  expectedClaimant?: string;
   fulfillmentTxHash?: string;
   fulfillmentBlock?: string;
   fulfillmentTimestamp?: number;
@@ -79,9 +105,11 @@ export interface MatrixAggregate {
   total: number;
   submitted: number;
   fulfilled: number;
+  /** Fulfilled swaps whose withdrawal (amount + claimant) was verified. */
+  withdrawalVerified: number;
   quoteFailures: number;
   publishFailures: number;
-  /** fulfilled / submitted. */
+  /** withdrawalVerified / submitted — a swap counts only if it fully settled. */
   successRate: number;
   p50TimeToFulfillSec?: number;
   p95TimeToFulfillSec?: number;
