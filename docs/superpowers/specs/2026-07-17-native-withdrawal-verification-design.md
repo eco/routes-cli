@@ -6,7 +6,10 @@ Make settlement-matrix withdrawal verification support native EVM and SVM reward
 
 ## Scope
 
-This change is limited to `WithdrawalVerifierService` and focused test helpers. It does not change intent publication, quote construction, fulfillment, proof, withdrawal execution, or matrix lifecycle polling.
+This change is limited to `WithdrawalVerifierService`, focused test helpers, and passing the
+already-recorded publish transaction hash from `MatrixService`. It does not change intent
+publication, quote construction, fulfillment, proof, withdrawal execution, or matrix lifecycle
+polling.
 
 ## Native Reward Detection
 
@@ -22,12 +25,18 @@ For a native EVM reward, the verifier will:
 2. Find the Portal `IntentWithdrawn` event emitted by the configured Portal address.
 3. Require the event's intent hash to equal the matrix row's intent hash.
 4. Read the claimant from the indexed event field.
-5. Fetch the claimant's native balance at the settlement block and the preceding block.
-6. Return the positive balance delta as the withdrawn amount.
+5. Decode the original publish transaction already stored in the matrix row and resolve the
+   deterministic intent vault through the Portal's `intentVaultAddress` view.
+6. Fetch the vault's native balance at the settlement block and the preceding block.
+7. Return the positive vault debit as the withdrawn amount.
 
 The existing matrix assertion then requires the delta to equal the exact reward amount, rejects a claimant equal to the funder, and checks an optional configured expected claimant.
 
-Balance deltas are intentionally portable across standard JSON-RPC providers. A different transaction involving the claimant in the same block could affect the delta; matching the Portal event constrains the evidence to a real withdrawal, but the amount check may conservatively fail in that rare case.
+The vault debit is used instead of the claimant's end-of-block credit because router/prover
+contracts may receive and spend the reward atomically. This was observed in the production Base
+source-swap: the claimant stayed at zero while the intent vault moved from exactly
+`600000000000000` wei to zero. Vault balances and the Portal view use standard JSON-RPC and do not
+require provider-specific transaction tracing.
 
 ## SVM Native Verification
 
@@ -37,8 +46,9 @@ For a native SVM reward, the verifier will:
 2. Decode the Portal `IntentWithdrawn` event from transaction logs.
 3. Require the event's intent hash to equal the matrix row's intent hash.
 4. Read the claimant public key from the event.
-5. Resolve the claimant in the transaction's complete account-key list, including loaded addresses.
-6. Compute `postBalances[index] - preBalances[index]` as the withdrawn lamport amount.
+5. Resolve the derived intent vault PDA in the transaction's complete account-key list, including
+   loaded addresses.
+6. Compute `preBalances[index] - postBalances[index]` as the withdrawn lamport amount.
 7. Continue requiring the intent's claimed-marker PDA to exist.
 
 The same exact-amount and claimant assertions used by token rewards remain in force.
@@ -55,7 +65,7 @@ The verifier continues to return structured `{ error }` results rather than thro
 
 - no matching `IntentWithdrawn` event;
 - malformed claimant data;
-- claimant absent from SVM transaction account keys;
+- vault absent from SVM transaction account keys;
 - missing balance snapshots;
 - a non-positive balance delta;
 - missing SVM claimed-marker PDA; or
@@ -74,6 +84,7 @@ Implementation follows red-green-refactor:
 ## Acceptance Criteria
 
 - The Base native-ETH matrix route no longer reports a missing ERC-20 transfer.
-- Native EVM and SVM rewards are verified using Portal withdrawal evidence plus native balance deltas.
+- Native EVM and SVM rewards are verified using Portal withdrawal evidence plus exact intent-vault
+  balance debits.
 - ERC-20 and SPL-token behavior is unchanged.
 - Exact reward amount and claimant safety checks remain mandatory.
