@@ -38,7 +38,6 @@ import { ChainConfig, ChainType, UniversalAddress } from '@/shared/types';
 import {
   computeOwnerDeltas,
   isNativeReward,
-  pickSvmClaimant,
   positiveBalanceDebit,
   SvmTokenBalanceEntry,
 } from './matrix.util';
@@ -47,6 +46,7 @@ const nativeEvmVaultAbi = parseAbi([
   'function publishAndFund(uint64 destination, bytes route, (uint64 deadline, address creator, address prover, uint256 nativeAmount, (address token, uint256 amount)[] tokens) reward, bool allowPartial) payable returns (bytes32 intentHash, address vault)',
   'function intentVaultAddress(uint64 destination, bytes route, (uint64 deadline, address creator, address prover, uint256 nativeAmount, (address token, uint256 amount)[] tokens) reward) view returns (address)',
 ]);
+const SVM_INTENT_WITHDRAWN_DISCRIMINATOR = Buffer.from([28, 22, 16, 41, 101, 254, 123, 228]);
 
 /** Extracted withdrawal facts for one settlement tx (reward mint/token only). */
 export interface WithdrawalFacts {
@@ -68,7 +68,8 @@ export class WithdrawalVerifierService {
     intentHash: string,
     settlementTxHash: string,
     rewardToken: string,
-    publishTxHash?: string
+    publishTxHash?: string,
+    expectedAmount?: bigint
   ): Promise<WithdrawalFacts | { error: string }> {
     try {
       if (chain.type === ChainType.SVM) {
@@ -80,7 +81,8 @@ export class WithdrawalVerifierService {
           intentHash,
           settlementTxHash,
           rewardToken,
-          publishTxHash
+          publishTxHash,
+          expectedAmount
         );
       }
       return { error: `withdrawal verification not supported for ${chain.type}` };
@@ -110,19 +112,53 @@ export class WithdrawalVerifierService {
 
     const portalProgramId = this.svmPortalProgramId(chain);
     const vaultOwner = calculateVaultPDA(intentHash, portalProgramId).toBase58();
+    const claimant = this.svmWithdrawalClaimant(tx.meta.logMessages ?? [], intentHash);
+    if (!claimant) {
+      return { error: `no matching IntentWithdrawn event for ${intentHash}` };
+    }
 
-    const deltas = computeOwnerDeltas(rewardToken, pre, post);
-    const picked = pickSvmClaimant(deltas, vaultOwner);
-    if (!picked) {
-      return { error: `no positive reward-mint (${rewardToken}) delta outside the vault PDA` };
+    let withdrawnAmount: bigint;
+    if (isNativeReward(chain.type, rewardToken)) {
+      const accountKeys = tx.transaction.message.getAccountKeys({
+        accountKeysFromLookups: tx.meta.loadedAddresses,
+      });
+      let vaultIndex = -1;
+      for (let index = 0; index < accountKeys.length; index++) {
+        if (accountKeys.get(index)?.toBase58() === vaultOwner) {
+          vaultIndex = index;
+          break;
+        }
+      }
+      if (vaultIndex < 0) {
+        return { error: `native intent vault ${vaultOwner} not in settlement tx` };
+      }
+      const before = tx.meta.preBalances[vaultIndex];
+      const after = tx.meta.postBalances[vaultIndex];
+      if (before === undefined || after === undefined) {
+        return { error: `native intent vault ${vaultOwner} balance unavailable` };
+      }
+      const debit = positiveBalanceDebit(BigInt(before), BigInt(after));
+      if (debit === null) {
+        return { error: `native intent vault ${vaultOwner} did not decrease` };
+      }
+      withdrawnAmount = debit;
+    } else {
+      const deltas = computeOwnerDeltas(rewardToken, pre, post);
+      const claimantDelta = deltas.find(entry => entry.owner === claimant && entry.delta > 0n);
+      if (!claimantDelta) {
+        return {
+          error: `withdrawal claimant ${claimant} received no reward mint ${rewardToken}`,
+        };
+      }
+      withdrawnAmount = claimantDelta.delta;
     }
 
     const claimedMarker = calculateClaimedMarkerPDA(intentHash, portalProgramId);
     const markerInfo = await connection.getAccountInfo(claimedMarker);
 
     return {
-      withdrawnAmount: picked.withdrawnAmount,
-      claimant: picked.claimant,
+      withdrawnAmount,
+      claimant,
       claimedMarkerPresent: markerInfo !== null,
     };
   }
@@ -138,7 +174,8 @@ export class WithdrawalVerifierService {
     intentHash: string,
     txHash: string,
     rewardToken: string,
-    publishTxHash?: string
+    publishTxHash?: string,
+    expectedAmount?: bigint
   ): Promise<WithdrawalFacts | { error: string }> {
     const viemChain = Object.values(viemChains).find((c: Chain) => c.id === Number(chain.id)) as
       | Chain
@@ -150,38 +187,37 @@ export class WithdrawalVerifierService {
       transport: http(this.rpc.getUrl(chain)),
     });
     const receipt = await client.getTransactionReceipt({ hash: txHash as Hex });
+    if (!chain.portalAddress) {
+      return { error: `No Portal address configured for chain ${chain.id}` };
+    }
+    const portalAddress = AddressNormalizer.denormalize(
+      chain.portalAddress as UniversalAddress,
+      ChainType.EVM
+    );
+    let claimant: string | undefined;
+    for (const log of receipt.logs) {
+      if (log.address.toLowerCase() !== portalAddress.toLowerCase()) continue;
+      try {
+        const decoded = decodeEventLog({ abi: portalAbi, data: log.data, topics: log.topics });
+        if (decoded.eventName !== 'IntentWithdrawn') continue;
+        const args = decoded.args as { intentHash: Hex; claimant: string };
+        if (args.intentHash.toLowerCase() !== intentHash.toLowerCase()) continue;
+        claimant = getAddress(args.claimant as Hex);
+        break;
+      } catch {
+        continue;
+      }
+    }
+    if (!claimant) {
+      return { error: `no matching IntentWithdrawn event for ${intentHash}` };
+    }
 
     if (isNativeReward(chain.type, rewardToken)) {
-      if (!chain.portalAddress) {
-        return { error: `No Portal address configured for chain ${chain.id}` };
-      }
       if (!publishTxHash) {
         return { error: 'publish transaction hash required for native EVM verification' };
       }
       if (receipt.blockNumber === 0n) {
         return { error: 'cannot verify native vault balance at genesis block' };
-      }
-
-      const portalAddress = AddressNormalizer.denormalize(
-        chain.portalAddress as UniversalAddress,
-        ChainType.EVM
-      );
-      let claimant: string | undefined;
-      for (const log of receipt.logs) {
-        if (log.address.toLowerCase() !== portalAddress.toLowerCase()) continue;
-        try {
-          const decoded = decodeEventLog({ abi: portalAbi, data: log.data, topics: log.topics });
-          if (decoded.eventName !== 'IntentWithdrawn') continue;
-          const args = decoded.args as { intentHash: Hex; claimant: string };
-          if (args.intentHash.toLowerCase() !== intentHash.toLowerCase()) continue;
-          claimant = getAddress(args.claimant as Hex);
-          break;
-        } catch {
-          continue;
-        }
-      }
-      if (!claimant) {
-        return { error: `no matching IntentWithdrawn event for ${intentHash}` };
       }
 
       const publishTx = await client.getTransaction({ hash: publishTxHash as Hex });
@@ -237,14 +273,20 @@ export class WithdrawalVerifierService {
       }
       if (decoded.eventName !== 'Transfer') continue;
       const { to, value } = decoded.args as { to: string; value: bigint };
-      // The reward withdrawal is the largest reward-token Transfer in the tx.
+      if (to.toLowerCase() !== claimant.toLowerCase()) continue;
+      // Batched withdrawal transactions can contain several rewards of the same
+      // token. The caller checks the exact child reward amount after extraction.
+      if (expectedAmount !== undefined && value === expectedAmount) {
+        best = { to, value };
+        break;
+      }
       if (!best || value > best.value) best = { to, value };
     }
 
     if (!best) {
       return { error: `no reward-token (${rewardToken}) Transfer in settlement tx` };
     }
-    return { withdrawnAmount: best.value, claimant: getAddress(best.to as Hex) };
+    return { withdrawnAmount: best.value, claimant };
   }
 
   private svmPortalProgramId(chain: ChainConfig): PublicKey {
@@ -254,5 +296,23 @@ export class WithdrawalVerifierService {
     return new PublicKey(
       AddressNormalizer.denormalize(chain.portalAddress as UniversalAddress, ChainType.SVM)
     );
+  }
+
+  private svmWithdrawalClaimant(logs: string[], intentHash: string): string | null {
+    const expectedHash = Buffer.from(intentHash.replace(/^0x/, ''), 'hex');
+    for (const log of logs) {
+      if (!log.startsWith('Program data: ')) continue;
+      let event: Buffer;
+      try {
+        event = Buffer.from(log.slice('Program data: '.length), 'base64');
+      } catch {
+        continue;
+      }
+      if (event.length < 72) continue;
+      if (!event.subarray(0, 8).equals(SVM_INTENT_WITHDRAWN_DISCRIMINATOR)) continue;
+      if (!event.subarray(8, 40).equals(expectedHash)) continue;
+      return new PublicKey(event.subarray(40, 72)).toBase58();
+    }
+    return null;
   }
 }

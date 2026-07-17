@@ -1,0 +1,19 @@
+{
+  "expectedClaimants": {
+    "8453": "0x00000000000000000000000000000000000000b2"
+  },
+  "pairs": [
+    {
+      "id": "ETH-SOL",
+      "label": "ETH Base -> SOL Solana",
+      "sourceChainId": 8453,
+      "destinationChainId": 1399811149,
+      "inputToken": "0x0000000000000000000000000000000000000000",
+      "outputToken": "11111111111111111111111111111111",
+      "amount": "0.0006",
+      "inputDecimals": 18,
+      "outputDecimals": 9,
+      "path": "any-to-any"
+    }
+  ]
+}

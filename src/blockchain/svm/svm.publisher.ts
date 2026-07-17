@@ -18,9 +18,9 @@ import { BasePublisher, IntentStatus, PublishResult, ValidationResult } from '..
 import { ChainRegistryService } from '../chain-registry.service';
 import { ChainsService } from '../chains.service';
 
+import { calculateFulfillMarkerPDA } from './pda-manager';
 import { DefaultSvmClientFactory, SvmClientFactory } from './solana-client';
 import { PublishContext, SvmError, SvmErrorType } from './svm-types';
-import { calculateFulfillMarkerPDA } from './pda-manager';
 import { executeFunding } from './transaction-builder';
 
 @Injectable()

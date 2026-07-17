@@ -27,6 +27,8 @@ export interface MatrixPairConfig {
   label: string;
   /** Decimals of `inputToken` for parseUnits. Defaults to 6 (USDC/USDG/AUSD). */
   inputDecimals?: number;
+  /** Decimals of `outputToken` for delivery reporting. Defaults to 6. */
+  outputDecimals?: number;
   /** Optional per-pair slippage override (bps). */
   slippageBps?: number;
   /** Route classification used in quote-matrix reports. */
@@ -59,6 +61,13 @@ export type MatrixPhase =
   | 'PUBLISH_FAILED'
   | 'SUBMITTED'
   | 'FULFILLED'
+  | 'SOURCE_FAILED'
+  | 'SOURCE_WITHDRAWN'
+  | 'CHILD_PENDING'
+  | 'DELIVERED_PENDING_WITHDRAWAL'
+  | 'WITHDRAWAL_PENDING'
+  | 'DELIVERY_MISMATCH'
+  | 'SUCCEEDED'
   | 'WITHDRAWAL_MISMATCH'
   | 'TIMEOUT'
   | 'POLL_UNSUPPORTED'
@@ -95,7 +104,9 @@ export interface MatrixRow {
   quoteId?: string;
   solverId?: string;
   prover?: string;
+  /** Local source-swap parent intent. Kept as intentHash for backwards compatibility. */
   intentHash?: string;
+  childIntentHash?: string;
   /** Portal the intent was funded against (from the quote), for status polling. */
   sourcePortal?: string;
   publishTxHash?: string;
@@ -112,6 +123,14 @@ export interface MatrixRow {
    * the amount+claimant assertions pass. Never mirrors `fulfilled` blindly.
    */
   withdrawn: boolean;
+  /** Source-swap parent withdrawal; intermediate only on cross-chain routes. */
+  sourceWithdrawalVerified?: boolean;
+  /** Exact requested destination token reached the configured recipient. */
+  deliveryVerified?: boolean;
+  deliveredAmount?: string;
+  deliveredAmountHuman?: string;
+  minimumDestinationAmount?: string;
+  recipient?: string;
   /** True when the withdrawal was verified (amount + claimant checks passed). */
   withdrawalVerified: boolean;
   /** Reward amount withdrawn to the claimant, raw smallest-units, as a string. */
@@ -122,6 +141,7 @@ export interface MatrixRow {
   claimant?: string;
   /** Expected claimant used for the assertion (from config), if any. */
   expectedClaimant?: string;
+  sourceSettlementTxHash?: string;
   fulfillmentTxHash?: string;
   fulfillmentBlock?: string;
   fulfillmentTimestamp?: number;
@@ -134,6 +154,8 @@ export interface MatrixAggregate {
   total: number;
   submitted: number;
   fulfilled: number;
+  delivered: number;
+  succeeded: number;
   /** Fulfilled swaps whose withdrawal (amount + claimant) was verified. */
   withdrawalVerified: number;
   quoteFailures: number;

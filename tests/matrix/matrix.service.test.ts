@@ -26,6 +26,9 @@ function makeService(
   publisherFactory: { create: jest.Mock };
   statusService: { getStatus: jest.Mock };
   withdrawalVerifier: { verify: jest.Mock };
+  deliveryVerifier: { verify: jest.Mock };
+  yellowLifecycle: { waitForDeliveredChild: jest.Mock; getSnapshot: jest.Mock };
+  normalizer: { denormalize: jest.Mock };
 } {
   const chainsById = new Map([
     [8453n, { id: 8453n, name: 'Base', type: ChainType.EVM }],
@@ -42,20 +45,33 @@ function makeService(
   const publisherFactory = { create: jest.fn() };
   const statusService = { getStatus: jest.fn() };
   const withdrawalVerifier = { verify: jest.fn() };
+  const deliveryVerifier = { verify: jest.fn() };
+  const yellowLifecycle = { waitForDeliveredChild: jest.fn(), getSnapshot: jest.fn() };
+  const normalizer = { denormalize: jest.fn(value => value) };
   const display = { log: jest.fn() };
   const service = new MatrixService(
     chains as never,
     config as never,
-    {} as never,
+    normalizer as never,
     publisherFactory as never,
     { getQuote } as never,
     {} as never,
     statusService as never,
     {} as never,
     withdrawalVerifier as never,
+    deliveryVerifier as never,
+    yellowLifecycle as never,
     display as never
   );
-  return { service, publisherFactory, statusService, withdrawalVerifier };
+  return {
+    service,
+    publisherFactory,
+    statusService,
+    withdrawalVerifier,
+    deliveryVerifier,
+    yellowLifecycle,
+    normalizer,
+  };
 }
 
 describe('MatrixService quote-only mode', () => {
@@ -183,7 +199,7 @@ describe('MatrixService settlement recipients', () => {
 });
 
 describe('MatrixService withdrawal verification inputs', () => {
-  it('passes the recorded publish transaction hash to the withdrawal verifier', async () => {
+  it('passes the publish hash but does not treat a cross-chain source withdrawal as terminal', async () => {
     const { service, withdrawalVerifier } = makeService(jest.fn(), {
       [ChainType.EVM]: EVM_KEY,
     });
@@ -204,6 +220,8 @@ describe('MatrixService withdrawal verification inputs', () => {
     const row = {
       intentHash: INTENT_HASH,
       publishTxHash: '0xpublish',
+      withdrawalVerified: false,
+      sourceWithdrawalVerified: false,
     };
     const chain = {
       id: 8453n,
@@ -222,7 +240,101 @@ describe('MatrixService withdrawal verification inputs', () => {
       INTENT_HASH,
       '0xsettlement',
       pair.inputToken,
-      '0xpublish'
+      '0xpublish',
+      600_000_000_000_000n
     );
+    expect(row).toMatchObject({ withdrawalVerified: false });
+  });
+
+  it('stops polling when Yellow records a permanent parent source-leg failure', async () => {
+    const { service, statusService, yellowLifecycle } = makeService(jest.fn());
+    statusService.getStatus.mockResolvedValue({ fulfilled: false });
+    yellowLifecycle.getSnapshot.mockResolvedValue({
+      parent: {
+        status: 'FAILED',
+        lastError: {
+          errorCode: 'EVM_REVERT_EMPTY',
+          message: 'EVM transaction reverted without available revert data.',
+        },
+      },
+    });
+
+    const outcome = await (
+      service as unknown as {
+        pollUntilFulfilledOrFailed: (...args: unknown[]) => Promise<unknown>;
+      }
+    ).pollUntilFulfilledOrFailed(
+      INTENT_HASH,
+      'quote-failed-parent',
+      { id: 8453n, type: ChainType.EVM },
+      1,
+      undefined,
+      1
+    );
+
+    expect(outcome).toEqual({
+      sourceFailure: 'EVM_REVERT_EMPTY: EVM transaction reverted without available revert data.',
+    });
+  });
+
+  it('marks success only after the promoted child reward reaches the kernel', async () => {
+    const { service, yellowLifecycle, withdrawalVerifier, normalizer } = makeService(jest.fn(), {
+      [ChainType.EVM]: EVM_KEY,
+    });
+    const kernel = '0x00000000000000000000000000000000000000b2';
+    const childIntentHash = `0x${'33'.repeat(32)}`;
+    normalizer.denormalize.mockReturnValue('0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913');
+    yellowLifecycle.getSnapshot.mockResolvedValue({
+      quoteID: 'quote-reconcile',
+      parentIntentHash: INTENT_HASH,
+      promotedChild: {
+        bucket: {
+          index: 0,
+          intentHash: childIntentHash,
+          rewardAmount: '1000000',
+          expectedDestinationOutput: '5000000',
+        },
+        intent: {
+          intentHash: childIntentHash,
+          reward: {
+            nativeAmount: '0',
+            tokens: [
+              {
+                token: `0x${'00'.repeat(12)}833589fcd6edb6e08f4c7c32d4f71b54bda02913`,
+                amount: '1000000',
+              },
+            ],
+          },
+          fulfilledEvent: { txHash: 'svm-fulfillment' },
+          provenEvent: { txHash: '0xproof' },
+          withdrawnEvent: { txHash: '0xwithdrawal' },
+        },
+      },
+    });
+    withdrawalVerifier.verify.mockResolvedValue({
+      withdrawnAmount: 1_000_000n,
+      claimant: kernel,
+    });
+
+    const report = await service.reconcile('tests/fixtures/matrix-a2a-reconcile-report.json');
+
+    expect(withdrawalVerifier.verify).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 8453n, type: ChainType.EVM }),
+      childIntentHash,
+      '0xwithdrawal',
+      '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+      undefined,
+      1_000_000n
+    );
+    expect(report.rows[0]).toMatchObject({
+      phase: 'SUCCEEDED',
+      childIntentHash,
+      deliveryVerified: true,
+      proven: true,
+      withdrawn: true,
+      withdrawalVerified: true,
+      claimant: kernel,
+      expectedClaimant: kernel,
+    });
   });
 });

@@ -25,19 +25,13 @@ function entry(mint: string, owner: string, amount: string): SvmTokenBalanceEntr
 
 describe('native withdrawal helpers', () => {
   it('recognizes the native sentinel for each supported VM', () => {
-    expect(
-      isNativeReward('EVM', '0x0000000000000000000000000000000000000000')
-    ).toBe(true);
+    expect(isNativeReward('EVM', '0x0000000000000000000000000000000000000000')).toBe(true);
     expect(isNativeReward('SVM', '11111111111111111111111111111111')).toBe(true);
   });
 
   it('does not treat wrapped native tokens as native rewards', () => {
-    expect(
-      isNativeReward('EVM', '0x4200000000000000000000000000000000000006')
-    ).toBe(false);
-    expect(
-      isNativeReward('SVM', 'So11111111111111111111111111111111111111112')
-    ).toBe(false);
+    expect(isNativeReward('EVM', '0x4200000000000000000000000000000000000006')).toBe(false);
+    expect(isNativeReward('SVM', 'So11111111111111111111111111111111111111112')).toBe(false);
   });
 
   it('returns an exact positive vault debit', () => {

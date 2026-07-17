@@ -13,7 +13,7 @@
 
 import { readFileSync } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { isAbsolute, join } from 'node:path';
 
 import { Injectable } from '@nestjs/common';
 
@@ -31,6 +31,7 @@ import { deriveAddress, KeyHandle } from '@/shared/security';
 import { BlockchainAddress, ChainConfig, ChainType, UniversalAddress } from '@/shared/types';
 import { IntentStatus, StatusService } from '@/status/status.service';
 
+import { DeliveryVerifierService } from './delivery-verifier.service';
 import { GasService } from './gas.service';
 import { MatrixConfigFile, MatrixPairConfig, MatrixReport, MatrixRow } from './matrix.types';
 import {
@@ -41,14 +42,21 @@ import {
   resolvePairRoute,
 } from './matrix.util';
 import { WithdrawalVerifierService } from './withdrawal-verifier.service';
+import { YellowLifecycleService } from './yellow-lifecycle.service';
 
 const DEFAULT_CONFIG_PATH = 'config/matrix-pairs.json';
 const DEFAULT_TIMEOUT_SEC = 180;
+
+interface ParentPollOutcome {
+  status?: IntentStatus;
+  sourceFailure?: string;
+}
 
 export interface MatrixRunOptions {
   configPath?: string;
   timeoutSec?: number;
   quoteOnly?: boolean;
+  reconcilePath?: string;
 }
 
 @Injectable()
@@ -63,10 +71,13 @@ export class MatrixService {
     private readonly statusService: StatusService,
     private readonly gasService: GasService,
     private readonly withdrawalVerifier: WithdrawalVerifierService,
+    private readonly deliveryVerifier: DeliveryVerifierService,
+    private readonly yellowLifecycle: YellowLifecycleService,
     private readonly display: DisplayService
   ) {}
 
   async run(options: MatrixRunOptions = {}): Promise<MatrixReport> {
+    if (options.reconcilePath) return this.reconcile(options.reconcilePath);
     const configPath = options.configPath ?? DEFAULT_CONFIG_PATH;
     const timeoutSec = options.timeoutSec ?? DEFAULT_TIMEOUT_SEC;
     const { pairs, expectedClaimants, quoteActors } = this.loadConfig(configPath);
@@ -180,6 +191,119 @@ export class MatrixService {
     };
   }
 
+  async reconcile(reportPath: string): Promise<MatrixReport> {
+    const resolvedReportPath = isAbsolute(reportPath)
+      ? reportPath
+      : join(process.cwd(), reportPath);
+    const report = JSON.parse(readFileSync(resolvedReportPath, 'utf8')) as MatrixReport;
+    const { pairs, expectedClaimants } = this.loadConfig(report.configPath);
+
+    for (let index = 0; index < report.rows.length; index++) {
+      const row = report.rows[index];
+      const pair = pairs.find(candidate => candidate.id && candidate.id === row.id) ?? pairs[index];
+      if (!pair || !row.quoteId) continue;
+      const snapshot = await this.yellowLifecycle.getSnapshot(row.quoteId);
+      if (snapshot.parent?.status === 'FAILED') {
+        row.phase = 'SOURCE_FAILED';
+        row.error = yellowErrorMessage(snapshot.parent.lastError);
+        continue;
+      }
+      const promoted = snapshot.promotedChild;
+      if (!promoted) {
+        row.phase = 'CHILD_PENDING';
+        row.error = 'no promoted child intent found in Yellow';
+        continue;
+      }
+
+      row.childIntentHash = promoted.intent.intentHash;
+      row.proven = Boolean(promoted.intent.provenEvent);
+      row.withdrawn = Boolean(promoted.intent.withdrawnEvent);
+      if (!row.deliveryVerified && promoted.intent.fulfilledEvent?.txHash) {
+        await this.verifyDeliveredSnapshot(
+          pair,
+          row,
+          snapshot,
+          `[${index + 1}/${report.rows.length}]`
+        );
+      }
+      if (!row.deliveryVerified) continue;
+
+      if (!promoted.intent.provenEvent || !promoted.intent.withdrawnEvent?.txHash) {
+        row.phase = 'WITHDRAWAL_PENDING';
+        row.error = undefined;
+        continue;
+      }
+
+      const { sourceChainId } = resolvePairRoute(pair);
+      const sourceChain = this.chains.getChainById(BigInt(sourceChainId));
+      const expectedClaimant = pair.expectedClaimant ?? expectedClaimants[String(sourceChainId)];
+      if (!expectedClaimant) {
+        row.phase = 'WITHDRAWAL_MISMATCH';
+        row.error = `expected kernel claimant missing for source chain ${sourceChainId}`;
+        continue;
+      }
+      const reward = promoted.intent.reward;
+      const nativeAmount = BigInt(reward?.nativeAmount ?? '0');
+      const rewardEntry = reward?.tokens?.[0];
+      if (nativeAmount === 0n && !rewardEntry) {
+        row.phase = 'WITHDRAWAL_MISMATCH';
+        row.error = `child ${promoted.intent.intentHash} has no reward`;
+        continue;
+      }
+      const rewardToken =
+        nativeAmount > 0n
+          ? pair.inputToken
+          : this.normalizer.denormalize(rewardEntry!.token as UniversalAddress, sourceChain.type);
+      const expectedAmount = nativeAmount > 0n ? nativeAmount : BigInt(rewardEntry!.amount);
+      const facts = await this.withdrawalVerifier.verify(
+        sourceChain,
+        promoted.intent.intentHash,
+        promoted.intent.withdrawnEvent.txHash,
+        rewardToken,
+        undefined,
+        expectedAmount
+      );
+      if ('error' in facts) {
+        row.phase = 'WITHDRAWAL_MISMATCH';
+        row.error = `child withdrawal verification failed: ${facts.error}`;
+        continue;
+      }
+      const funder = deriveAddress(this.resolveKey(sourceChain.type)!, sourceChain.type);
+      const check = assertWithdrawal({
+        chainType: sourceChain.type,
+        withdrawnAmount: facts.withdrawnAmount,
+        expectedAmount,
+        claimant: facts.claimant,
+        funder,
+        expectedClaimant,
+      });
+      if (!check.ok || facts.claimedMarkerPresent === false) {
+        row.phase = 'WITHDRAWAL_MISMATCH';
+        row.error = check.ok ? 'claimed-marker PDA not found' : check.error;
+        continue;
+      }
+
+      row.claimant = facts.claimant;
+      row.expectedClaimant = expectedClaimant;
+      row.withdrawnAmount = facts.withdrawnAmount.toString();
+      row.withdrawalVerified = true;
+      row.withdrawn = true;
+      row.proven = true;
+      row.phase = 'SUCCEEDED';
+      row.error = undefined;
+    }
+
+    report.updatedAt = new Date().toISOString();
+    report.aggregate = aggregate(report.rows);
+    await writeFile(resolvedReportPath, JSON.stringify(report, bigintReplacer, 2));
+    this.display.log(
+      `Reconciled. delivered=${report.aggregate.delivered}/${report.aggregate.submitted} ` +
+        `succeeded=${report.aggregate.succeeded}/${report.aggregate.submitted} | ` +
+        `report=${resolvedReportPath}`
+    );
+    return report;
+  }
+
   private loadConfig(configPath: string): {
     pairs: MatrixPairConfig[];
     expectedClaimants: Record<string, string>;
@@ -219,6 +343,7 @@ export class MatrixService {
       proven: false,
       withdrawn: false,
       withdrawalVerified: false,
+      deliveryVerified: false,
     };
   }
 
@@ -303,6 +428,9 @@ export class MatrixService {
       try {
         quote = await this.quoteService.getQuote(pairToQuoteRequest(pair, funder, recipient));
         row.quoteOk = true;
+        row.quoteId = quote.quoteId;
+        row.solverId = quote.solverId;
+        row.recipient = recipient;
       } catch (error) {
         row.phase = 'QUOTE_FAILED';
         row.error = errMsg(error);
@@ -382,12 +510,22 @@ export class MatrixService {
       return;
     }
 
-    const status = await this.pollUntilFulfilled(
+    const { destinationChainId } = resolvePairRoute(pair);
+    const isCrossChain = destinationChainId !== Number(chain.id);
+    const outcome = await this.pollUntilFulfilledOrFailed(
       row.intentHash!,
+      isCrossChain && pair.path === 'any-to-any' ? row.quoteId : undefined,
       chain,
       timeoutSec,
       row.sourcePortal as UniversalAddress | undefined
     );
+    if (outcome.sourceFailure) {
+      row.phase = 'SOURCE_FAILED';
+      row.error = outcome.sourceFailure;
+      this.display.log(`${tag}  SOURCE_FAILED (${row.error})`);
+      return;
+    }
+    const status = outcome.status;
     if (!status || !status.fulfilled) {
       row.phase = 'TIMEOUT';
       this.display.log(`${tag}  TIMEOUT (>${timeoutSec}s)`);
@@ -399,8 +537,9 @@ export class MatrixService {
     // withdrawal (reward amount + claimant) is always verified on-chain below.
     row.phase = 'FULFILLED';
     row.fulfilled = true;
-    row.proven = true; // proof precondition for the atomic settlement = fulfilled.
+    row.proven = !isCrossChain; // local settlement is atomic; cross-chain proof belongs to child.
     row.fulfillmentTxHash = status.fulfillmentTxHash;
+    if (isCrossChain) row.sourceSettlementTxHash = status.fulfillmentTxHash;
     row.fulfillmentBlock = status.blockNumber?.toString();
     row.fulfillmentTimestamp = status.timestamp;
     // Settlement latency from on-chain block times (fund block -> fulfill block),
@@ -426,6 +565,103 @@ export class MatrixService {
     }
 
     await this.verifyWithdrawal(pair, row, chain, status, expectedClaimants, tag);
+    if (isCrossChain && row.sourceWithdrawalVerified) {
+      await this.verifyCrossChainDelivery(pair, row, timeoutSec, tag);
+    }
+  }
+
+  private async verifyCrossChainDelivery(
+    pair: MatrixPairConfig,
+    row: MatrixRow,
+    timeoutSec: number,
+    tag: string
+  ): Promise<void> {
+    if (!row.quoteId) {
+      row.phase = 'POLL_ERROR';
+      row.error = 'cross-chain lifecycle requires quoteId';
+      return;
+    }
+
+    row.phase = 'CHILD_PENDING';
+    const snapshot = await this.yellowLifecycle.waitForDeliveredChild(
+      row.quoteId,
+      timeoutSec * 1_000
+    );
+    await this.verifyDeliveredSnapshot(pair, row, snapshot, tag);
+  }
+
+  private async verifyDeliveredSnapshot(
+    pair: MatrixPairConfig,
+    row: MatrixRow,
+    snapshot: Awaited<ReturnType<YellowLifecycleService['getSnapshot']>>,
+    tag: string
+  ): Promise<void> {
+    const promoted = snapshot.promotedChild;
+    if (!promoted) {
+      row.error = 'no promoted child intent found in Yellow';
+      this.display.log(`${tag}  CHILD_PENDING (${row.error})`);
+      return;
+    }
+
+    row.childIntentHash = promoted.intent.intentHash;
+    const fulfilled = promoted.intent.fulfilledEvent;
+    if (!fulfilled?.txHash) {
+      row.error = `child ${promoted.intent.intentHash} not fulfilled before timeout`;
+      this.display.log(`${tag}  CHILD_PENDING (${row.error})`);
+      return;
+    }
+
+    const { destinationChainId } = resolvePairRoute(pair);
+    const destinationChain = this.chains.getChainById(BigInt(destinationChainId));
+    const recipient = row.recipient;
+    if (!recipient) {
+      row.phase = 'DELIVERY_MISMATCH';
+      row.error = 'destination recipient missing from matrix row';
+      return;
+    }
+
+    const facts = await this.deliveryVerifier.verify(
+      destinationChain,
+      fulfilled.txHash,
+      pair.outputToken,
+      recipient
+    );
+    if ('error' in facts) {
+      row.phase = 'DELIVERY_MISMATCH';
+      row.error = `destination delivery verification failed: ${facts.error}`;
+      this.display.log(`${tag}  DELIVERY_MISMATCH (${row.error})`);
+      return;
+    }
+
+    const minimum = BigInt(
+      snapshot.minimumDestinationAmount ??
+        promoted.bucket.expectedDestinationOutput ??
+        promoted.bucket.destinationAmount ??
+        snapshot.destinationAmount ??
+        '1'
+    );
+    if (facts.deliveredAmount < minimum) {
+      row.phase = 'DELIVERY_MISMATCH';
+      row.error = `delivered amount ${facts.deliveredAmount} below quote minimum ${minimum}`;
+      this.display.log(`${tag}  DELIVERY_MISMATCH (${row.error})`);
+      return;
+    }
+
+    const outputDecimals = pair.outputDecimals ?? DEFAULT_TOKEN_DECIMALS;
+    row.fulfillmentTxHash = fulfilled.txHash;
+    row.fulfillmentBlock = fulfilled.blockNumber;
+    row.deliveryVerified = true;
+    row.deliveredAmount = facts.deliveredAmount.toString();
+    row.deliveredAmountHuman = formatUnits(facts.deliveredAmount, outputDecimals);
+    row.minimumDestinationAmount = minimum.toString();
+    row.proven = Boolean(promoted.intent.provenEvent);
+    row.withdrawn = Boolean(promoted.intent.withdrawnEvent);
+    row.phase = 'DELIVERED_PENDING_WITHDRAWAL';
+    row.error = undefined;
+    this.display.log(
+      `${tag}  DELIVERED child=${row.childIntentHash} tx=${fulfilled.txHash} ` +
+        `amount=${row.deliveredAmountHuman} pendingWithdrawal=true`
+    );
   }
 
   /**
@@ -451,8 +687,11 @@ export class MatrixService {
 
     const decimals = pair.inputDecimals ?? DEFAULT_TOKEN_DECIMALS;
     const expectedAmount = parseUnits(pair.amount, decimals);
-    const { sourceChainId } = resolvePairRoute(pair);
-    const expectedClaimant = pair.expectedClaimant ?? expectedClaimants[String(sourceChainId)];
+    const { sourceChainId, destinationChainId } = resolvePairRoute(pair);
+    const isCrossChain = sourceChainId !== destinationChainId;
+    const expectedClaimant = isCrossChain
+      ? undefined
+      : (pair.expectedClaimant ?? expectedClaimants[String(sourceChainId)]);
     const funder = deriveAddress(this.resolveKey(chain.type)!, chain.type);
 
     const facts = await this.withdrawalVerifier.verify(
@@ -460,7 +699,8 @@ export class MatrixService {
       row.intentHash!,
       status.fulfillmentTxHash,
       pair.inputToken,
-      row.publishTxHash
+      row.publishTxHash,
+      expectedAmount
     );
 
     if ('error' in facts) {
@@ -498,8 +738,20 @@ export class MatrixService {
       return;
     }
 
+    if (isCrossChain) {
+      row.phase = 'SOURCE_WITHDRAWN';
+      row.sourceWithdrawalVerified = true;
+      this.display.log(
+        `${tag}  SOURCE_WITHDRAWN tx=${status.fulfillmentTxHash} ` +
+          `withdrawn=${row.withdrawnAmountHuman} claimant=${facts.claimant}`
+      );
+      return;
+    }
+
+    row.phase = 'SUCCEEDED';
     row.withdrawn = true;
     row.withdrawalVerified = true;
+    row.deliveryVerified = true;
     this.display.log(
       `${tag}  FULFILLED+WITHDRAWN tx=${status.fulfillmentTxHash} ` +
         `withdrawn=${row.withdrawnAmountHuman} claimant=${facts.claimant} ` +
@@ -511,20 +763,31 @@ export class MatrixService {
    * Poll getStatus until the intent is fulfilled or the timeout elapses.
    * Returns the last observed status (fulfilled) or null on timeout.
    */
-  private async pollUntilFulfilled(
+  private async pollUntilFulfilledOrFailed(
     intentHash: string,
+    quoteId: string | undefined,
     chain: ChainConfig,
     timeoutSec: number,
     portalAddress?: UniversalAddress,
     intervalMs = 10_000
-  ): Promise<IntentStatus | null> {
+  ): Promise<ParentPollOutcome> {
     const deadline = Date.now() + timeoutSec * 1000;
     while (Date.now() < deadline) {
       const status = await this.statusService.getStatus(intentHash, chain, portalAddress);
-      if (status.fulfilled) return status;
+      if (status.fulfilled) return { status };
+      if (quoteId) {
+        try {
+          const snapshot = await this.yellowLifecycle.getSnapshot(quoteId);
+          if (snapshot.parent?.status === 'FAILED') {
+            return { sourceFailure: yellowErrorMessage(snapshot.parent.lastError) };
+          }
+        } catch {
+          // Portal status remains authoritative if Yellow is temporarily unavailable.
+        }
+      }
       await new Promise(r => setTimeout(r, intervalMs));
     }
-    return null;
+    return {};
   }
 
   private resolveKey(chainType: ChainType): string | undefined {
@@ -542,4 +805,13 @@ function errMsg(error: unknown): string {
 
 function bigintReplacer(_key: string, value: unknown): unknown {
   return typeof value === 'bigint' ? value.toString() : value;
+}
+
+function yellowErrorMessage(lastError: unknown): string {
+  if (!lastError || typeof lastError !== 'object') return 'Yellow parent intent failed';
+  const error = lastError as { errorCode?: unknown; message?: unknown };
+  const code = typeof error.errorCode === 'string' ? error.errorCode : undefined;
+  const message = typeof error.message === 'string' ? error.message : undefined;
+  if (code && message) return `${code}: ${message}`;
+  return message ?? code ?? 'Yellow parent intent failed';
 }

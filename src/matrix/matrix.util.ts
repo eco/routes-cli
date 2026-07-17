@@ -202,6 +202,8 @@ export function percentile(values: number[], p: number): number | undefined {
 export function aggregate(rows: MatrixRow[]): MatrixAggregate {
   const submitted = rows.filter(r => r.intentHash).length;
   const fulfilled = rows.filter(r => r.fulfilled).length;
+  const delivered = rows.filter(r => r.deliveryVerified).length;
+  const succeeded = rows.filter(r => r.phase === 'SUCCEEDED').length;
   const withdrawalVerified = rows.filter(r => r.withdrawalVerified).length;
   const quoteFailures = rows.filter(r => r.phase === 'QUOTE_FAILED').length;
   const publishFailures = rows.filter(r => r.phase === 'PUBLISH_FAILED').length;
@@ -231,12 +233,14 @@ export function aggregate(rows: MatrixRow[]): MatrixAggregate {
     total: rows.length,
     submitted,
     fulfilled,
+    delivered,
+    succeeded,
     withdrawalVerified,
     quoteFailures,
     publishFailures,
-    // A swap is a success only if it fulfilled AND the reward settled to the
-    // expected claimant in the exact amount (withdrawalVerified).
-    successRate: submitted === 0 ? 0 : withdrawalVerified / submitted,
+    // A cross-chain swap succeeds only after destination delivery AND the
+    // promoted child reward settles to the expected kernel claimant.
+    successRate: submitted === 0 ? 0 : succeeded / submitted,
     p50TimeToFulfillSec: percentile(times, 50),
     p95TimeToFulfillSec: percentile(times, 95),
     totalGasBySymbol,

@@ -6,7 +6,7 @@
 
 import { BN, Program } from '@coral-xyz/anchor';
 import { getAssociatedTokenAddress } from '@solana/spl-token';
-import { Connection, Keypair, PublicKey, Transaction } from '@solana/web3.js';
+import { AccountMeta, Connection, Keypair, PublicKey, Transaction } from '@solana/web3.js';
 
 import { AddressNormalizer } from '@/blockchain/utils/address-normalizer';
 import { ChainType, Intent, UniversalAddress } from '@/shared/types';
@@ -131,7 +131,7 @@ async function buildTokenTransferAccounts(
   rewardToken: UniversalAddress,
   funderKeypair: Keypair,
   vaultPda: PublicKey
-) {
+): Promise<AccountMeta[]> {
   const tokenMint = new PublicKey(AddressNormalizer.denormalizeToSvm(rewardToken));
 
   // The ATA address is derived from the token program id, so a Token-2022 mint

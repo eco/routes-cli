@@ -140,14 +140,15 @@ describe('percentile', () => {
 });
 
 describe('aggregate', () => {
-  it('counts submitted/fulfilled/withdrawalVerified/failures and success rate', () => {
+  it('counts delivery and terminal child withdrawal separately', () => {
     const rows: MatrixRow[] = [
       baseRow({
-        phase: 'FULFILLED',
+        phase: 'SUCCEEDED',
         quoteOk: true,
         intentHash: '0x1',
         fulfilled: true,
         withdrawn: true,
+        deliveryVerified: true,
         withdrawalVerified: true,
       }),
       // Fulfilled but withdrawal NOT verified — does NOT count toward success.
@@ -164,10 +165,12 @@ describe('aggregate', () => {
     expect(agg.total).toBe(4);
     expect(agg.submitted).toBe(2);
     expect(agg.fulfilled).toBe(2);
+    expect(agg.delivered).toBe(1);
+    expect(agg.succeeded).toBe(1);
     expect(agg.withdrawalVerified).toBe(1);
     expect(agg.quoteFailures).toBe(1);
     expect(agg.publishFailures).toBe(1);
-    expect(agg.successRate).toBe(0.5); // 1 withdrawalVerified / 2 submitted
+    expect(agg.successRate).toBe(0.5); // 1 terminal success / 2 submitted
   });
 
   it('is safe with zero submitted (no divide-by-zero)', () => {

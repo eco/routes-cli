@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Verify native EVM and SVM withdrawal amounts from intent-vault balance debits while retaining Portal withdrawal evidence and all existing token checks.
+**Goal:** Verify complete two-leg Any-to-Any settlement: destination delivery by the promoted child followed by exact child-reward withdrawal to the kernel claimant.
 
-**Architecture:** Add dependency-light native-address and balance-delta helpers to the matrix utility module. Branch inside `WithdrawalVerifierService` by VM-native sentinel: EVM decodes a matching Portal `IntentWithdrawn` event, derives the deterministic vault from the publish transaction, and reads vault balances around the receipt block; SVM decodes the matching Anchor event and reads the derived vault PDA's indexed pre/post lamport balances. ERC-20 and SPL-token flows remain unchanged.
+**Architecture:** Resolve the parent and promoted child directly from Yellow Mongo by `quoteID`. The first pass verifies the child's destination fulfillment transaction and exact recipient balance delta, then records `DELIVERED_PENDING_WITHDRAWAL`; a resumable reconciliation pass verifies child proof and exact source-vault withdrawal to the configured kernel claimant before recording `SUCCEEDED`. Native/token evidence remains VM-specific.
 
-**Tech Stack:** TypeScript, Jest/ts-jest, viem, `@solana/web3.js`, Anchor `EventParser`, NestJS.
+**Tech Stack:** TypeScript, Jest/ts-jest, viem, `@solana/web3.js`, NestJS, MongoDB.
 
 ## Global Constraints
 
@@ -14,9 +14,11 @@
 - SVM native sentinel is `11111111111111111111111111111111`.
 - A native result requires a matching Portal `IntentWithdrawn` event and an exact intent-vault balance debit.
 - SVM withdrawal verification continues to require the claimed-marker PDA.
-- ERC-20 and SPL-token behavior must not change.
+- ERC-20 and SPL-token withdrawals must be tied to the matching child withdrawal event and claimant.
 - Verifier failures return `{ error: string }`; they do not throw into the matrix runner.
 - Implementation is test-first: every production behavior is preceded by a failing test.
+- Parent source-swap withdrawal never contributes to terminal success for a cross-chain row.
+- Yellow Mongo credentials come only from `YELLOW_MONGODB_URI` and are never persisted.
 
 ---
 

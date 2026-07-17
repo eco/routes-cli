@@ -10,6 +10,7 @@ interface MatrixOptions {
   config?: string;
   timeout?: number;
   quoteOnly?: boolean;
+  reconcile?: string;
 }
 
 @Injectable()
@@ -26,11 +27,18 @@ export class MatrixCommand extends CommandRunner {
   }
 
   async run(_inputs: string[], options: MatrixOptions): Promise<void> {
-    this.display.title(options.quoteOnly ? '🧪 Quote Route Matrix' : '🧪 Swap Settlement Matrix');
+    this.display.title(
+      options.reconcile
+        ? '🧪 Reconcile Swap Settlement'
+        : options.quoteOnly
+          ? '🧪 Quote Route Matrix'
+          : '🧪 Swap Settlement Matrix'
+    );
     await this.matrixService.run({
       configPath: options.config,
       timeoutSec: options.timeout,
       quoteOnly: options.quoteOnly,
+      reconcilePath: options.reconcile,
     });
   }
 
@@ -60,5 +68,13 @@ export class MatrixCommand extends CommandRunner {
   })
   parseQuoteOnly(): boolean {
     return true;
+  }
+
+  @Option({
+    flags: '--reconcile <report>',
+    description: 'Re-check child delivery, proof, and kernel withdrawal in a prior report',
+  })
+  parseReconcile(val: string): string {
+    return val;
   }
 }

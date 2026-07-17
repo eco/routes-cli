@@ -1,0 +1,45 @@
+{
+  "runId": "matrix-test",
+  "configPath": "tests/fixtures/matrix-a2a-reconcile-config.json",
+  "timeoutSec": 180,
+  "startedAt": "2026-07-17T00:00:00.000Z",
+  "updatedAt": "2026-07-17T00:01:00.000Z",
+  "rows": [
+    {
+      "id": "ETH-SOL",
+      "label": "ETH Base -> SOL Solana",
+      "path": "any-to-any",
+      "chainId": 8453,
+      "destinationChainId": 1399811149,
+      "chainName": "Base",
+      "chainType": "EVM",
+      "inputToken": "0x0000000000000000000000000000000000000000",
+      "outputToken": "11111111111111111111111111111111",
+      "amount": "0.0006",
+      "phase": "DELIVERED_PENDING_WITHDRAWAL",
+      "quoteOk": true,
+      "quoteId": "quote-reconcile",
+      "intentHash": "0x2222222222222222222222222222222222222222222222222222222222222222",
+      "fulfilled": true,
+      "proven": false,
+      "withdrawn": false,
+      "sourceWithdrawalVerified": true,
+      "deliveryVerified": true,
+      "recipient": "3vvcFp6rUuTrrYK7SSqQKeYYiwvZXWmMnmgLfXDKgAu6",
+      "withdrawalVerified": false
+    }
+  ],
+  "aggregate": {
+    "total": 1,
+    "submitted": 1,
+    "fulfilled": 1,
+    "delivered": 1,
+    "succeeded": 0,
+    "withdrawalVerified": 0,
+    "quoteFailures": 0,
+    "publishFailures": 0,
+    "successRate": 0,
+    "totalGasBySymbol": {},
+    "avgGasBySymbol": {}
+  }
+}
