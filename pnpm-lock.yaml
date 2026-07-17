@@ -32,6 +32,9 @@ importers:
       '@solana/web3.js':
         specifier: ^1.91.8
         version: 1.98.4(bufferutil@4.0.9)(typescript@5.9.2)(utf-8-validate@5.0.10)
+      bs58:
+        specifier: 4.0.1
+        version: 4.0.1
       chalk:
         specifier: ^4.1.2
         version: 4.1.2
