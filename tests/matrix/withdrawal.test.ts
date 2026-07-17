@@ -7,7 +7,9 @@
 import {
   assertWithdrawal,
   computeOwnerDeltas,
+  isNativeReward,
   pickSvmClaimant,
+  positiveBalanceDebit,
   SvmTokenBalanceEntry,
 } from '@/matrix/matrix.util';
 
@@ -20,6 +22,33 @@ const FUNDER = 'Funder11111111111111111111111111111111111';
 function entry(mint: string, owner: string, amount: string): SvmTokenBalanceEntry {
   return { mint, owner, uiTokenAmount: { amount } };
 }
+
+describe('native withdrawal helpers', () => {
+  it('recognizes the native sentinel for each supported VM', () => {
+    expect(
+      isNativeReward('EVM', '0x0000000000000000000000000000000000000000')
+    ).toBe(true);
+    expect(isNativeReward('SVM', '11111111111111111111111111111111')).toBe(true);
+  });
+
+  it('does not treat wrapped native tokens as native rewards', () => {
+    expect(
+      isNativeReward('EVM', '0x4200000000000000000000000000000000000006')
+    ).toBe(false);
+    expect(
+      isNativeReward('SVM', 'So11111111111111111111111111111111111111112')
+    ).toBe(false);
+  });
+
+  it('returns an exact positive vault debit', () => {
+    expect(positiveBalanceDebit(25n, 10n)).toBe(15n);
+  });
+
+  it('rejects unchanged or increasing vault balances', () => {
+    expect(positiveBalanceDebit(10n, 10n)).toBeNull();
+    expect(positiveBalanceDebit(10n, 25n)).toBeNull();
+  });
+});
 
 describe('computeOwnerDeltas', () => {
   it('computes per-owner raw deltas for the reward mint only', () => {

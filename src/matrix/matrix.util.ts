@@ -13,6 +13,21 @@ import { GasCost, MatrixAggregate, MatrixPairConfig, MatrixRow } from './matrix.
 /** Default token decimals when a pair omits `inputDecimals` (USDC/USDG/AUSD are 6). */
 export const DEFAULT_TOKEN_DECIMALS = 6;
 
+const EVM_NATIVE_SENTINEL = '0x0000000000000000000000000000000000000000';
+const SVM_NATIVE_SENTINEL = '11111111111111111111111111111111';
+
+/** Whether a matrix reward address denotes the VM's native currency. */
+export function isNativeReward(chainType: string, rewardToken: string): boolean {
+  if (chainType === 'EVM') return rewardToken.toLowerCase() === EVM_NATIVE_SENTINEL;
+  if (chainType === 'SVM') return rewardToken === SVM_NATIVE_SENTINEL;
+  return false;
+}
+
+/** Exact amount removed from a native-reward vault, or null when it did not decrease. */
+export function positiveBalanceDebit(before: bigint, after: bigint): bigint | null {
+  return before > after ? before - after : null;
+}
+
 /** Resolve legacy same-chain pairs and explicit cross-chain pairs to one route shape. */
 export function resolvePairRoute(pair: MatrixPairConfig): {
   sourceChainId: number;
