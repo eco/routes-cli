@@ -16,15 +16,37 @@
 import { Injectable } from '@nestjs/common';
 
 import { Connection, PublicKey } from '@solana/web3.js';
-import { Chain, createPublicClient, decodeEventLog, erc20Abi, getAddress, Hex, http } from 'viem';
+import {
+  Chain,
+  createPublicClient,
+  decodeEventLog,
+  decodeFunctionData,
+  erc20Abi,
+  getAddress,
+  Hex,
+  http,
+  parseAbi,
+} from 'viem';
 import * as viemChains from 'viem/chains';
 
 import { RpcService } from '@/blockchain/rpc.service';
 import { calculateClaimedMarkerPDA, calculateVaultPDA } from '@/blockchain/svm/pda-manager';
 import { AddressNormalizer } from '@/blockchain/utils/address-normalizer';
+import { portalAbi } from '@/commons/abis/portal.abi';
 import { ChainConfig, ChainType, UniversalAddress } from '@/shared/types';
 
-import { computeOwnerDeltas, pickSvmClaimant, SvmTokenBalanceEntry } from './matrix.util';
+import {
+  computeOwnerDeltas,
+  isNativeReward,
+  pickSvmClaimant,
+  positiveBalanceDebit,
+  SvmTokenBalanceEntry,
+} from './matrix.util';
+
+const nativeEvmVaultAbi = parseAbi([
+  'function publishAndFund(uint64 destination, bytes route, (uint64 deadline, address creator, address prover, uint256 nativeAmount, (address token, uint256 amount)[] tokens) reward, bool allowPartial) payable returns (bytes32 intentHash, address vault)',
+  'function intentVaultAddress(uint64 destination, bytes route, (uint64 deadline, address creator, address prover, uint256 nativeAmount, (address token, uint256 amount)[] tokens) reward) view returns (address)',
+]);
 
 /** Extracted withdrawal facts for one settlement tx (reward mint/token only). */
 export interface WithdrawalFacts {
@@ -45,14 +67,21 @@ export class WithdrawalVerifierService {
     chain: ChainConfig,
     intentHash: string,
     settlementTxHash: string,
-    rewardToken: string
+    rewardToken: string,
+    publishTxHash?: string
   ): Promise<WithdrawalFacts | { error: string }> {
     try {
       if (chain.type === ChainType.SVM) {
         return await this.verifySvm(chain, intentHash, settlementTxHash, rewardToken);
       }
       if (chain.type === ChainType.EVM) {
-        return await this.verifyEvm(chain, settlementTxHash, rewardToken);
+        return await this.verifyEvm(
+          chain,
+          intentHash,
+          settlementTxHash,
+          rewardToken,
+          publishTxHash
+        );
       }
       return { error: `withdrawal verification not supported for ${chain.type}` };
     } catch (error) {
@@ -106,8 +135,10 @@ export class WithdrawalVerifierService {
    */
   private async verifyEvm(
     chain: ChainConfig,
+    intentHash: string,
     txHash: string,
-    rewardToken: string
+    rewardToken: string,
+    publishTxHash?: string
   ): Promise<WithdrawalFacts | { error: string }> {
     const viemChain = Object.values(viemChains).find((c: Chain) => c.id === Number(chain.id)) as
       | Chain
@@ -119,6 +150,79 @@ export class WithdrawalVerifierService {
       transport: http(this.rpc.getUrl(chain)),
     });
     const receipt = await client.getTransactionReceipt({ hash: txHash as Hex });
+
+    if (isNativeReward(chain.type, rewardToken)) {
+      if (!chain.portalAddress) {
+        return { error: `No Portal address configured for chain ${chain.id}` };
+      }
+      if (!publishTxHash) {
+        return { error: 'publish transaction hash required for native EVM verification' };
+      }
+      if (receipt.blockNumber === 0n) {
+        return { error: 'cannot verify native vault balance at genesis block' };
+      }
+
+      const portalAddress = AddressNormalizer.denormalize(
+        chain.portalAddress as UniversalAddress,
+        ChainType.EVM
+      );
+      let claimant: string | undefined;
+      for (const log of receipt.logs) {
+        if (log.address.toLowerCase() !== portalAddress.toLowerCase()) continue;
+        try {
+          const decoded = decodeEventLog({ abi: portalAbi, data: log.data, topics: log.topics });
+          if (decoded.eventName !== 'IntentWithdrawn') continue;
+          const args = decoded.args as { intentHash: Hex; claimant: string };
+          if (args.intentHash.toLowerCase() !== intentHash.toLowerCase()) continue;
+          claimant = getAddress(args.claimant as Hex);
+          break;
+        } catch {
+          continue;
+        }
+      }
+      if (!claimant) {
+        return { error: `no matching IntentWithdrawn event for ${intentHash}` };
+      }
+
+      const publishTx = await client.getTransaction({ hash: publishTxHash as Hex });
+      if (!publishTx.to || publishTx.to.toLowerCase() !== portalAddress.toLowerCase()) {
+        return { error: 'publish transaction target does not match configured Portal' };
+      }
+
+      let decodedPublish;
+      try {
+        decodedPublish = decodeFunctionData({
+          abi: nativeEvmVaultAbi,
+          data: publishTx.input,
+        });
+      } catch {
+        return { error: 'could not decode native publishAndFund transaction' };
+      }
+      if (decodedPublish.functionName !== 'publishAndFund') {
+        return { error: 'publish transaction is not publishAndFund' };
+      }
+      const [destination, route, reward] = decodedPublish.args;
+      const vault = await client.readContract({
+        address: portalAddress,
+        abi: nativeEvmVaultAbi,
+        functionName: 'intentVaultAddress',
+        args: [destination, route, reward],
+      });
+      const before = await client.getBalance({
+        address: vault,
+        blockNumber: receipt.blockNumber - 1n,
+      });
+      const after = await client.getBalance({
+        address: vault,
+        blockNumber: receipt.blockNumber,
+      });
+      const withdrawnAmount = positiveBalanceDebit(before, after);
+      if (withdrawnAmount === null) {
+        return { error: `native intent vault ${vault} did not decrease` };
+      }
+
+      return { withdrawnAmount, claimant };
+    }
 
     const rewardTokenAddr = getAddress(rewardToken).toLowerCase();
     let best: { to: string; value: bigint } | null = null;

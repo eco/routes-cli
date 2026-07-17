@@ -13,6 +13,7 @@ const EVM_ACTOR = '0x000000000000000000000000000000000000dEaD';
 const SVM_ACTOR = '3vvcFp6rUuTrrYK7SSqQKeYYiwvZXWmMnmgLfXDKgAu6';
 const EVM_KEY = `0x${'11'.repeat(32)}`;
 const EVM_ADDRESS = privateKeyToAccount(EVM_KEY as `0x${string}`).address;
+const INTENT_HASH = `0x${'22'.repeat(32)}`;
 const SVM_KEYPAIR = Keypair.fromSeed(new Uint8Array(32).fill(7));
 const SVM_KEY = JSON.stringify(Array.from(SVM_KEYPAIR.secretKey));
 const SVM_ADDRESS = SVM_KEYPAIR.publicKey.toBase58();
@@ -24,6 +25,7 @@ function makeService(
   service: MatrixService;
   publisherFactory: { create: jest.Mock };
   statusService: { getStatus: jest.Mock };
+  withdrawalVerifier: { verify: jest.Mock };
 } {
   const chainsById = new Map([
     [8453n, { id: 8453n, name: 'Base', type: ChainType.EVM }],
@@ -39,6 +41,7 @@ function makeService(
   };
   const publisherFactory = { create: jest.fn() };
   const statusService = { getStatus: jest.fn() };
+  const withdrawalVerifier = { verify: jest.fn() };
   const display = { log: jest.fn() };
   const service = new MatrixService(
     chains as never,
@@ -49,10 +52,10 @@ function makeService(
     {} as never,
     statusService as never,
     {} as never,
-    {} as never,
+    withdrawalVerifier as never,
     display as never
   );
-  return { service, publisherFactory, statusService };
+  return { service, publisherFactory, statusService, withdrawalVerifier };
 }
 
 describe('MatrixService quote-only mode', () => {
@@ -176,5 +179,50 @@ describe('MatrixService settlement recipients', () => {
       phase: 'PUBLISH_FAILED',
       error: `No recipient key configured for ${ChainType.SVM}`,
     });
+  });
+});
+
+describe('MatrixService withdrawal verification inputs', () => {
+  it('passes the recorded publish transaction hash to the withdrawal verifier', async () => {
+    const { service, withdrawalVerifier } = makeService(jest.fn(), {
+      [ChainType.EVM]: EVM_KEY,
+    });
+    withdrawalVerifier.verify.mockResolvedValue({
+      withdrawnAmount: 600_000_000_000_000n,
+      claimant: '0x00000000000000000000000000000000000000b2',
+    });
+    const pair = {
+      id: 'native-evm',
+      label: 'ETH Base -> USDC Arbitrum',
+      sourceChainId: 8453,
+      destinationChainId: 42161,
+      inputToken: '0x0000000000000000000000000000000000000000',
+      outputToken: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+      amount: '0.0006',
+      inputDecimals: 18,
+    };
+    const row = {
+      intentHash: INTENT_HASH,
+      publishTxHash: '0xpublish',
+    };
+    const chain = {
+      id: 8453n,
+      type: ChainType.EVM,
+    };
+    const status = { fulfilled: true, fulfillmentTxHash: '0xsettlement' };
+
+    await (
+      service as unknown as {
+        verifyWithdrawal: (...args: unknown[]) => Promise<void>;
+      }
+    ).verifyWithdrawal(pair, row, chain, status, {}, '[1/1]');
+
+    expect(withdrawalVerifier.verify).toHaveBeenCalledWith(
+      chain,
+      INTENT_HASH,
+      '0xsettlement',
+      pair.inputToken,
+      '0xpublish'
+    );
   });
 });

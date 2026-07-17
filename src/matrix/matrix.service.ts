@@ -459,7 +459,8 @@ export class MatrixService {
       chain,
       row.intentHash!,
       status.fulfillmentTxHash,
-      pair.inputToken
+      pair.inputToken,
+      row.publishTxHash
     );
 
     if ('error' in facts) {
