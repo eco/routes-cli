@@ -1,0 +1,19 @@
+{
+  "quoteActors": {
+    "evm": "0x000000000000000000000000000000000000dEaD",
+    "svm": "3vvcFp6rUuTrrYK7SSqQKeYYiwvZXWmMnmgLfXDKgAu6"
+  },
+  "pairs": [
+    {
+      "id": "SS-2",
+      "label": "ETH Base -> USDC Solana",
+      "sourceChainId": 8453,
+      "destinationChainId": 1399811149,
+      "inputToken": "0x0000000000000000000000000000000000000000",
+      "outputToken": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "amount": "0.0003",
+      "inputDecimals": 18,
+      "path": "source-swap"
+    }
+  ]
+}

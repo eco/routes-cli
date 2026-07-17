@@ -10,6 +10,7 @@ import {
   evmGasCost,
   pairToQuoteRequest,
   percentile,
+  resolvePairRoute,
   svmGasCost,
 } from '@/matrix/matrix.util';
 
@@ -73,6 +74,40 @@ describe('pairToQuoteRequest', () => {
   it('omits slippageBps when not provided', () => {
     const req = pairToQuoteRequest(pair, '0xf', '0xr');
     expect(req.slippageBps).toBeUndefined();
+  });
+
+  it('keeps legacy chainId pairs on the same source and destination chain', () => {
+    expect(resolvePairRoute(pair)).toEqual({ sourceChainId: 8453, destinationChainId: 8453 });
+  });
+
+  it('maps explicit source and destination chains for A2A quotes', () => {
+    const a2aPair: MatrixPairConfig = {
+      sourceChainId: 8453,
+      destinationChainId: 42161,
+      inputToken: '0xInput',
+      outputToken: '0xOutput',
+      amount: '0.1',
+      label: 'Base ETH -> Arbitrum USDC',
+    };
+
+    expect(resolvePairRoute(a2aPair)).toEqual({
+      sourceChainId: 8453,
+      destinationChainId: 42161,
+    });
+    const request = pairToQuoteRequest(a2aPair, '0xfunder', '0xrecipient');
+    expect(request.source).toBe(8453n);
+    expect(request.destination).toBe(42161n);
+  });
+
+  it('rejects a pair without a legacy or explicit source chain', () => {
+    const invalid = {
+      inputToken: '0xInput',
+      outputToken: '0xOutput',
+      amount: '1',
+      label: 'missing source',
+    } as MatrixPairConfig;
+
+    expect(() => resolvePairRoute(invalid)).toThrow('missing sourceChainId/chainId');
   });
 });
 

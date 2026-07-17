@@ -13,6 +13,12 @@ export interface QuoteRequest {
   recipient: string;
   routeToken: string;
   rewardToken: string;
+  /**
+   * Slippage tolerance in basis points (1-10000) for destination swaps.
+   * Honored by the solver only for non-stable (DEX) swaps; ignored for
+   * stable/no-swap quotes. Omitted => solver provider default.
+   */
+  slippageBps?: number;
 }
 
 export interface QuoteResult {
@@ -27,6 +33,20 @@ export interface QuoteResult {
   destinationChainId?: number;
   receivedAt: number; // Unix ms — when the CLI received the quote response
   quoteId?: string; // Present for gateway (server) and solver-v2 (client-generated) shapes
+  solverId?: string; // Present when the gateway identifies the responding solver
+  elapsedMs: number;
+}
+
+export class QuoteHttpError extends Error {
+  override readonly name = 'QuoteHttpError';
+
+  constructor(
+    public readonly status: number,
+    public readonly body: unknown,
+    public readonly elapsedMs: number
+  ) {
+    super(`quote HTTP ${status}`);
+  }
 }
 
 // Internal API response types
@@ -98,10 +118,18 @@ interface QuoteRequestPayload {
     destinationToken: string;
     sourceAmount: string;
     funder: string;
+    refundRecipient: string;
     recipient: string;
+    // solver-v2 reads slippage from inside quoteRequest (QuoteRequestInnerSchema).
+    slippageBps?: number;
   };
   quoteID?: string;
   intentExecutionTypes?: string[];
+  // The eco-quotes swap endpoint (/exactIn/swap, SwapRequestV3DTO) reads slippage
+  // at the top level, then copies it into quoteRequest before calling the solver.
+  // Both schemas strip unknown keys, so sending it in both places is safe and
+  // makes slippage work regardless of which endpoint the CLI is pointed at.
+  slippageBps?: number;
 }
 
 @Injectable()
@@ -125,8 +153,12 @@ export class QuoteService {
         destinationToken: params.routeToken,
         sourceAmount: params.amount.toString(),
         funder: params.funder,
+        refundRecipient: params.funder,
         recipient: params.recipient,
+        ...(params.slippageBps !== undefined && { slippageBps: params.slippageBps }),
       },
+      // Top-level copy for the eco-quotes swap endpoint (see QuoteRequestPayload).
+      ...(params.slippageBps !== undefined && { slippageBps: params.slippageBps }),
     };
 
     if (isSolverV2) {
@@ -151,15 +183,15 @@ export class QuoteService {
       body: JSON.stringify(request),
     });
 
-    const elapsed = (performance.now() - startTime).toFixed(2);
+    const elapsedMs = Number((performance.now() - startTime).toFixed(2));
 
     const receivedAt = Date.now();
     const raw = (await response.json()) as RawQuoteResponse;
     if (this.config.isDebug()) {
-      this.display.log(`[DEBUG] Quote response time: ${elapsed}ms`);
+      this.display.log(`[DEBUG] Quote response time: ${elapsedMs}ms`);
       this.display.log(`[DEBUG] Quote response: ${JSON.stringify(raw)}`);
     }
-    if (!response.ok) throw new Error(JSON.stringify(raw));
+    if (!response.ok) throw new QuoteHttpError(response.status, raw, elapsedMs);
 
     // The Eco swap service (…/exactIn/swap) returns the gateway array shape
     // (`data: [{ quoteData }]`) whether it's reached via API_GATEWAY_URL or via
@@ -190,6 +222,8 @@ export class QuoteService {
         destinationChainId: q.destinationChainID,
         receivedAt,
         quoteId: entry.quoteID,
+        solverId: entry.solverID,
+        elapsedMs,
       };
     }
 
@@ -219,6 +253,7 @@ export class QuoteService {
         destinationChainId: q.destinationChainID,
         receivedAt,
         quoteId: request.quoteID,
+        elapsedMs,
       };
     }
 
@@ -236,6 +271,7 @@ export class QuoteService {
       intentExecutionType: data.quoteResponse.intentExecutionType,
       destinationPortalAddress: data.contracts.destinationPortal,
       receivedAt,
+      elapsedMs,
     };
   }
 }

@@ -10,7 +10,14 @@
 
 /** One configured same-chain swap. `amount` is a HUMAN-decimal string, e.g. "0.1". */
 export interface MatrixPairConfig {
-  chainId: number;
+  /** Stable scenario identifier, e.g. SS-1. */
+  id?: string;
+  /** Legacy same-chain shorthand. Required unless sourceChainId is provided. */
+  chainId?: number;
+  /** Explicit source chain for cross-chain quote matrices. */
+  sourceChainId?: number;
+  /** Explicit destination chain. Defaults to chainId/sourceChainId. */
+  destinationChainId?: number;
   /** Reward token the funder locks (native per-chain address). */
   inputToken: string;
   /** Route token the recipient receives (native per-chain address). */
@@ -22,6 +29,8 @@ export interface MatrixPairConfig {
   inputDecimals?: number;
   /** Optional per-pair slippage override (bps). */
   slippageBps?: number;
+  /** Route classification used in quote-matrix reports. */
+  path?: 'no-swap' | 'source-swap' | 'dest-swap' | 'any-to-any';
   /**
    * Expected reward claimant (the solver-controlled address the withdrawn reward
    * MUST settle to). Overrides the top-level `expectedClaimants[chainId]`.
@@ -32,6 +41,12 @@ export interface MatrixPairConfig {
 
 export interface MatrixConfigFile {
   pairs: MatrixPairConfig[];
+  /** Public, non-signing identities used only to construct quote requests. */
+  quoteActors?: {
+    evm: string;
+    svm: string;
+    tvm?: string;
+  };
   /** Per-chain default expected claimant, keyed by chainId (as a string). */
   expectedClaimants?: Record<string, string>;
 }
@@ -39,6 +54,7 @@ export interface MatrixConfigFile {
 /** Terminal phase state for a pair. */
 export type MatrixPhase =
   | 'PENDING'
+  | 'QUOTED'
   | 'QUOTE_FAILED'
   | 'PUBLISH_FAILED'
   | 'SUBMITTED'
@@ -60,8 +76,12 @@ export interface GasCost {
 }
 
 export interface MatrixRow {
+  id?: string;
   label: string;
+  path?: MatrixPairConfig['path'];
   chainId: number;
+  destinationChainId?: number;
+  destinationChainName?: string;
   chainName: string;
   chainType: string;
   inputToken: string;
@@ -69,6 +89,12 @@ export interface MatrixRow {
   amount: string;
   phase: MatrixPhase;
   quoteOk: boolean;
+  quoteLatencyMs?: number;
+  quoteHttpStatus?: number;
+  quoteResponseBody?: unknown;
+  quoteId?: string;
+  solverId?: string;
+  prover?: string;
   intentHash?: string;
   /** Portal the intent was funded against (from the quote), for status polling. */
   sourcePortal?: string;

@@ -1,0 +1,107 @@
+{
+  "quoteActors": {
+    "evm": "0x62b2Ac83E0C8666d9bE4e75B99C0E96c822d23E1",
+    "svm": "3vvcFp6rUuTrrYK7SSqQKeYYiwvZXWmMnmgLfXDKgAu6"
+  },
+  "pairs": [
+    {
+      "id": "SS-1",
+      "label": "ETH Base -> USDC Arbitrum",
+      "path": "source-swap",
+      "sourceChainId": 8453,
+      "destinationChainId": 42161,
+      "inputToken": "0x0000000000000000000000000000000000000000",
+      "outputToken": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+      "amount": "0.0003",
+      "inputDecimals": 18
+    },
+    {
+      "id": "SS-2",
+      "label": "ETH Base -> USDC Solana",
+      "path": "source-swap",
+      "sourceChainId": 8453,
+      "destinationChainId": 1399811149,
+      "inputToken": "0x0000000000000000000000000000000000000000",
+      "outputToken": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "amount": "0.0003",
+      "inputDecimals": 18
+    },
+    {
+      "id": "SS-3",
+      "label": "USDC Base -> ETH Arbitrum",
+      "path": "dest-swap",
+      "sourceChainId": 8453,
+      "destinationChainId": 42161,
+      "inputToken": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "outputToken": "0x0000000000000000000000000000000000000000",
+      "amount": "1",
+      "inputDecimals": 6
+    },
+    {
+      "id": "SS-4",
+      "label": "USDC Base -> SOL Solana",
+      "path": "dest-swap",
+      "sourceChainId": 8453,
+      "destinationChainId": 1399811149,
+      "inputToken": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "outputToken": "So11111111111111111111111111111111111111112",
+      "amount": "1",
+      "inputDecimals": 6
+    },
+    {
+      "id": "SS-5",
+      "label": "ETH Base -> ARB Arbitrum",
+      "path": "any-to-any",
+      "sourceChainId": 8453,
+      "destinationChainId": 42161,
+      "inputToken": "0x0000000000000000000000000000000000000000",
+      "outputToken": "0x912CE59144191C1204E64559FE8253a0e49E6548",
+      "amount": "0.0003",
+      "inputDecimals": 18
+    },
+    {
+      "id": "SS-6",
+      "label": "ETH Base -> SOL Solana",
+      "path": "any-to-any",
+      "sourceChainId": 8453,
+      "destinationChainId": 1399811149,
+      "inputToken": "0x0000000000000000000000000000000000000000",
+      "outputToken": "So11111111111111111111111111111111111111112",
+      "amount": "0.0003",
+      "inputDecimals": 18
+    },
+    {
+      "id": "SS-7",
+      "label": "SOL Solana -> USDC Base",
+      "path": "source-swap",
+      "sourceChainId": 1399811149,
+      "destinationChainId": 8453,
+      "inputToken": "11111111111111111111111111111111",
+      "outputToken": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "amount": "0.012",
+      "inputDecimals": 9
+    },
+    {
+      "id": "SS-8",
+      "label": "SOL Solana -> ETH Base",
+      "path": "any-to-any",
+      "sourceChainId": 1399811149,
+      "destinationChainId": 8453,
+      "inputToken": "11111111111111111111111111111111",
+      "outputToken": "0x0000000000000000000000000000000000000000",
+      "amount": "0.012",
+      "inputDecimals": 9
+    },
+    {
+      "id": "SS-10",
+      "label": "ETH Arbitrum -> USDC Base control",
+      "path": "source-swap",
+      "sourceChainId": 42161,
+      "destinationChainId": 8453,
+      "inputToken": "0x0000000000000000000000000000000000000000",
+      "outputToken": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "amount": "0.0003",
+      "inputDecimals": 18
+    }
+  ]
+}

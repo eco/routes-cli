@@ -9,12 +9,13 @@ import { DisplayService } from '../services/display.service';
 interface MatrixOptions {
   config?: string;
   timeout?: number;
+  quoteOnly?: boolean;
 }
 
 @Injectable()
 @Command({
   name: 'matrix',
-  description: 'Run a config-driven batch of same-chain (local) swaps and report settlement',
+  description: 'Run a config-driven route matrix in quote-only or settlement mode',
 })
 export class MatrixCommand extends CommandRunner {
   constructor(
@@ -25,10 +26,11 @@ export class MatrixCommand extends CommandRunner {
   }
 
   async run(_inputs: string[], options: MatrixOptions): Promise<void> {
-    this.display.title('🧪 Same-chain Swap Matrix');
+    this.display.title(options.quoteOnly ? '🧪 Quote Route Matrix' : '🧪 Swap Settlement Matrix');
     await this.matrixService.run({
       configPath: options.config,
       timeoutSec: options.timeout,
+      quoteOnly: options.quoteOnly,
     });
   }
 
@@ -50,5 +52,13 @@ export class MatrixCommand extends CommandRunner {
       throw new Error(`Invalid --timeout "${val}": expected a positive integer (seconds)`);
     }
     return parsed;
+  }
+
+  @Option({
+    flags: '--quote-only',
+    description: 'Request and report quotes only; never publish or poll intents',
+  })
+  parseQuoteOnly(): boolean {
+    return true;
   }
 }

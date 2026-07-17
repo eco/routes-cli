@@ -26,7 +26,7 @@ import { assertLocalSwapTokensDiffer } from '@/cli/commands/local-swap.guard';
 import { DisplayService } from '@/cli/services/display.service';
 import { ConfigService } from '@/config/config.service';
 import { IntentBuilder } from '@/intent/intent-builder.service';
-import { QuoteResult, QuoteService } from '@/quote/quote.service';
+import { QuoteHttpError, QuoteResult, QuoteService } from '@/quote/quote.service';
 import { deriveAddress, KeyHandle } from '@/shared/security';
 import { BlockchainAddress, ChainConfig, ChainType, UniversalAddress } from '@/shared/types';
 import { IntentStatus, StatusService } from '@/status/status.service';
@@ -38,6 +38,7 @@ import {
   assertWithdrawal,
   DEFAULT_TOKEN_DECIMALS,
   pairToQuoteRequest,
+  resolvePairRoute,
 } from './matrix.util';
 import { WithdrawalVerifierService } from './withdrawal-verifier.service';
 
@@ -47,6 +48,7 @@ const DEFAULT_TIMEOUT_SEC = 180;
 export interface MatrixRunOptions {
   configPath?: string;
   timeoutSec?: number;
+  quoteOnly?: boolean;
 }
 
 @Injectable()
@@ -67,7 +69,7 @@ export class MatrixService {
   async run(options: MatrixRunOptions = {}): Promise<MatrixReport> {
     const configPath = options.configPath ?? DEFAULT_CONFIG_PATH;
     const timeoutSec = options.timeoutSec ?? DEFAULT_TIMEOUT_SEC;
-    const { pairs, expectedClaimants } = this.loadConfig(configPath);
+    const { pairs, expectedClaimants, quoteActors } = this.loadConfig(configPath);
 
     const runId = new Date().toISOString().replace(/[:.]/g, '-');
     const outDir = join(process.cwd(), 'results', `matrix-${runId}`);
@@ -98,8 +100,31 @@ export class MatrixService {
 
     await persist();
     this.display.log(
-      `Matrix: ${pairs.length} same-chain swaps | timeout=${timeoutSec}s | report=${reportPath}`
+      `Matrix: ${pairs.length} routes | mode=${options.quoteOnly ? 'quote-only' : 'settlement'} | ` +
+        `timeout=${timeoutSec}s | report=${reportPath}`
     );
+
+    if (options.quoteOnly) {
+      if (!quoteActors) throw new Error(`Matrix config ${configPath} has no quoteActors`);
+      for (let i = 0; i < pairs.length; i++) {
+        await this.quotePair(pairs[i], rows[i], quoteActors, i, pairs.length);
+        await persist();
+      }
+      const aggregateResult = aggregate(rows);
+      this.display.log(
+        `Done. quoted=${rows.filter(row => row.quoteOk).length}/${aggregateResult.total} ` +
+          `quoteFailures=${aggregateResult.quoteFailures} | report=${reportPath}`
+      );
+      return {
+        runId,
+        configPath,
+        timeoutSec,
+        startedAt,
+        updatedAt: new Date().toISOString(),
+        rows,
+        aggregate: aggregateResult,
+      };
+    }
 
     // Phase 1: submit all sequentially.
     for (let i = 0; i < pairs.length; i++) {
@@ -158,21 +183,32 @@ export class MatrixService {
   private loadConfig(configPath: string): {
     pairs: MatrixPairConfig[];
     expectedClaimants: Record<string, string>;
+    quoteActors?: MatrixConfigFile['quoteActors'];
   } {
     const raw = readFileSync(join(process.cwd(), configPath), 'utf8');
     const parsed = JSON.parse(raw) as MatrixConfigFile;
     if (!parsed.pairs || !Array.isArray(parsed.pairs) || parsed.pairs.length === 0) {
       throw new Error(`Matrix config ${configPath} has no pairs`);
     }
-    return { pairs: parsed.pairs, expectedClaimants: parsed.expectedClaimants ?? {} };
+    return {
+      pairs: parsed.pairs,
+      expectedClaimants: parsed.expectedClaimants ?? {},
+      quoteActors: parsed.quoteActors,
+    };
   }
 
   private initRow(pair: MatrixPairConfig): MatrixRow {
-    const chain = this.chains.findChainById(BigInt(pair.chainId));
+    const { sourceChainId, destinationChainId } = resolvePairRoute(pair);
+    const chain = this.chains.findChainById(BigInt(sourceChainId));
+    const destinationChain = this.chains.findChainById(BigInt(destinationChainId));
     return {
+      id: pair.id,
       label: pair.label,
-      chainId: pair.chainId,
-      chainName: chain?.name ?? String(pair.chainId),
+      path: pair.path,
+      chainId: sourceChainId,
+      destinationChainId,
+      destinationChainName: destinationChain?.name ?? String(destinationChainId),
+      chainName: chain?.name ?? String(sourceChainId),
       chainType: chain?.type ?? 'UNKNOWN',
       inputToken: pair.inputToken,
       outputToken: pair.outputToken,
@@ -186,6 +222,47 @@ export class MatrixService {
     };
   }
 
+  private async quotePair(
+    pair: MatrixPairConfig,
+    row: MatrixRow,
+    actors: NonNullable<MatrixConfigFile['quoteActors']>,
+    index: number,
+    total: number
+  ): Promise<void> {
+    const tag = `[${index + 1}/${total}] ${pair.label}`;
+    const { sourceChainId, destinationChainId } = resolvePairRoute(pair);
+    const source = this.chains.getChainById(BigInt(sourceChainId));
+    const destination = this.chains.getChainById(BigInt(destinationChainId));
+    const actorFor = (type: string): string | undefined =>
+      actors[type.toLowerCase() as keyof typeof actors];
+    const funder = actorFor(source.type);
+    const recipient = actorFor(destination.type);
+    if (!funder || !recipient) {
+      throw new Error(`${pair.label}: missing quote actor for ${source.type}/${destination.type}`);
+    }
+
+    try {
+      const quote = await this.quoteService.getQuote(pairToQuoteRequest(pair, funder, recipient));
+      row.phase = 'QUOTED';
+      row.quoteOk = true;
+      row.quoteLatencyMs = quote.elapsedMs;
+      row.quoteId = quote.quoteId;
+      row.solverId = quote.solverId;
+      row.sourcePortal = quote.sourcePortal;
+      row.prover = quote.prover;
+      this.display.log(`${tag}  QUOTED (${quote.elapsedMs}ms)`);
+    } catch (error) {
+      row.phase = 'QUOTE_FAILED';
+      row.error = errMsg(error);
+      if (error instanceof QuoteHttpError) {
+        row.quoteHttpStatus = error.status;
+        row.quoteLatencyMs = error.elapsedMs;
+        row.quoteResponseBody = error.body;
+      }
+      this.display.log(`${tag}  QUOTE_FAILED (${row.error})`);
+    }
+  }
+
   private async submitPair(
     pair: MatrixPairConfig,
     row: MatrixRow,
@@ -194,12 +271,15 @@ export class MatrixService {
   ): Promise<void> {
     const tag = `[${index + 1}/${total}] ${pair.label}`;
     try {
-      const chain = this.chains.getChainById(BigInt(pair.chainId));
+      const { sourceChainId, destinationChainId: configuredDestinationChainId } =
+        resolvePairRoute(pair);
+      const chain = this.chains.getChainById(BigInt(sourceChainId));
+      const destinationChain = this.chains.getChainById(BigInt(configuredDestinationChainId));
 
       // Same-chain no-op guard (mirrors publish.command).
       assertLocalSwapTokensDiffer({
-        sourceChainId: chain.id,
-        destChainId: chain.id,
+        sourceChainId: BigInt(sourceChainId),
+        destChainId: BigInt(configuredDestinationChainId),
         chainName: chain.name,
         rewardToken: { address: pair.inputToken },
         routeToken: { address: pair.outputToken },
@@ -209,13 +289,19 @@ export class MatrixService {
       if (!funderKey) throw new Error(`No funder key configured for ${chain.type}`);
       const funder = deriveAddress(funderKey, chain.type);
 
+      const recipientKey = this.resolveKey(destinationChain.type);
+      if (!recipientKey) {
+        throw new Error(`No recipient key configured for ${destinationChain.type}`);
+      }
+      const recipient = deriveAddress(recipientKey, destinationChain.type);
+
       const decimals = pair.inputDecimals ?? DEFAULT_TOKEN_DECIMALS;
       const rewardAmount = parseUnits(pair.amount, decimals);
 
-      // Quote (funder == recipient: solver-controlled inventory wallet on both sides).
+      // Quote with controlled wallets encoded for their respective source/destination VMs.
       let quote: QuoteResult;
       try {
-        quote = await this.quoteService.getQuote(pairToQuoteRequest(pair, funder, funder));
+        quote = await this.quoteService.getQuote(pairToQuoteRequest(pair, funder, recipient));
         row.quoteOk = true;
       } catch (error) {
         row.phase = 'QUOTE_FAILED';
@@ -284,7 +370,8 @@ export class MatrixService {
     total: number
   ): Promise<void> {
     const tag = `[${index + 1}/${total}] ${pair.label}`;
-    const chain = this.chains.getChainById(BigInt(pair.chainId));
+    const { sourceChainId } = resolvePairRoute(pair);
+    const chain = this.chains.getChainById(BigInt(sourceChainId));
 
     // getStatus is implemented for EVM (Portal events) and SVM (fulfill-marker PDA).
     // TVM has no getStatus yet — skip its poll rather than throw.
@@ -364,7 +451,8 @@ export class MatrixService {
 
     const decimals = pair.inputDecimals ?? DEFAULT_TOKEN_DECIMALS;
     const expectedAmount = parseUnits(pair.amount, decimals);
-    const expectedClaimant = pair.expectedClaimant ?? expectedClaimants[String(pair.chainId)];
+    const { sourceChainId } = resolvePairRoute(pair);
+    const expectedClaimant = pair.expectedClaimant ?? expectedClaimants[String(sourceChainId)];
     const funder = deriveAddress(this.resolveKey(chain.type)!, chain.type);
 
     const facts = await this.withdrawalVerifier.verify(

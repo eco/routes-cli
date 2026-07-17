@@ -34,6 +34,7 @@ pnpm-debug.log*
 # Testing
 coverage/
 .nyc_output/
+results/
 
 CLAUDE.md
 thoughts/

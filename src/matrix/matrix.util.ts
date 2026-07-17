@@ -13,6 +13,21 @@ import { GasCost, MatrixAggregate, MatrixPairConfig, MatrixRow } from './matrix.
 /** Default token decimals when a pair omits `inputDecimals` (USDC/USDG/AUSD are 6). */
 export const DEFAULT_TOKEN_DECIMALS = 6;
 
+/** Resolve legacy same-chain pairs and explicit cross-chain pairs to one route shape. */
+export function resolvePairRoute(pair: MatrixPairConfig): {
+  sourceChainId: number;
+  destinationChainId: number;
+} {
+  const sourceChainId = pair.sourceChainId ?? pair.chainId;
+  if (sourceChainId === undefined) {
+    throw new Error(`${pair.label}: missing sourceChainId/chainId`);
+  }
+  return {
+    sourceChainId,
+    destinationChainId: pair.destinationChainId ?? pair.chainId ?? sourceChainId,
+  };
+}
+
 /**
  * Map a same-chain pair to a QuoteService request. Source == destination ==
  * chainId; the funder locks `inputToken` (reward) and the recipient receives
@@ -25,10 +40,10 @@ export function pairToQuoteRequest(
   recipient: string
 ): QuoteRequest {
   const decimals = pair.inputDecimals ?? DEFAULT_TOKEN_DECIMALS;
-  const chainId = BigInt(pair.chainId);
+  const { sourceChainId, destinationChainId } = resolvePairRoute(pair);
   return {
-    source: chainId,
-    destination: chainId, // same-chain (local) swap
+    source: BigInt(sourceChainId),
+    destination: BigInt(destinationChainId),
     amount: parseUnits(pair.amount, decimals),
     funder,
     recipient,
