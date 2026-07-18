@@ -261,7 +261,8 @@ export class MatrixService {
         promoted.intent.withdrawnEvent.txHash,
         rewardToken,
         undefined,
-        expectedAmount
+        expectedAmount,
+        row.sourcePortal as UniversalAddress | undefined
       );
       if ('error' in facts) {
         row.phase = 'WITHDRAWAL_MISMATCH';
@@ -700,7 +701,8 @@ export class MatrixService {
       status.fulfillmentTxHash,
       pair.inputToken,
       row.publishTxHash,
-      expectedAmount
+      expectedAmount,
+      row.sourcePortal as UniversalAddress | undefined
     );
 
     if ('error' in facts) {

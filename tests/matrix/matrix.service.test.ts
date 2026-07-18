@@ -220,6 +220,7 @@ describe('MatrixService withdrawal verification inputs', () => {
     const row = {
       intentHash: INTENT_HASH,
       publishTxHash: '0xpublish',
+      sourcePortal: `0x${'aa'.repeat(32)}`,
       withdrawalVerified: false,
       sourceWithdrawalVerified: false,
     };
@@ -241,7 +242,8 @@ describe('MatrixService withdrawal verification inputs', () => {
       '0xsettlement',
       pair.inputToken,
       '0xpublish',
-      600_000_000_000_000n
+      600_000_000_000_000n,
+      row.sourcePortal
     );
     expect(row).toMatchObject({ withdrawalVerified: false });
   });
@@ -324,7 +326,8 @@ describe('MatrixService withdrawal verification inputs', () => {
       '0xwithdrawal',
       '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
       undefined,
-      1_000_000n
+      1_000_000n,
+      undefined
     );
     expect(report.rows[0]).toMatchObject({
       phase: 'SUCCEEDED',

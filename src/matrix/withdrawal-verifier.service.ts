@@ -69,11 +69,18 @@ export class WithdrawalVerifierService {
     settlementTxHash: string,
     rewardToken: string,
     publishTxHash?: string,
-    expectedAmount?: bigint
+    expectedAmount?: bigint,
+    portalAddress?: UniversalAddress
   ): Promise<WithdrawalFacts | { error: string }> {
     try {
       if (chain.type === ChainType.SVM) {
-        return await this.verifySvm(chain, intentHash, settlementTxHash, rewardToken);
+        return await this.verifySvm(
+          chain,
+          intentHash,
+          settlementTxHash,
+          rewardToken,
+          portalAddress
+        );
       }
       if (chain.type === ChainType.EVM) {
         return await this.verifyEvm(
@@ -82,7 +89,8 @@ export class WithdrawalVerifierService {
           settlementTxHash,
           rewardToken,
           publishTxHash,
-          expectedAmount
+          expectedAmount,
+          portalAddress
         );
       }
       return { error: `withdrawal verification not supported for ${chain.type}` };
@@ -101,7 +109,8 @@ export class WithdrawalVerifierService {
     chain: ChainConfig,
     intentHash: string,
     txHash: string,
-    rewardToken: string
+    rewardToken: string,
+    portalAddress?: UniversalAddress
   ): Promise<WithdrawalFacts | { error: string }> {
     const connection = new Connection(this.rpc.getUrl(chain), 'confirmed');
     const tx = await connection.getTransaction(txHash, { maxSupportedTransactionVersion: 0 });
@@ -110,7 +119,7 @@ export class WithdrawalVerifierService {
     const pre = (tx.meta.preTokenBalances ?? []) as unknown as SvmTokenBalanceEntry[];
     const post = (tx.meta.postTokenBalances ?? []) as unknown as SvmTokenBalanceEntry[];
 
-    const portalProgramId = this.svmPortalProgramId(chain);
+    const portalProgramId = this.svmPortalProgramId(chain, portalAddress);
     const vaultOwner = calculateVaultPDA(intentHash, portalProgramId).toBase58();
     const claimant = this.svmWithdrawalClaimant(tx.meta.logMessages ?? [], intentHash);
     if (!claimant) {
@@ -175,7 +184,8 @@ export class WithdrawalVerifierService {
     txHash: string,
     rewardToken: string,
     publishTxHash?: string,
-    expectedAmount?: bigint
+    expectedAmount?: bigint,
+    portalAddressOverride?: UniversalAddress
   ): Promise<WithdrawalFacts | { error: string }> {
     const viemChain = Object.values(viemChains).find((c: Chain) => c.id === Number(chain.id)) as
       | Chain
@@ -187,13 +197,11 @@ export class WithdrawalVerifierService {
       transport: http(this.rpc.getUrl(chain)),
     });
     const receipt = await client.getTransactionReceipt({ hash: txHash as Hex });
-    if (!chain.portalAddress) {
+    const configuredPortal = portalAddressOverride ?? chain.portalAddress;
+    if (!configuredPortal) {
       return { error: `No Portal address configured for chain ${chain.id}` };
     }
-    const portalAddress = AddressNormalizer.denormalize(
-      chain.portalAddress as UniversalAddress,
-      ChainType.EVM
-    );
+    const portalAddress = AddressNormalizer.denormalize(configuredPortal, ChainType.EVM);
     let claimant: string | undefined;
     for (const log of receipt.logs) {
       if (log.address.toLowerCase() !== portalAddress.toLowerCase()) continue;
@@ -289,13 +297,15 @@ export class WithdrawalVerifierService {
     return { withdrawnAmount: best.value, claimant };
   }
 
-  private svmPortalProgramId(chain: ChainConfig): PublicKey {
-    if (!chain.portalAddress) {
+  private svmPortalProgramId(
+    chain: ChainConfig,
+    portalAddressOverride?: UniversalAddress
+  ): PublicKey {
+    const portalAddress = portalAddressOverride ?? chain.portalAddress;
+    if (!portalAddress) {
       throw new Error(`No Portal address configured for chain ${chain.id}`);
     }
-    return new PublicKey(
-      AddressNormalizer.denormalize(chain.portalAddress as UniversalAddress, ChainType.SVM)
-    );
+    return new PublicKey(AddressNormalizer.denormalize(portalAddress, ChainType.SVM));
   }
 
   private svmWithdrawalClaimant(logs: string[], intentHash: string): string | null {

@@ -285,6 +285,31 @@ describe('WithdrawalVerifierService SVM native rewards', () => {
     });
   });
 
+  it('uses a quote-supplied Portal when the static SVM chain config has none', async () => {
+    jest.spyOn(Connection.prototype, 'getTransaction').mockResolvedValue(svmTransaction() as never);
+    jest.spyOn(Connection.prototype, 'getAccountInfo').mockResolvedValue({} as never);
+    const service = new WithdrawalVerifierService({
+      getUrl: jest.fn().mockReturnValue(solanaChain.rpcUrl),
+    } as never);
+    const chainWithoutPortal = { ...solanaChain, portalAddress: undefined };
+
+    await expect(
+      service.verify(
+        chainWithoutPortal,
+        INTENT_HASH,
+        'svm-signature',
+        SVM_NATIVE,
+        undefined,
+        undefined,
+        AddressNormalizer.normalizeSvm(SVM_PORTAL)
+      )
+    ).resolves.toEqual({
+      withdrawnAmount: 8_000_000n,
+      claimant: SVM_CLAIMANT.toBase58(),
+      claimedMarkerPresent: true,
+    });
+  });
+
   it('rejects a withdrawal event for a different SVM intent', async () => {
     const tx = svmTransaction();
     tx.meta.logMessages = svmWithdrawnLogs(OTHER_INTENT_HASH);

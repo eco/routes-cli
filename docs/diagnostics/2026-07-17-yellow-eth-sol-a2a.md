@@ -61,8 +61,59 @@ Execution evidence:
 - Four bucket children remained `CANDIDATE`
 - No `fulfilledEvent`, `selectedEvent`, or `lastError` was recorded
 
-The matrix timed out after 600 seconds. This is a stuck Solana source-execution/bucket-selection
-path. No destination ETH delivery or child withdrawal occurred.
+The matrix timed out after 600 seconds. A later direct Yellow reconciliation found that the parent
+was refunded at `2026-07-17T23:30:06Z` in transaction
+`25hDH1BZ73qrCKx2BeQL4yedKnB9L54BpBjwxPih9cScNkq4ugLb2JkCZFvPjhLcLMzhwFbcNT1zpgRPwUB6pZ4s`.
+All four bucket children were still `CANDIDATE`, so this was a source-side refund rather than a
+completed bucket promotion.
+
+Paid Solana RPC evidence narrows the source failure to the final atomic flash-fulfill transaction:
+
+- Yellow successfully created the missing executor wSOL ATA in
+  `4MgZiz8VT4EiWLmrSoM4DVPAxmJRa12aJAYuctSgEXscicW2Nj9dKcy16dcQTVgRV2hkp6izdbGDg457pXh8zAe5`.
+- It successfully created the four bucket-vault USDC ATAs in
+  `3gVsRLMycjx9uQCwH4u2EnhMGm7Rrsk6TUD5r2HrDANoiWPwBN2FcGYZxht3vUZzPJPNtpn7fCbdfvgm86EJqx4r`.
+- It successfully wrote the three-part `FlashFulfillIntent` buffer at PDA
+  `8ttb9hTbBqeJgrpZpohbjctaXPJBkceo9XTQKoKbS5Me`.
+- Every retry then created and extended a single-use lookup table and immediately deactivated it.
+  No transaction invoking the atomic flash-fulfill instruction was broadcast.
+
+Reconstructing the exact atomic message from the stored parent and the two lookup tables rules out
+the solver's local structural guards: it references 43 accounts (limit 64) and serializes to 447
+bytes (limit 1232). The remaining failure boundary is RPC preflight/program simulation after signing
+and before broadcast. The simulation error/logs must be recovered from the Yellow solver logs for
+this intent hash; Mongo does not retain `lastError` for the failed attempts.
+
+No destination ETH delivery or child withdrawal occurred.
+
+### Successful rerun after Yellow configuration changes
+
+A fresh run of the same `0.015 SOL -> ETH on Base` leg completed the full two-intent lifecycle:
+
+- Quote ID: `cab6e155-2401-4900-963a-221b90c28470`
+- Parent intent: `0x93edc28072fbfdcd7b2f655787403778244b89971366053a3deb5b7b0eeb32ee`
+- Funding signature:
+  `4uGieW6HsU5Dkm9UDqTFcLJUL6KCcSGQMXnA1FAUGzGwwdFnCcMvqoyPSRyBLj6yriJYFAPE51fEpr6sFEzbXH5k`
+- Source swap / parent withdrawal / bucket selection signature:
+  `46KoY3RBbZ5iqRs62vA12YQQVLGmksdSRLJBwAnRQsFxYXTX2VSbDNRP3WmHvoPgcwcsjbY9b4M1RkpR8Xs9Ka4h`
+- Promoted bucket: index `2`
+- Promoted child intent:
+  `0x435c9182b8d0b26cab2bbf5ce42ef877da3dc5ec400a0df777fe065438f554e5`
+- Destination fulfillment transaction:
+  `0x8a757238f23a828b0baae7c1cf00b54b7ebd8cc5c915350df923e153413efb00`
+- Verified recipient delivery: `0.000173081723812561 ETH`
+- Quote minimum: `0.000170246853059800 ETH`
+- Proof signature:
+  `SFwn5V9HmXYUNV4k4VJbfm6G49ynGwd3meFRcgG9QZG8y2m2C4bun6AiCMxdda7g3ZynKnqJfziX3Mp7XMQVqiv`
+- Child withdrawal signature:
+  `4T5sAkGCQm4ekmAtjDQkMg1kum2Nw2K7woUVXiaDKg2CzkRfSENDpEYVNEFMNiUgeAtFZRRrAPb6gn6dHLVedjkp`
+- Verified child reward withdrawal: `1.123404 USDC`
+- Expected and observed kernel claimant:
+  `7HBkzmHz3gYHBV4DJ1GCvCax815zgrntRRwoBJEZi3Fe`
+
+The first matrix pass observed destination delivery while the withdrawal was pending. The later
+`--reconcile` pass observed the proof and child withdrawal and moved the row to `SUCCEEDED`. This is
+the intended success boundary: the earlier parent withdrawal was not terminal.
 
 ## Harness changes resulting from the diagnosis
 
@@ -74,10 +125,16 @@ path. No destination ETH delivery or child withdrawal occurred.
   reconciliation that verifies child proof and exact kernel withdrawal.
 - Yellow parent `FAILED` states surface immediately as `SOURCE_FAILED`, instead of waiting only on
   Portal status until timeout.
+- Withdrawal verification accepts the quote-supplied source Portal. Production chain metadata does
+  not currently carry a static Solana Portal address, so requiring only the static value caused a
+  false `WITHDRAWAL_MISMATCH` even when the on-chain source withdrawal succeeded.
 
 ## Current conclusion
 
-Neither direction completed in this run. Yellow can quote both directions, but the source leg fails
-before bucket promotion: EVM-to-SVM reverts from insufficient execution gas, while SVM-to-EVM stays
-stuck in `EXECUTING`. A withdrawal reconciliation should be rerun only if the reverse parent later
-progresses and a bucket child is promoted.
+The SOL-to-ETH direction is now confirmed end to end: source swap, bucket selection, destination ETH
+delivery, proof, and child reward withdrawal to the Solana kernel all completed and were independently
+verified. The earlier SVM preflight/refund was not reproduced after the Yellow configuration change.
+
+ETH-to-SOL remains blocked on the previously identified EVM executor gas limit until the gas-buffer
+fix is merged and deployed to Yellow. That failure occurs before bucket promotion and is independent
+of the now-verified Solana destination delivery and withdrawal path.
