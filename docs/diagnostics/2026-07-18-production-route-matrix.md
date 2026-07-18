@@ -4,7 +4,95 @@ Execution window: 2026-07-17 through 2026-07-18 UTC
 
 Target: Yellow production, running solver v2.50.1. PR 762 is not part of this deployment.
 
-## Result
+## Latest status after fresh-route retry
+
+The four non-passing routes were retried with new quotes at 05:15-05:20 UTC, before their route
+deadlines. Three completed the full lifecycle. Only ETH Base -> SOL Solana Any-to-Any still fails.
+
+| Case | Fresh parent intent | Fresh result |
+| --- | --- | --- |
+| SS-2 | `0x19c052355d65ba1867e0f2d539f97b7cc5d37ca70f7884b5f99d98bd1ccb87a0` | **PASS** |
+| SS-4 | `0xea2fabc672689e6ca6890f2cd8ee145c267cca118d290cbf66d7b10b9d6cdaef` | **PASS** |
+| SS-6 | `0x074c18d04442f4a4d37a75d1441b3cb3c1b1a41c852b687323ec21c82bb91c4f` | **FAIL: Base `0x12988136` execution revert** |
+| SS-7 | `0x5fb9d5bfeb5a5c9622ba4b12dc6e4f83a514e385f3f4b90e8e90cc61f7a03710` | **PASS** |
+
+Combining the original passes with these fresh retries, **8/9 matrix routes now have a confirmed
+full-lifecycle production success**. SS-6 is the sole currently reproducible failure.
+
+The `route expired` errors observed when the old SS-4 and SS-7 intents retried were consequences of
+those intents sitting in `EXECUTING` past their original route deadline. They are not reproduced as
+the primary error with fresh routes: both fresh intents completed.
+
+### Fresh SS-2: ETH Base -> USDC Solana — PASS
+
+- Quote: `quote:f7b93adc-d153-4967-af11-9bccb069b3f5`
+- Parent: `0x19c052355d65ba1867e0f2d539f97b7cc5d37ca70f7884b5f99d98bd1ccb87a0`
+- Source settlement: `0x04c73d4d5e2470d80b5b9bb3c53c84835c7e25b461c6f42e666063ef520de6c8`
+- Published child: `0x624318688ab84b83a02f655a487db49c5e91cb7320ca8c7bb457222302d84324`
+- Solana fulfillment and proof:
+  `2x3jc1q6EAJQopoYiyzzvf5RrhnxViE3BssjmgMpkMUECQS6WZFN3yVoFrZJKLR6TsCNsi2NKJAxVnbksKfgtTtf`
+- Exact recipient delivery: `0.705363 USDC`
+- Quote minimum: `0.699851 USDC`
+- Base kernel withdrawal: `0xafb96342a8c18de3849300626941b4d106f7cfe3075f4baaa518e1b096254a17`
+- Exact kernel reward: `1.105363 USDC`
+
+The earlier SS-2 Base gas failure did not reproduce. The CLI still classified the row as
+`POLL_ERROR` because this source-swap quote is not bucketed, but Yellow DB and exact onchain
+delivery/withdrawal evidence show the route completed.
+
+### Fresh SS-4: USDC Base -> SOL Solana — PASS
+
+- Quote: `quote:1f75d2b2-4fdf-49c7-822d-ba219889f191`
+- Intent: `0xea2fabc672689e6ca6890f2cd8ee145c267cca118d290cbf66d7b10b9d6cdaef`
+- Funding: `0x1e47e9a2036ac9b349de4826ea5f2438aa30cf187fb881715334a5eec900b9a3`
+- Solana fulfillment:
+  `2iGXwB8DyzGa5Sdz78zGSsfCrBRtmwvT4NhQFrSGDNzNjeTuP6TkeA3v6LZWZiSv33qotqeqraM338wGtqgbG3LS`
+- Native recipient delta: `0.010038431 SOL`
+- Quote minimum: `0.007968469 SOL`
+- Solana proof:
+  `bqqeCdaHvAQERvzEjG7j59bkYZWZYwSv55t79UrVhc1NtSrELXDRfVM5pp5f8c9CNxXpiPqKdew9Fmt42wB5MRB`
+- Base kernel withdrawal: `0xafb96342a8c18de3849300626941b4d106f7cfe3075f4baaa518e1b096254a17`
+- Exact kernel reward: `1 USDC`
+
+Production completed the lifecycle in about one minute. The CLI row nevertheless timed out after
+300 seconds because its status poll did not surface the cross-VM completion. This is a harness false
+negative, confirmed by direct Yellow DB lifecycle events and paid RPC evidence.
+
+### Fresh SS-6: ETH Base -> SOL Solana Any-to-Any — FAIL
+
+- Quote: `quote:b416f7dd-e529-4360-aab6-827b47262291`
+- Parent: `0x074c18d04442f4a4d37a75d1441b3cb3c1b1a41c852b687323ec21c82bb91c4f`
+- Funding: `0x0b9a1bf22d2f3d5fc0390c27785313944f1b3a9ccaac965886f9583c8727a427`
+- Yellow state: `FAILED`, `retryCount: 1`
+- Error: `EVM_REVERT_WITH_SELECTOR`, selector `0x12988136`
+
+Yellow marked the route failed in the same second as funding, well before quote or route expiry. No
+child was promoted and no execution transaction hash is persisted. This confirms a real Base
+source-execution problem remains for SS-6; it is not explained by the later expired-route symptom.
+
+### Fresh SS-7: SOL Solana -> USDC Base — PASS
+
+- Quote: `quote:614e4de8-8e62-4e5e-b224-1eb248690424`
+- Parent: `0x5fb9d5bfeb5a5c9622ba4b12dc6e4f83a514e385f3f4b90e8e90cc61f7a03710`
+- Funding:
+  `icdcoZg71wnLmShEfiB1TvtbqDBPM7FQG4LECjRHSBJNvUhUXBGxEx3KdBshA34AZ6EHMMM8z27duwsnEoJNHXX`
+- Source settlement and bucket selection:
+  `2cxstNKyQMGP4HgVxz1TPmEAMTEyp4Ss9oE9Tdx9Cd2zyip5XFf4afSEety2DFDo4VF37gjV1u5RLcZfGEU17Wwf`
+- Promoted bucket: index `3`
+- Child: `0xe00576d8ac4e090e7e2f8eab35e42bab7c925dd0ae902467f7c3e423d27f7398`
+- Base fulfillment: `0x489439f6c67f422d59f331366906aa08666a862a683e031accb3319b5e59428c`
+- Exact recipient delivery: `0.318891 USDC`
+- Quote minimum: `0.313271 USDC`
+- Solana proof:
+  `3HucJXbnnfxbVMafLRFnYmV5T3cZ92ac2KPWmULZeQUhWkC6hZh23jeAa3wpvevT45WBFPDHy3gtCBo6PTGP7t3u`
+- Solana withdrawal:
+  `2jm3wYSE5gjkmmdmaUgPjVZkCwXPisrG4G1bkw9L2RM8h9WXG7bCJqHvcBkdfdz1ARAs2gDTrGJ1azSNBbBGaZHK`
+- Exact kernel reward: `1.123830 USDC`
+
+The later reconciliation reported `succeeded=1/1`, including exact destination delivery and exact
+withdrawal to `7HBkzmHz3gYHBV4DJ1GCvCax815zgrntRRwoBJEZi3Fe`.
+
+## Initial result
 
 All nine requests quoted successfully. Five completed the full production lifecycle, two failed
 during Base source execution, and two remain stuck in `EXECUTING` with no retry or terminal error.
