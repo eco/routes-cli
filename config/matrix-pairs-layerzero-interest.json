@@ -1,0 +1,154 @@
+{
+  "quoteActors": {
+    "evm": "0x62b2Ac83E0C8666d9bE4e75B99C0E96c822d23E1",
+    "svm": "3vvcFp6rUuTrrYK7SSqQKeYYiwvZXWmMnmgLfXDKgAu6"
+  },
+  "pairs": [
+    {
+      "id": "LZ-01",
+      "label": "CSV 1: PYUSD Solana -> USDC Ethereum",
+      "path": "source-swap",
+      "sourceChainId": 1399811149,
+      "destinationChainId": 1,
+      "inputToken": "2b1kV6DkPAnxd5ixfnxCpjxmKwqjjaYmCZfHsFu24GXo",
+      "outputToken": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+      "amount": "10",
+      "inputDecimals": 6,
+      "slippageBps": 50
+    },
+    {
+      "id": "LZ-03",
+      "label": "CSV 3: USDe Plasma -> USDC Ethereum",
+      "path": "source-swap",
+      "sourceChainId": 9745,
+      "destinationChainId": 1,
+      "inputToken": "0x5d3a1Ff2b6BAb83b63cd9AD0787074081a52ef34",
+      "outputToken": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+      "amount": "10",
+      "inputDecimals": 18,
+      "slippageBps": 50
+    },
+    {
+      "id": "LZ-04",
+      "label": "CSV 4: PYUSD Ethereum -> USDC Solana",
+      "path": "source-swap",
+      "sourceChainId": 1,
+      "destinationChainId": 1399811149,
+      "inputToken": "0x6c3ea9036406852006290770BEdFcAbA0e23A0e8",
+      "outputToken": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "amount": "10",
+      "inputDecimals": 6,
+      "slippageBps": 50
+    },
+    {
+      "id": "LZ-05",
+      "label": "CSV 5: PYUSD Arbitrum -> USDC Ethereum",
+      "path": "source-swap",
+      "sourceChainId": 42161,
+      "destinationChainId": 1,
+      "inputToken": "0x46850aD61C2B7d64d08c9C754F45254596696984",
+      "outputToken": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+      "amount": "10",
+      "inputDecimals": 6,
+      "slippageBps": 50
+    },
+    {
+      "id": "LZ-06",
+      "label": "CSV 6: USDT0 Plasma -> USDC Ethereum",
+      "path": "source-swap",
+      "sourceChainId": 9745,
+      "destinationChainId": 1,
+      "inputToken": "0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb",
+      "outputToken": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+      "amount": "10",
+      "inputDecimals": 6,
+      "slippageBps": 50
+    },
+    {
+      "id": "LZ-07",
+      "label": "CSV 7: USDC Solana -> ETH Ethereum",
+      "path": "dest-swap",
+      "sourceChainId": 1399811149,
+      "destinationChainId": 1,
+      "inputToken": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "outputToken": "0x0000000000000000000000000000000000000000",
+      "amount": "10",
+      "inputDecimals": 6,
+      "outputDecimals": 18,
+      "slippageBps": 50
+    },
+    {
+      "id": "LZ-08",
+      "label": "CSV 8: sUSDe Plasma -> USDC Ethereum",
+      "path": "source-swap",
+      "sourceChainId": 9745,
+      "destinationChainId": 1,
+      "inputToken": "0x211Cc4DD073734dA055fbF44a2b4667d5E5fE5d2",
+      "outputToken": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+      "amount": "10",
+      "inputDecimals": 18,
+      "slippageBps": 50
+    },
+    {
+      "id": "LZ-09",
+      "label": "CSV 9: USDG Ethereum -> USDC Solana",
+      "path": "source-swap",
+      "sourceChainId": 1,
+      "destinationChainId": 1399811149,
+      "inputToken": "0xe343167631d89B6Ffc58B88d6b7fB0228795491D",
+      "outputToken": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "amount": "10",
+      "inputDecimals": 6,
+      "slippageBps": 50
+    },
+    {
+      "id": "LZ-11",
+      "label": "CSV 11: USDS Solana -> USDC Ethereum",
+      "path": "source-swap",
+      "sourceChainId": 1399811149,
+      "destinationChainId": 1,
+      "inputToken": "USDSwr9ApdHk5bvJKMjzff41FfuX8bSxdKcR81vTwcA",
+      "outputToken": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+      "amount": "10",
+      "inputDecimals": 6,
+      "slippageBps": 50
+    },
+    {
+      "id": "LZ-12",
+      "label": "CSV 12: USDG Solana -> USDC Ethereum",
+      "path": "source-swap",
+      "sourceChainId": 1399811149,
+      "destinationChainId": 1,
+      "inputToken": "2u1tszSeqZ3qBWF3uNGPFc8TzMk2tdiwknnRMWGWjGWH",
+      "outputToken": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+      "amount": "10",
+      "inputDecimals": 6,
+      "slippageBps": 50
+    },
+    {
+      "id": "LZ-14",
+      "label": "CSV 14: USDe Solana -> USDC Ethereum",
+      "path": "source-swap",
+      "sourceChainId": 1399811149,
+      "destinationChainId": 1,
+      "inputToken": "DEkqHyPN7GMRJ5cArtQFAWefqbZb33Hyf6s5iCwjEonT",
+      "outputToken": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+      "amount": "10",
+      "inputDecimals": 9,
+      "slippageBps": 50
+    },
+    {
+      "id": "LZ-23",
+      "label": "CSV 23: USDC Arbitrum -> ETH Ethereum",
+      "path": "dest-swap",
+      "sourceChainId": 42161,
+      "destinationChainId": 1,
+      "inputToken": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+      "outputToken": "0x0000000000000000000000000000000000000000",
+      "amount": "10",
+      "inputDecimals": 6,
+      "outputDecimals": 18,
+      "slippageBps": 50
+    }
+  ]
+}
