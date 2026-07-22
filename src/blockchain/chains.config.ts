@@ -1,4 +1,4 @@
-import { arbitrum, bsc, hyperEvm, mainnet, polygon, ronin, sonic } from 'viem/chains';
+import { arbitrum, bsc, hyperEvm, mainnet, plasma, polygon, ronin, sonic } from 'viem/chains';
 
 import { ChainType } from '@/shared/types';
 
@@ -46,6 +46,14 @@ export const RAW_CHAIN_CONFIGS: RawChainConfig[] = [
     env: 'production',
     rpcUrl: 'https://mainnet.base.org',
     nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+  },
+  {
+    id: BigInt(plasma.id),
+    name: plasma.name,
+    type: ChainType.EVM,
+    env: 'production',
+    rpcUrl: plasma.rpcUrls.default.http[0],
+    nativeCurrency: plasma.nativeCurrency,
   },
   {
     id: BigInt(arbitrum.id),
