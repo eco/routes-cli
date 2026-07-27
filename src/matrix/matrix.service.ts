@@ -57,6 +57,8 @@ export interface MatrixRunOptions {
   timeoutSec?: number;
   quoteOnly?: boolean;
   reconcilePath?: string;
+  /** Seconds to wait between sequential case submissions (campaign pacing). */
+  caseDelaySec?: number;
 }
 
 @Injectable()
@@ -80,6 +82,7 @@ export class MatrixService {
     if (options.reconcilePath) return this.reconcile(options.reconcilePath);
     const configPath = options.configPath ?? DEFAULT_CONFIG_PATH;
     const timeoutSec = options.timeoutSec ?? DEFAULT_TIMEOUT_SEC;
+    const caseDelayMs = (options.caseDelaySec ?? 0) * 1_000;
     const { pairs, expectedClaimants, quoteActors } = this.loadConfig(configPath);
 
     const runId = new Date().toISOString().replace(/[:.]/g, '-');
@@ -120,6 +123,9 @@ export class MatrixService {
       for (let i = 0; i < pairs.length; i++) {
         await this.quotePair(pairs[i], rows[i], quoteActors, i, pairs.length);
         await persist();
+        if (caseDelayMs > 0 && i < pairs.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, caseDelayMs));
+        }
       }
       const aggregateResult = aggregate(rows);
       this.display.log(
@@ -141,6 +147,9 @@ export class MatrixService {
     for (let i = 0; i < pairs.length; i++) {
       await this.submitPair(pairs[i], rows[i], i, pairs.length);
       await persist();
+      if (caseDelayMs > 0 && i < pairs.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, caseDelayMs));
+      }
     }
 
     // Phase 2: poll all submitted intents concurrently — one independent poller

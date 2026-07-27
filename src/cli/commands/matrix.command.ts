@@ -11,6 +11,7 @@ interface MatrixOptions {
   timeout?: number;
   quoteOnly?: boolean;
   reconcile?: string;
+  caseDelaySec?: number;
 }
 
 @Injectable()
@@ -39,6 +40,7 @@ export class MatrixCommand extends CommandRunner {
       timeoutSec: options.timeout,
       quoteOnly: options.quoteOnly,
       reconcilePath: options.reconcile,
+      caseDelaySec: options.caseDelaySec,
     });
   }
 
@@ -68,6 +70,18 @@ export class MatrixCommand extends CommandRunner {
   })
   parseQuoteOnly(): boolean {
     return true;
+  }
+
+  @Option({
+    flags: '--case-delay-sec <sec>',
+    description: 'Seconds to wait between sequential case submissions (default 0)',
+  })
+  parseCaseDelaySec(val: string): number {
+    const parsed = Number(val);
+    if (!Number.isInteger(parsed) || parsed < 0) {
+      throw new Error(`Invalid --case-delay-sec "${val}": expected a non-negative integer`);
+    }
+    return parsed;
   }
 
   @Option({
