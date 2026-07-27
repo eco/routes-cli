@@ -41,7 +41,7 @@ New flags on `publish`:
 
 Behavior changes:
 
-- `--dry-run` returns **before** the confirmation prompt and before any signing. With `--json` it emits the would-be intent summary as JSON.
+- `--dry-run` returns **before** the confirmation prompt and before any signing. With `--json` it emits the would-be intent summary as JSON (shape defined in §2).
 - When `--recipient` is omitted and a destination-chain key is available: use the derived address without prompting **only when `--yes` is set**; otherwise prompt as today.
 - `--rpc` is **removed** (dead surface).
 
@@ -61,11 +61,11 @@ routes publish -s base -d optimism --reward-token USDC --route-token USDC \
 **JSON mode (`DisplayService`).** A `jsonMode` switch set by the command routes all human output methods to **stderr** (ora spinners already degrade on non-TTY streams). The command prints exactly one JSON object to **stdout** on completion:
 
 ```json
-{"success": true, "intentHash": "0x…", "txHash": "0x…", "sourceChainId": "8453",
- "destinationChainId": "10", "recipient": "0x…", "explorerUrl": "https://…"}
+{"success": true, "intentHash": "0x…", "transactionHash": "0x…", "sourceChainId": "8453",
+ "destinationChainId": "10", "recipient": "0x…", "vaultAddress": "…"}
 ```
 
-On failure: `{"success": false, "error": "…"}` plus a non-zero exit code. BigInts serialize as strings (pattern already used by intent storage).
+Field names mirror `PublishResult` (`src/blockchain/base.publisher.ts`); `vaultAddress` appears only when the publisher returns it (SVM). On failure: `{"success": false, "error": "…"}` plus a non-zero exit code. A `--dry-run --json` run emits the same shape with `"dryRun": true` and no `intentHash`/`transactionHash`. BigInts serialize as strings (pattern already used by intent storage).
 
 ### 3. Skill
 
