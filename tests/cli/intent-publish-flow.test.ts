@@ -342,4 +342,97 @@ describe('non-interactive publishing', () => {
     // TEST_PRIVATE_KEY's derived EVM address (anvil dev account 0)
     expect(outcome.recipient).toBe('0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266');
   });
+
+  it('throws a helpful error when no private key is configured', async () => {
+    const prompt = {
+      selectToken: jest.fn().mockResolvedValue(TOKEN_USDC),
+      inputAmount: jest.fn().mockResolvedValue({ raw: '1', parsed: 1_000_000n }),
+      inputAddress: jest.fn().mockResolvedValue('0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045'),
+      inputManualPortal: jest.fn().mockResolvedValue('0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045'),
+      inputManualProver: jest.fn().mockResolvedValue('0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045'),
+      selectProver: jest.fn().mockResolvedValue(FAKE_UNIVERSAL),
+      confirmPublish: jest.fn().mockResolvedValue(true),
+    };
+
+    const publisher = {
+      publish: jest.fn().mockResolvedValue({
+        success: true,
+        transactionHash: '0xtx',
+        intentHash: '0xhash',
+      }),
+    };
+    const publisherFactory = { create: jest.fn().mockReturnValue(publisher) };
+
+    const quoteService = {
+      getQuote: jest.fn().mockResolvedValue({
+        encodedRoute: '0xroute',
+        sourcePortal: '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045',
+        prover: '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045',
+        deadline: 9_999_999_999,
+        destinationAmount: '1000000',
+        destinationPortalAddress: '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045',
+        destinationChainId: Number(DEST_CHAIN.id),
+      }),
+    };
+
+    const intentBuilder = {
+      buildReward: jest.fn().mockReturnValue({
+        deadline: 9_999_999_999n,
+        creator: FAKE_UNIVERSAL,
+        prover: FAKE_UNIVERSAL,
+        nativeAmount: 0n,
+        tokens: [],
+      }),
+      buildManualRoute: jest.fn().mockReturnValue({ encodedRoute: '0xmanual', route: {} }),
+    };
+
+    const intentStorage = { save: jest.fn().mockResolvedValue(undefined) };
+    const statusService = { watch: jest.fn().mockResolvedValue('fulfilled') };
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const config: any = { getKeyForChainType: () => undefined };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const normalizer: any = { normalize: () => FAKE_UNIVERSAL };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const display: any = {
+      title: () => undefined,
+      section: () => undefined,
+      spinner: () => undefined,
+      succeed: () => undefined,
+      fail: () => undefined,
+      warn: () => undefined,
+      warning: () => undefined,
+      log: () => undefined,
+      displayQuote: () => undefined,
+      displayTransactionResult: () => undefined,
+      displayFulfillmentResult: () => undefined,
+    };
+
+    const flow = new IntentPublishFlow(
+      config,
+      normalizer,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      publisherFactory as any,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      quoteService as any,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      intentBuilder as any,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      intentStorage as any,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      prompt as any,
+      display,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      statusService as any
+    );
+
+    await expect(
+      flow.publish({
+        sourceChain: SOURCE_CHAIN,
+        destChain: DEST_CHAIN,
+        options: { yes: true, recipient: RECIPIENT },
+        overrides: FULL_OVERRIDES,
+      })
+    ).rejects.toThrow(/No private key configured for EVM/);
+  });
 });

@@ -43,7 +43,7 @@ Validate safely first by adding `--dry-run` (builds everything, signs and broadc
 | `--reward-token <symbol\|address>` | token you pay with on the source chain |
 | `--route-token <symbol\|address>` | token delivered on the destination chain |
 | `--amount <value>` | reward amount in human units (`5` = 5 USDC); requires `--reward-token` |
-| `--recipient <address>` | destination-chain recipient; with `-y` defaults to your derived address |
+| `--recipient <address>` | destination-chain recipient; with `-y` defaults to your derived address (requires a key configured for the destination chain type) |
 | `-y, --yes` | skip confirmation (required for a non-interactive publish) |
 | `--json` | one JSON object on stdout; human logs on stderr |
 | `--dry-run` | validate without broadcasting (exits before confirmation) |

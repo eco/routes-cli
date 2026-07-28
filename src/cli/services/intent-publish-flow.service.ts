@@ -253,8 +253,8 @@ export class IntentPublishFlow {
   ): { publishKeyHandle: KeyHandle; senderAddress: string } {
     const rawKey =
       IntentPublishFlow.resolveKey(options, sourceChain.type) ??
-      this.config.getKeyForChainType(sourceChain.type) ??
-      '';
+      this.config.getKeyForChainType(sourceChain.type);
+    if (!rawKey) throw RoutesCliError.invalidPrivateKey(sourceChain.type);
     // One handle for the sync sender-address derivation (consumed below), one
     // for the async publisher.publish() call which needs its own copy.
     const senderHandle = new KeyHandle(rawKey);
