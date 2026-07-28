@@ -38,6 +38,7 @@ export interface PublishFlowOptions {
   proverType?: string;
   dryRun?: boolean;
   watch?: boolean;
+  yes?: boolean;
 }
 
 export interface TokenSelection {
@@ -52,6 +53,8 @@ export interface PublishFlowOverrides {
   rewardToken?: TokenSelection;
   routeToken?: TokenSelection;
   rewardAmount?: bigint;
+  // Used only by the quote-failure manual fallback in fetchQuoteOrManualRoute.
+  routeAmount?: bigint;
   recipientRaw?: string;
   // When set, this chainId is sent as the `destination` in the quote request
   // (the signal to the quote/solver pipeline that this is e.g. a Hypercore
@@ -62,8 +65,12 @@ export interface PublishFlowOverrides {
 }
 
 export interface PublishFlowResult {
-  result: PublishResult;
-  intent: Intent;
+  dryRun: boolean;
+  result: PublishResult | null; // null on dry-run
+  intent: Intent | null; // null on dry-run
+  sourceChainId: bigint;
+  destinationChainId: bigint;
+  recipient: string; // chain-native recipient on the destination chain
 }
 
 @Injectable()
@@ -85,7 +92,7 @@ export class IntentPublishFlow {
     destChain: ChainConfig;
     options: PublishFlowOptions;
     overrides?: PublishFlowOverrides;
-  }): Promise<PublishFlowResult | null> {
+  }): Promise<PublishFlowResult> {
     const { sourceChain, destChain, options, overrides = {} } = args;
     const tokens = Object.values(TOKEN_CONFIGS);
 
@@ -129,6 +136,7 @@ export class IntentPublishFlow {
       senderAddress,
       recipientRaw,
       recipient,
+      overrides,
     });
 
     const sourcePortal = await this.resolveSourcePortal(sourceChain, portalFromQuote, options);
@@ -156,14 +164,6 @@ export class IntentPublishFlow {
       rewardAmount,
     });
 
-    const confirmed = await this.prompt.confirmPublish();
-    if (!confirmed) throw new Error('Publication cancelled by user');
-
-    if (options.dryRun) {
-      this.display.warning('Dry run — not publishing');
-      return null;
-    }
-
     // When the caller overrode the quote's destination, ignore any echo-back
     // from the quote response — the on-chain intent should always target the
     // operational destChain.
@@ -173,6 +173,23 @@ export class IntentPublishFlow {
         : quote?.destinationChainId
           ? BigInt(quote.destinationChainId)
           : destChain.id;
+
+    if (options.dryRun) {
+      this.display.warning('Dry run — not publishing');
+      return {
+        dryRun: true,
+        result: null,
+        intent: null,
+        sourceChainId: sourceChain.id,
+        destinationChainId,
+        recipient: recipientRaw,
+      };
+    }
+
+    if (options.yes !== true) {
+      const confirmed = await this.prompt.confirmPublish();
+      if (!confirmed) throw new Error('Publication cancelled by user');
+    }
 
     const publisher = this.publisherFactory.create(sourceChain);
     const result = await publisher.publish(
@@ -203,7 +220,14 @@ export class IntentPublishFlow {
       await this.runWatchFlow(result.intentHash, destChain, quote);
     }
 
-    return { result, intent };
+    return {
+      dryRun: false,
+      result,
+      intent,
+      sourceChainId: sourceChain.id,
+      destinationChainId,
+      recipient: recipientRaw,
+    };
   }
 
   private async resolveRecipientRaw(
@@ -219,6 +243,7 @@ export class IntentPublishFlow {
     const recipientDefault = destKey
       ? IntentPublishFlow.deriveAddress(destKey, destChain.type)
       : undefined;
+    if (recipientDefault && options.yes) return recipientDefault;
     return this.prompt.inputAddress(destChain, 'recipient', recipientDefault);
   }
 
@@ -250,6 +275,7 @@ export class IntentPublishFlow {
     senderAddress: string;
     recipientRaw: string;
     recipient: UniversalAddress;
+    overrides: PublishFlowOverrides;
   }): Promise<{
     encodedRoute: string;
     sourcePortal?: UniversalAddress;
@@ -266,6 +292,7 @@ export class IntentPublishFlow {
       senderAddress,
       recipientRaw,
       recipient,
+      overrides,
     } = args;
 
     try {
@@ -295,10 +322,16 @@ export class IntentPublishFlow {
       this.display.warn(`Quote failed: ${getErrorMessage(error)}`);
       this.display.warn('Falling back to manual configuration');
 
-      const { parsed: routeAmount } = await this.prompt.inputAmount(
-        routeToken.symbol ?? 'tokens',
-        routeToken.decimals
-      );
+      const routeAmount =
+        overrides.routeAmount ??
+        (
+          await this.prompt.inputAmount(
+            routeToken.symbol ?? 'tokens',
+            routeToken.decimals,
+            '0.1',
+            '--route-amount <value>'
+          )
+        ).parsed;
 
       const destPortal = destChain.portalAddress;
       if (!destPortal) {

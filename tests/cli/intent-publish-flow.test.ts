@@ -207,7 +207,9 @@ describe('IntentPublishFlow.publish', () => {
         recipientRaw: '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045',
       },
     });
-    expect(out).toBeNull();
+    expect(out.dryRun).toBe(true);
+    expect(out.result).toBeNull();
+    expect(out.intent).toBeNull();
     expect(publisher.publish).not.toHaveBeenCalled();
     expect(publisherFactory.create).not.toHaveBeenCalled();
   });
@@ -253,5 +255,91 @@ describe('IntentPublishFlow.publish', () => {
       })
     ).rejects.toThrow(/cancelled by user/i);
     expect(publisher.publish).not.toHaveBeenCalled();
+  });
+});
+
+describe('non-interactive publishing', () => {
+  const FULL_OVERRIDES = {
+    rewardToken: TOKEN_USDC,
+    routeToken: TOKEN_USDC,
+    rewardAmount: 1_000_000n,
+  };
+  const RECIPIENT = '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045';
+
+  it('publishes without any prompt when all values are provided and yes=true', async () => {
+    const m = buildFlow();
+    const outcome = await m.flow.publish({
+      sourceChain: SOURCE_CHAIN,
+      destChain: DEST_CHAIN,
+      options: { yes: true, recipient: RECIPIENT },
+      overrides: FULL_OVERRIDES,
+    });
+    expect(m.prompt.selectToken).not.toHaveBeenCalled();
+    expect(m.prompt.inputAmount).not.toHaveBeenCalled();
+    expect(m.prompt.inputAddress).not.toHaveBeenCalled();
+    expect(m.prompt.confirmPublish).not.toHaveBeenCalled();
+    expect(outcome.dryRun).toBe(false);
+    expect(outcome.result?.success).toBe(true);
+    expect(outcome.recipient).toBe(RECIPIENT);
+    expect(outcome.sourceChainId).toBe(SOURCE_CHAIN.id);
+  });
+
+  it('still asks for confirmation without yes', async () => {
+    const m = buildFlow();
+    await m.flow.publish({
+      sourceChain: SOURCE_CHAIN,
+      destChain: DEST_CHAIN,
+      options: { recipient: RECIPIENT },
+      overrides: FULL_OVERRIDES,
+    });
+    expect(m.prompt.confirmPublish).toHaveBeenCalled();
+  });
+
+  it('dry-run returns before confirmation and before publishing', async () => {
+    const m = buildFlow();
+    const outcome = await m.flow.publish({
+      sourceChain: SOURCE_CHAIN,
+      destChain: DEST_CHAIN,
+      options: { dryRun: true, recipient: RECIPIENT },
+      overrides: FULL_OVERRIDES,
+    });
+    expect(m.prompt.confirmPublish).not.toHaveBeenCalled();
+    expect(m.publisher.publish).not.toHaveBeenCalled();
+    expect(outcome.dryRun).toBe(true);
+    expect(outcome.result).toBeNull();
+    expect(outcome.intent).toBeNull();
+  });
+
+  it('uses overrides.routeAmount in the quote-failure fallback without prompting', async () => {
+    const m = buildFlow();
+    m.quoteService.getQuote.mockRejectedValue(new Error('quote service down'));
+    await m.flow.publish({
+      sourceChain: SOURCE_CHAIN,
+      destChain: DEST_CHAIN,
+      options: {
+        yes: true,
+        recipient: RECIPIENT,
+        portalAddress: RECIPIENT,
+        proverAddress: RECIPIENT,
+      },
+      overrides: { ...FULL_OVERRIDES, routeAmount: 2_000_000n },
+    });
+    expect(m.prompt.inputAmount).not.toHaveBeenCalled();
+    expect(m.intentBuilder.buildManualRoute).toHaveBeenCalledWith(
+      expect.objectContaining({ routeAmount: 2_000_000n })
+    );
+  });
+
+  it('uses the derived sender address as recipient with yes=true and no --recipient', async () => {
+    const m = buildFlow();
+    const outcome = await m.flow.publish({
+      sourceChain: SOURCE_CHAIN,
+      destChain: DEST_CHAIN,
+      options: { yes: true },
+      overrides: FULL_OVERRIDES,
+    });
+    expect(m.prompt.inputAddress).not.toHaveBeenCalled();
+    // TEST_PRIVATE_KEY's derived EVM address (anvil dev account 0)
+    expect(outcome.recipient).toBe('0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266');
   });
 });
