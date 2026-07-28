@@ -17,7 +17,7 @@ import {
 } from '../services/intent-publish-flow.service';
 import { PromptService } from '../services/prompt.service';
 import { TokenResolverService } from '../services/token-resolver.service';
-import { parseAmount } from '../utils/parse-amount';
+import { parseAmount, parseDecimalsFlag } from '../utils/parse-amount';
 
 interface PublishOptions extends PublishFlowOptions {
   source?: string;
@@ -168,7 +168,7 @@ export class PublishCommand extends CommandRunner {
     description: 'Token decimals; required when --route-token is a raw address',
   })
   parseRouteTokenDecimals(val: string): number {
-    return parseInt(val, 10);
+    return parseDecimalsFlag(val, '--route-token-decimals');
   }
 
   @Option({
@@ -176,7 +176,7 @@ export class PublishCommand extends CommandRunner {
     description: 'Token decimals; required when --reward-token is a raw address',
   })
   parseRewardTokenDecimals(val: string): number {
-    return parseInt(val, 10);
+    return parseDecimalsFlag(val, '--reward-token-decimals');
   }
 
   @Option({

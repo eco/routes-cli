@@ -27,3 +27,14 @@ export function parseAmount(raw: string, decimals: number, flag: string): bigint
     );
   }
 }
+
+/** Validates a --route-token-decimals/--reward-token-decimals CLI value. */
+export function parseDecimalsFlag(raw: string, flag: string): number {
+  const n = Number(raw);
+  if (!Number.isInteger(n) || n < 0 || n > 255) {
+    throw RoutesCliError.configurationError(
+      `Invalid ${flag} value "${raw}": must be an integer between 0 and 255.`
+    );
+  }
+  return n;
+}
