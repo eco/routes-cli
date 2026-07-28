@@ -6,6 +6,7 @@ import { parseUnits } from 'viem';
 import { AddressNormalizerService } from '@/blockchain/address-normalizer.service';
 import { ChainRegistryService } from '@/blockchain/chain-registry.service';
 import { TokenConfig } from '@/config/tokens.config';
+import { NonInteractiveError } from '@/shared/errors';
 import { ChainConfig, UniversalAddress } from '@/shared/types';
 
 @Injectable()
@@ -15,7 +16,22 @@ export class PromptService {
     private readonly normalizer: AddressNormalizerService
   ) {}
 
-  async selectChain(chains: ChainConfig[], message: string): Promise<ChainConfig> {
+  private assertInteractive(what: string, flagHint: string): void {
+    if (!process.stdin.isTTY || !process.stdout.isTTY) {
+      throw new NonInteractiveError(what, flagHint);
+    }
+  }
+
+  private static capitalize(s: string): string {
+    return s.charAt(0).toUpperCase() + s.slice(1);
+  }
+
+  async selectChain(
+    chains: ChainConfig[],
+    message: string,
+    flagHint = '--source <chain> or --destination <chain>'
+  ): Promise<ChainConfig> {
+    this.assertInteractive('Chain', flagHint);
     const { chain } = await inquirer.prompt([
       {
         type: 'list',
@@ -32,6 +48,10 @@ export class PromptService {
     tokens: TokenConfig[],
     label: string
   ): Promise<{ address: string; decimals: number; symbol?: string }> {
+    this.assertInteractive(
+      `${PromptService.capitalize(label)} token`,
+      `--${label}-token <symbol|address>`
+    );
     const availableTokens = tokens.filter(t => !!t.addresses[chain.id.toString()]);
     const choices = [
       ...availableTokens.map(t => ({ name: `${t.symbol} - ${t.name}`, value: t.symbol })),
@@ -93,8 +113,10 @@ export class PromptService {
   async inputAmount(
     label: string,
     decimals: number,
-    defaultValue = '0.1'
+    defaultValue = '0.1',
+    flagHint = '--amount <value>'
   ): Promise<{ raw: string; parsed: bigint }> {
+    this.assertInteractive('Amount', flagHint);
     const { amount } = await inquirer.prompt([
       {
         type: 'input',
@@ -114,6 +136,7 @@ export class PromptService {
   }
 
   async inputAddress(chain: ChainConfig, label: string, defaultValue?: string): Promise<string> {
+    this.assertInteractive(`${PromptService.capitalize(label)} address`, `--${label} <address>`);
     const handler = this.registry.get(chain.type);
     const { address } = await inquirer.prompt([
       {
@@ -134,6 +157,7 @@ export class PromptService {
   }
 
   async confirmPublish(): Promise<boolean> {
+    this.assertInteractive('Confirmation', '--yes');
     const { confirmed } = await inquirer.prompt([
       {
         type: 'confirm',
@@ -146,6 +170,7 @@ export class PromptService {
   }
 
   async confirm(message: string, defaultValue = false): Promise<boolean> {
+    this.assertInteractive('Confirmation', '--yes');
     const { confirmed } = await inquirer.prompt([
       {
         type: 'confirm',
@@ -158,6 +183,7 @@ export class PromptService {
   }
 
   async inputManualPortal(chain: ChainConfig): Promise<string> {
+    this.assertInteractive('Portal address', '--portal-address <address>');
     const handler = this.registry.get(chain.type);
     const { portal } = await inquirer.prompt([
       {
@@ -180,6 +206,7 @@ export class PromptService {
   }
 
   async inputManualProver(chain: ChainConfig): Promise<string> {
+    this.assertInteractive('Prover address', '--prover-address <address>');
     const handler = this.registry.get(chain.type);
     const { prover } = await inquirer.prompt([
       {
@@ -204,6 +231,7 @@ export class PromptService {
    * Falls back to a free-text address prompt when no intersection exists.
    */
   async selectProver(sourceChain: ChainConfig, destChain: ChainConfig): Promise<UniversalAddress> {
+    this.assertInteractive('Prover', '--prover-type <name> or --prover-address <address>');
     const sourceProvers = sourceChain.provers ?? {};
     const destProvers = destChain.provers ?? {};
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
