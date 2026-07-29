@@ -49,8 +49,8 @@ export const RAW_CHAIN_CONFIGS: RawChainConfig[] = [
     type: ChainType.EVM,
     env: 'production',
     rpcUrl: 'https://mainnet.base.org',
-    portalAddress: '0x399Dbd5DF04f83103F77A58cBa2B7c4d3cdede97', // prod portal
-    provers: { LayerZero: '0x0C4E3063239c9f4f323A956C79738916594D8Fd4' }, // prod prover
+    portalAddress: '0xfD12115CD8F37C7667050eD8499EDa6B9d9c03bA', // prod portal
+    provers: { LayerZero: '0x3a572CfA867691e4D8bD19B80294f3c744a384E9' }, // prod prover
     nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
   },
   {
@@ -108,7 +108,7 @@ export const RAW_CHAIN_CONFIGS: RawChainConfig[] = [
     portalAddress: '0x399Dbd5DF04f83103F77A58cBa2B7c4d3cdede97',
     provers: {
       Hyperlane: '0x9523b6c0cAaC8122DbD5Dd1c1d336CEBA637038D',
-      LayerZero: '0x6D8D9E68627b8eb2D4A3c1110be3FE46Ff6e92A3',
+      LayerZero: '0x82d378D05271743d6C03fbBb108f981E39dd81a9',
     },
     nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
   },
@@ -156,8 +156,8 @@ export const RAW_CHAIN_CONFIGS: RawChainConfig[] = [
     type: ChainType.TVM,
     env: 'production',
     rpcUrl: 'https://api.trongrid.io',
-    portalAddress: 'TTXNcSeX5aYb1ETWYjcX3fvumynWoyFgYw', // prod portal
-    provers: { LayerZero: 'TFu38RELzp7jdR9s7vj4JSpw2kFuTSAq3E' }, // prod prover
+    portalAddress: 'TMu3sz3aQqAQyvnPYrmDM9FeZGC3HdTLs7', // prod portal
+    provers: { LayerZero: 'TQUwftPRikD9ngiFs6MJpo7SKhSYsKmfye' }, // prod prover
     nativeCurrency: { name: 'Tron', symbol: 'TRX', decimals: 6 },
   },
   {
@@ -166,8 +166,8 @@ export const RAW_CHAIN_CONFIGS: RawChainConfig[] = [
     type: ChainType.TVM,
     env: 'development',
     rpcUrl: 'https://api.shasta.trongrid.io',
-    portalAddress: 'TScmM6ZoR6grho3pKCzX6M2MKBYVURG1s5',
-    provers: { LayerZero: 'TM6cLaN3LStBFi9AjrhLQ9cc6QiVu5nFsD' },
+    portalAddress: 'TTaASiEw2Q7ZK9um2s1M7VswiSe2wxKRD3',
+    provers: { LayerZero: 'TSCJtdKaJBt8THXZbKRddsHytSghZebsHm' },
     nativeCurrency: { name: 'Tron', symbol: 'TRX', decimals: 6 },
   },
 
@@ -178,6 +178,8 @@ export const RAW_CHAIN_CONFIGS: RawChainConfig[] = [
     type: ChainType.SVM,
     env: 'production',
     rpcUrl: 'https://api.mainnet-beta.solana.com',
+    portalAddress: 'Ecoo5HDM2XCBy7QzkhDGrAmnRcWw7emU6xGr7CcCmooo',
+    provers: { Hyperlane: 'EcooFDTfKVVo5qZcpNoDngMmVXqrG6FQT1D5LDjZEGeR' },
     nativeCurrency: { name: 'Solana', symbol: 'SOL', decimals: 9 },
   },
   {
