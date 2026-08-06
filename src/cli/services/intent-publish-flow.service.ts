@@ -126,6 +126,7 @@ export class IntentPublishFlow {
       sourcePortal: portalFromQuote,
       proverAddress: proverFromQuote,
       quote,
+      manualRewardDeadline,
     } = await this.fetchQuoteOrManualRoute({
       sourceChain,
       destChain,
@@ -154,7 +155,7 @@ export class IntentPublishFlow {
 
     const reward = this.intentBuilder.buildReward({
       sourceChain,
-      deadline: quote?.deadline,
+      deadline: quote?.deadline ?? manualRewardDeadline,
       creator: this.normalizer.normalize(
         senderAddress as Parameters<AddressNormalizerService['normalize']>[0],
         sourceChain.type
@@ -281,6 +282,10 @@ export class IntentPublishFlow {
     sourcePortal?: UniversalAddress;
     proverAddress?: UniversalAddress;
     quote?: QuoteResult;
+    // Manual-fallback only: reward deadline sized route + proving buffer so the
+    // solver's ExpirationValidation (fill->reward gap >= prover deadlineBuffer)
+    // accepts the intent. The quote path embeds this in quote.deadline instead.
+    manualRewardDeadline?: number;
   }> {
     const {
       sourceChain,
@@ -344,14 +349,22 @@ export class IntentPublishFlow {
         destChain.type
       );
 
+      // Route deadline: how long the solver has to fulfill (default offset).
+      // Reward deadline: route + proving buffer, so provers with a large
+      // deadlineBuffer (e.g. Polymer on Tron corridors, 86400s) don't reject it.
+      const routeDeadline =
+        BigInt(Math.floor(Date.now() / 1000)) + BigInt(this.config.getDeadlineOffsetSeconds());
+      const rewardDeadline = routeDeadline + BigInt(this.config.getRewardDeadlineBufferSeconds());
+
       const { encodedRoute } = this.intentBuilder.buildManualRoute({
         destChain,
         recipient,
         routeToken: routeTokenUniversal,
         routeAmount,
         portal: destPortal,
+        deadline: routeDeadline,
       });
-      return { encodedRoute };
+      return { encodedRoute, manualRewardDeadline: Number(rewardDeadline) };
     }
   }
 

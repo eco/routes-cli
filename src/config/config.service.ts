@@ -65,6 +65,10 @@ export class ConfigService {
     return this.config.get<number>('DEADLINE_OFFSET_SECONDS') ?? 9000;
   }
 
+  getRewardDeadlineBufferSeconds(): number {
+    return this.config.get<number>('REWARD_DEADLINE_BUFFER_SECONDS') ?? 87000;
+  }
+
   getDappId(): string {
     return this.config.get<string>('DAPP_ID') ?? 'eco-routes-cli';
   }

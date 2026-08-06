@@ -105,7 +105,11 @@ function buildFlow(): FlowMocks {
   const statusService = { watch: jest.fn().mockResolvedValue('fulfilled') };
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const config: any = { getKeyForChainType: () => TEST_PRIVATE_KEY };
+  const config: any = {
+    getKeyForChainType: () => TEST_PRIVATE_KEY,
+    getDeadlineOffsetSeconds: () => 9000,
+    getRewardDeadlineBufferSeconds: () => 87000,
+  };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const normalizer: any = { normalize: () => FAKE_UNIVERSAL };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -192,6 +196,31 @@ describe('IntentPublishFlow.publish', () => {
       },
     });
     expect(intentBuilder.buildManualRoute).toHaveBeenCalledTimes(1);
+  });
+
+  it('manual fallback spaces the reward deadline a proving buffer past the route deadline', async () => {
+    const { flow, quoteService, intentBuilder } = buildFlow();
+    quoteService.getQuote.mockRejectedValueOnce(new Error('quote down'));
+
+    const before = BigInt(Math.floor(Date.now() / 1000));
+    await flow.publish({
+      sourceChain: SOURCE_CHAIN,
+      destChain: DEST_CHAIN,
+      options: { privateKey: TEST_PRIVATE_KEY },
+      overrides: {
+        rewardToken: TOKEN_USDC,
+        routeToken: TOKEN_USDC,
+        rewardAmount: 1_000_000n,
+        recipientRaw: '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045',
+      },
+    });
+
+    const routeDeadline = intentBuilder.buildManualRoute.mock.calls[0][0].deadline as bigint;
+    const rewardDeadline = intentBuilder.buildReward.mock.calls[0][0].deadline as number;
+    expect(routeDeadline).toBeGreaterThanOrEqual(before + 9000n);
+    // Zero gap gets permanently rejected by the solver's ExpirationValidation;
+    // the reward deadline must sit a full proving buffer past the route deadline.
+    expect(BigInt(rewardDeadline)).toBe(routeDeadline + 87000n);
   });
 
   it('dry-run skips publishing and returns null', async () => {
