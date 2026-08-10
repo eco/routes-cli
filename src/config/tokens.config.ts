@@ -139,6 +139,16 @@ export const TOKEN_CONFIGS: Record<string, TokenConfig> = {
       ), // BNB Smart Chain
     },
   },
+  USDT0: {
+    symbol: 'USDT0',
+    name: 'USDT0',
+    decimals: 6,
+    addresses: {
+      '9745': AddressNormalizer.normalizeEvm(
+        '0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb' as EvmAddress
+      ), // Plasma
+    },
+  },
   ETH: {
     symbol: 'ETH',
     name: 'Ether',
