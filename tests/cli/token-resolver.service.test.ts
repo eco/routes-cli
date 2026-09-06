@@ -50,4 +50,34 @@ describe('TokenResolverService.resolve', () => {
   it('rejects garbage input, listing known symbols', () => {
     expect(() => resolver.resolve('NOPE', BASE, opts)).toThrow(/USDC/);
   });
+
+  describe('new production EVM chains', () => {
+    const UNICHAIN: ChainConfig = { ...BASE, id: 130n, name: 'Unichain' };
+    const WORLDCHAIN: ChainConfig = { ...BASE, id: 480n, name: 'World Chain' };
+    const PLASMA: ChainConfig = { ...BASE, id: 9745n, name: 'Plasma' };
+    const CELO: ChainConfig = { ...BASE, id: 42220n, name: 'Celo' };
+    const INK: ChainConfig = { ...BASE, id: 57073n, name: 'Ink' };
+    const ARBITRUM: ChainConfig = { ...BASE, id: 42161n, name: 'Arbitrum' };
+    const POLYGON: ChainConfig = { ...BASE, id: 137n, name: 'Polygon' };
+
+    it.each([
+      ['USDC', UNICHAIN],
+      ['USDC', WORLDCHAIN],
+      ['USDC', CELO],
+      ['USDT', CELO],
+      ['USDT0', UNICHAIN],
+      ['USDT0', POLYGON],
+      ['USDT0', PLASMA],
+      ['USDT0', ARBITRUM],
+      ['USDT0', INK],
+    ])('resolves %s on %s without throwing', (symbol, chain) => {
+      expect(() => resolver.resolve(symbol, chain, opts)).not.toThrow();
+    });
+
+    it('USDT0 is not configured on HyperEVM (999) — it lives under USDT there instead', () => {
+      const HYPEREVM: ChainConfig = { ...BASE, id: 999n, name: 'HyperEVM' };
+      expect(() => resolver.resolve('USDT0', HYPEREVM, opts)).toThrow(/not configured on HyperEVM/);
+      expect(() => resolver.resolve('USDT', HYPEREVM, opts)).not.toThrow();
+    });
+  });
 });

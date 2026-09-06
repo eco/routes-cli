@@ -1,4 +1,17 @@
-import { arbitrum, bsc, hyperEvm, mainnet, polygon, ronin, sonic } from 'viem/chains';
+import {
+  arbitrum,
+  bsc,
+  celo,
+  hyperEvm,
+  ink,
+  mainnet,
+  plasma,
+  polygon,
+  ronin,
+  sonic,
+  unichain,
+  worldchain,
+} from 'viem/chains';
 
 import { ChainType, ProverType } from '@/shared/types';
 
@@ -104,6 +117,46 @@ export const RAW_CHAIN_CONFIGS: RawChainConfig[] = [
     env: 'production',
     rpcUrl: hyperEvm.rpcUrls.default.http[0],
     nativeCurrency: hyperEvm.nativeCurrency,
+  },
+  {
+    id: BigInt(unichain.id),
+    name: unichain.name,
+    type: ChainType.EVM,
+    env: 'production',
+    rpcUrl: unichain.rpcUrls.default.http[0],
+    nativeCurrency: unichain.nativeCurrency,
+  },
+  {
+    id: BigInt(worldchain.id),
+    name: worldchain.name,
+    type: ChainType.EVM,
+    env: 'production',
+    rpcUrl: worldchain.rpcUrls.default.http[0],
+    nativeCurrency: worldchain.nativeCurrency,
+  },
+  {
+    id: BigInt(plasma.id),
+    name: plasma.name,
+    type: ChainType.EVM,
+    env: 'production',
+    rpcUrl: plasma.rpcUrls.default.http[0],
+    nativeCurrency: plasma.nativeCurrency,
+  },
+  {
+    id: BigInt(celo.id),
+    name: celo.name,
+    type: ChainType.EVM,
+    env: 'production',
+    rpcUrl: celo.rpcUrls.default.http[0],
+    nativeCurrency: celo.nativeCurrency,
+  },
+  {
+    id: BigInt(ink.id),
+    name: ink.name,
+    type: ChainType.EVM,
+    env: 'production',
+    rpcUrl: ink.rpcUrls.default.http[0],
+    nativeCurrency: ink.nativeCurrency,
   },
 
   // EVM - Development
