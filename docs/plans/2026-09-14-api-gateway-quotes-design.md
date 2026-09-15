@@ -9,7 +9,7 @@ No change to how intents are built, signed, or published on-chain.
 ## 1. Why
 
 routes-cli quotes against internal hosts today: `quotes.eco.com` (quote-service v3 shape) by
-default, or a solver-v2 host via `SOLVER_URL`, or any URL via `QUOTES_ENDPOINT_URL`. Partners and
+default, or a solver-v2 host via `SOLVER_URL`, or any URL via `QUOTES_API_URL`. Partners and
 Eco's own tooling are moving to the public front door, `api.eco.com/v1/*`, which is keyed
 (`x-api-key`), typed by the published `@eco-foundation/api-schemas` package, and has a staging twin
 at `api.stag.eco.com`. The CLI is the reference client for self-published intents, so it should
@@ -18,7 +18,7 @@ speak that contract natively rather than through an internal path that may not e
 ## 2. Decisions
 
 - **Gateway is the default quote source.** Resolution order: `SOLVER_URL` (solver-v2) →
-  `QUOTES_ENDPOINT_URL` (custom v3 endpoint) → gateway. The two existing variables stay as explicit
+  `QUOTES_API_URL` (exact v3 URL) → `QUOTES_PREPROD` (preprod v3) → gateway. The two existing variables stay as explicit
   escape hatches; `quotes.eco.com` is no longer implied by "nothing set".
 - **Environment selects the host.** `ECO_ENV=production|staging` (default `production`) maps to
   `https://api.eco.com` / `https://api.stag.eco.com`. `ECO_API_URL` overrides the host outright.

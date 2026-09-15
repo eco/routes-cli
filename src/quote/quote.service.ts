@@ -92,7 +92,11 @@ export class QuoteService {
   ) {}
 
   async getQuote(params: QuoteRequest): Promise<QuoteResult> {
-    const { url, type } = this.config.getQuoteEndpoint();
+    const endpoint = this.config.getQuoteEndpoint();
+    if (endpoint.type === 'gateway') {
+      throw new Error('gateway quotes are wired in Task 5');
+    }
+    const { url, type } = endpoint;
     const dAppID = this.config.getDappId();
     const isSolverV2 = type === 'solver-v2';
 

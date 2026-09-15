@@ -14,7 +14,7 @@
 
 - Never print `ECO_API_KEY` (or any header value) — debug output logs header names only.
 - `@eco-foundation/api-schemas` is imported with `import type` only; nothing from it may reach the ncc bundle.
-- Resolution order is fixed: `SOLVER_URL` → `QUOTES_ENDPOINT_URL` → gateway. `quotes.eco.com` is no longer a default.
+- Resolution order is fixed: `SOLVER_URL` → `QUOTES_API_URL` → gateway. `quotes.eco.com` is no longer a default.
 - Gateway hosts: production `https://api.eco.com`, staging `https://api.stag.eco.com`; `ECO_API_URL` overrides; `--env` beats `ECO_ENV`.
 - Quote requests use `options.visibility: 'public'`; a quote with `execution: null` or `encodedRoute: null` is a hard error (no manual fallback).
 - Auth failures (HTTP 401/403 or Problem `code` `invalid-api-key`) are hard errors; other Problems and network failures behave like today's quote failures (the publish flow falls back to a manual route).
@@ -100,8 +100,8 @@ describe('ConfigService.getQuoteEndpoint — gateway default', () => {
     );
   });
 
-  it('QUOTES_ENDPOINT_URL beats the gateway but not SOLVER_URL', () => {
-    expect(build({ QUOTES_ENDPOINT_URL: 'https://q.example.com/api/v3/quotes/single' }).getQuoteEndpoint()).toEqual(
+  it('QUOTES_API_URL beats the gateway but not SOLVER_URL', () => {
+    expect(build({ QUOTES_API_URL: 'https://q.example.com/api/v3/quotes/single' }).getQuoteEndpoint()).toEqual(
       { type: 'custom', url: 'https://q.example.com/api/v3/quotes/single' }
     );
   });
@@ -119,7 +119,7 @@ Expected: FAIL — the first test receives `{ type: 'production', url: 'https://
 
 - [ ] **Step 3: Write minimal implementation**
 
-`src/config/validation/env.schema.ts` — add after `QUOTES_ENDPOINT_URL`:
+`src/config/validation/env.schema.ts` — add after `QUOTES_API_URL`:
 
 ```ts
   ECO_ENV: z.enum(['production', 'staging']).default('production'),
@@ -149,7 +149,7 @@ const GATEWAY_HOSTS: Record<GatewayEnv, string> = {
   /**
    * Quote source, highest priority first:
    *   1. SOLVER_URL          — solver-v2 API at {SOLVER_URL}/api/v2/quote/reverse
-   *   2. QUOTES_ENDPOINT_URL — this exact URL, quote-service v3 shape
+   *   2. QUOTES_API_URL — this exact URL, quote-service v3 shape
    *   3. Eco API gateway     — POST {baseUrl}/v1/quotes (default)
    */
   getQuoteEndpoint(envOverride?: GatewayEnv): QuoteEndpoint {
@@ -157,7 +157,7 @@ const GATEWAY_HOSTS: Record<GatewayEnv, string> = {
     if (solverUrl) {
       return { url: `${solverUrl}/api/v2/quote/reverse`, type: 'solver-v2' };
     }
-    const endpointUrl = this.config.get<string>('QUOTES_ENDPOINT_URL');
+    const endpointUrl = this.config.get<string>('QUOTES_API_URL');
     if (endpointUrl) {
       return { url: endpointUrl, type: 'custom' };
     }
@@ -1290,7 +1290,7 @@ Add to `tests/integration/publish-non-interactive.test.ts`:
         env: {
           ...process.env,
           SOLVER_URL: '',
-          QUOTES_ENDPOINT_URL: '',
+          QUOTES_API_URL: '',
           ECO_API_URL: 'http://127.0.0.1:9', // unroutable → EcoApiRequestError → manual fallback
           EVM_PRIVATE_KEY: TEST_PRIVATE_KEY,
         },
@@ -1303,7 +1303,7 @@ Add to `tests/integration/publish-non-interactive.test.ts`:
   });
 ```
 
-Check how `runCli` strips empty env values: zod `z.string().url().optional()` rejects `''`, so instead of setting them to `''` build the env with `delete env.SOLVER_URL; delete env.QUOTES_ENDPOINT_URL;` after spreading `process.env`.
+Check how `runCli` strips empty env values: zod `z.string().url().optional()` rejects `''`, so instead of setting them to `''` build the env with `delete env.SOLVER_URL; delete env.QUOTES_API_URL;` after spreading `process.env`.
 
 - [ ] **Step 2: Run it to verify it fails**
 
@@ -1328,7 +1328,7 @@ Expected: FAIL only if Tasks 1-5 regressed; if it passes immediately that is acc
 | `ECO_API_KEY` | No | API key sent as `x-api-key` to the Eco API gateway (required on staging) |
 ```
 
-and rewrite the `SOLVER_URL` / `QUOTES_ENDPOINT_URL` descriptions to say they are escape hatches that bypass the gateway.
+and rewrite the `SOLVER_URL` / `QUOTES_API_URL` descriptions to say they are escape hatches that bypass the gateway.
 
 `.env.example` — replace the Quote Service block with:
 
@@ -1339,7 +1339,7 @@ and rewrite the `SOLVER_URL` / `QUOTES_ENDPOINT_URL` descriptions to say they ar
 #
 # Priority order (highest first):
 #   1. SOLVER_URL          — solver-v2 API at {SOLVER_URL}/api/v2/quote/reverse
-#   2. QUOTES_ENDPOINT_URL — use this exact URL as a quote-service v3 endpoint
+#   2. QUOTES_API_URL — use this exact URL as a quote-service v3 endpoint
 #   3. Eco API gateway     — POST {ECO_API_URL or ECO_ENV host}/v1/quotes  (default)
 # =============================================================================
 
@@ -1356,12 +1356,12 @@ and rewrite the `SOLVER_URL` / `QUOTES_ENDPOINT_URL` descriptions to say they ar
 
 # Escape hatches — bypass the gateway entirely:
 # SOLVER_URL=https://your-solver.example.com
-# QUOTES_ENDPOINT_URL=https://quotes.eco.com/api/v3/quotes/single
+# QUOTES_API_URL=https://quotes.eco.com/api/v3/quotes/single
 ```
 
 `CLAUDE.md` → under "Environment Configuration / Optional" add `ECO_ENV`, `ECO_API_URL`, `ECO_API_KEY` one line each and note the default quote source is the Eco API gateway.
 
-`.claude/skills/routes-cli/SKILL.md` → Setup: `Optional env: ECO_ENV=staging|production (gateway host; default production), ECO_API_KEY (x-api-key; required on staging), ECO_API_URL (host override), SOLVER_URL / QUOTES_ENDPOINT_URL (bypass the gateway), …`. Recipe table: add `--env <production|staging>`. "After publishing": `pnpm dev status <intentHash>` (no `--chain` needed; `--chain <c>` forces the on-chain lookup). Errors table: `Eco API error 401/403 … invalid-api-key` → set `ECO_API_KEY`.
+`.claude/skills/routes-cli/SKILL.md` → Setup: `Optional env: ECO_ENV=staging|production (gateway host; default production), ECO_API_KEY (x-api-key; required on staging), ECO_API_URL (host override), SOLVER_URL / QUOTES_API_URL (bypass the gateway), …`. Recipe table: add `--env <production|staging>`. "After publishing": `pnpm dev status <intentHash>` (no `--chain` needed; `--chain <c>` forces the on-chain lookup). Errors table: `Eco API error 401/403 … invalid-api-key` → set `ECO_API_KEY`.
 
 - [ ] **Step 4: Verify**
 
