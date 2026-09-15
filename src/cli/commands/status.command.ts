@@ -4,12 +4,15 @@ import chalk from 'chalk';
 import { Command, CommandRunner, Option } from 'nest-commander';
 
 import { ChainsService } from '@/blockchain/chains.service';
+import { ConfigService, GatewayEnv } from '@/config/config.service';
+import { RoutesCliError } from '@/shared/errors';
 import { IntentStatus, StatusService } from '@/status/status.service';
 
 import { DisplayService } from '../services/display.service';
 
 interface StatusOptions {
   chain?: string;
+  env?: GatewayEnv;
   watch?: boolean;
   json?: boolean;
   verbose?: boolean;
@@ -25,7 +28,8 @@ export class StatusCommand extends CommandRunner {
   constructor(
     private readonly chains: ChainsService,
     private readonly statusService: StatusService,
-    private readonly display: DisplayService
+    private readonly display: DisplayService,
+    private readonly config: ConfigService
   ) {
     super();
   }
@@ -38,17 +42,19 @@ export class StatusCommand extends CommandRunner {
       process.exit(1);
     }
 
-    if (!options.chain) {
-      this.display.error('Destination chain is required. Use --chain option.');
-      process.exit(1);
-    }
-
-    const chain = this.chains.resolveChain(options.chain);
+    // --chain forces the on-chain Portal lookup; otherwise ask the Eco API gateway.
+    const chain = options.chain ? this.chains.resolveChain(options.chain) : undefined;
+    const lookup = { env: options.env };
 
     if (!options.json && !options.watch) {
       this.display.title('🔍 Checking Intent Status');
       this.display.log(`Intent Hash: ${intentHash}`);
-      this.display.log(`Chain: ${chain.name} (${chain.id})`);
+      if (chain) {
+        this.display.log(`Chain: ${chain.name} (${chain.id})`);
+      } else {
+        const { baseUrl, env } = this.config.getGatewayBaseUrl(options.env);
+        this.display.log(`Source: Eco API (${env}, ${baseUrl})`);
+      }
     }
 
     if (options.watch) {
@@ -56,10 +62,10 @@ export class StatusCommand extends CommandRunner {
         intentHash,
         chain,
         status => this.displayStatus(status, options),
-        {}
+        lookup
       );
     } else {
-      const status = await this.statusService.getStatus(intentHash, chain);
+      const status = await this.statusService.getStatus(intentHash, chain, lookup);
       this.displayStatus(status, options);
     }
   }
@@ -72,6 +78,7 @@ export class StatusCommand extends CommandRunner {
 
     const statusText = status.fulfilled ? chalk.green('✅ Fulfilled') : chalk.yellow('⏳ Pending');
     this.display.log(`Status: ${statusText}`);
+    if (status.state) this.display.log(`Gateway state: ${status.state}`);
 
     if (status.fulfilled) {
       if (status.solver) this.display.log(`Solver: ${status.solver}`);
@@ -84,8 +91,25 @@ export class StatusCommand extends CommandRunner {
     }
   }
 
-  @Option({ flags: '-c, --chain <chain>', description: 'Destination chain (name or ID)' })
+  @Option({
+    flags: '-c, --chain <chain>',
+    description:
+      'Destination chain (name or ID) — forces the on-chain Portal lookup instead of the Eco API',
+  })
   parseChain(val: string): string {
+    return val;
+  }
+
+  @Option({
+    flags: '--env <environment>',
+    description: 'Eco API gateway environment: production (default) or staging',
+  })
+  parseEnv(val: string): GatewayEnv {
+    if (val !== 'production' && val !== 'staging') {
+      throw RoutesCliError.configurationError(
+        `--env must be "production" or "staging", got "${val}".`
+      );
+    }
     return val;
   }
 
