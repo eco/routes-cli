@@ -17,9 +17,13 @@ pnpm dev <command>     # ts-node, no build needed
 Required env (`.env`): `EVM_PRIVATE_KEY`, `TVM_PRIVATE_KEY`, `SVM_PRIVATE_KEY` — only for
 the chain types you touch. NEVER print these values or echo them into logs or commands.
 
-Optional env: `SOLVER_URL` (quote endpoint override), `QUOTES_PREPROD=1` (preprod quotes),
-`NODE_CHAINS_ENV=development` (testnet chains), `DEBUG=1` (stack traces).
+Optional env: `ECO_ENV=production|staging` (Eco API gateway host, default production),
+`ECO_API_KEY` (sent as `x-api-key`; required on staging — never print it), `ECO_API_URL` (gateway
+host override), `SOLVER_URL` / `QUOTES_API_URL` / `QUOTES_PREPROD` (bypass the gateway),
+`NODE_CHAINS_ENV=development` (testnet chains), `DEBUG=1` (stack traces + request logs).
 
+Quotes and `status` go through the public Eco API gateway (`POST /v1/quotes`,
+`GET /v1/intents/status`) unless one of the bypass variables is set.
 ## Discover valid values first
 
 ```bash
@@ -45,6 +49,7 @@ Validate safely first by adding `--dry-run` (builds everything, signs and broadc
 | `--amount <value>` | reward amount in human units (`5` = 5 USDC); requires `--reward-token` |
 | `--recipient <address>` | destination-chain recipient; with `-y` defaults to your derived address (requires a key configured for the destination chain type) |
 | `-y, --yes` | skip confirmation (required for a non-interactive publish) |
+| `--env <production\|staging>` | Eco API gateway environment for this run (overrides `ECO_ENV`) |
 | `--json` | one JSON object on stdout; human logs on stderr |
 | `--dry-run` | validate without broadcasting (exits before confirmation) |
 | `--route-amount <value>` | only needed when the quote service is down (manual fallback); requires `--route-token` |
@@ -68,7 +73,8 @@ Dry run: `"dryRun": true` and no hashes.
 ## After publishing
 
 ```bash
-pnpm dev status <intentHash> --chain optimism
+pnpm dev status <intentHash>                    # via the Eco API gateway (add --env staging as needed)
+pnpm dev status <intentHash> --chain optimism   # force the on-chain Portal lookup
 ```
 
 ## Errors → fixes
@@ -83,3 +89,4 @@ Any `X not specified. Pass --flag when running non-interactively.` → add that 
 | `Token "X" is neither a known symbol…` | run `pnpm dev tokens`, or pass a raw address plus the matching `-decimals` flag |
 | `--amount requires --reward-token` | pass both flags together |
 | `No private key configured for EVM` | set `EVM_PRIVATE_KEY` in `.env` — never paste keys into the command line |
+| `Eco API error 401/403 … ECO_API_KEY` | set `ECO_API_KEY` in `.env` (staging always needs one); or pass `--env production` |
