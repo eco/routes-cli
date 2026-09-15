@@ -69,11 +69,13 @@ intentStatus(params: { intentHash: string }, opts?: { env? }): Promise<V1StatusE
 
 - `POST {base}/v1/quotes` with `content-type: application/json` and `x-api-key` when configured.
 - `GET {base}/v1/intents/status?intentHash=…`.
-- Non-2xx: parse the body as `V1ProblemBody` (RFC 7807) and throw
-  `RoutesCliError.apiError(problem, requestId)`. 401/403 (or `code: invalid-api-key`) append the
-  hint "set ECO_API_KEY in .env". Bodies that are not a Problem fall back to the HTTP status text.
-- Network failures throw `RoutesCliError.networkError(url, cause)` so the publish flow's existing
-  "quote failed → manual route" fallback keeps working.
+- Non-2xx: parse the body as `V1ProblemBody` (RFC 7807). Auth problems (401/403 or
+  `code: invalid-api-key`) throw `RoutesCliError.apiError(problem, requestId)` with the hint "set
+  ECO_API_KEY in .env" and stop the run; every other problem throws `EcoApiRequestError` carrying
+  the problem so the publish flow can fall back. Bodies that are not a Problem fall back to the HTTP
+  status text.
+- Network failures throw `EcoApiRequestError` (a plain `Error` subclass, not `RoutesCliError`) so
+  the publish flow's existing "quote failed → manual route" fallback keeps working.
 - Debug mode logs the URL, header names, and timing — never header values.
 
 ### 3.3 Quote adapter (`src/quote/gateway-quote.adapter.ts`)
@@ -133,7 +135,8 @@ are unchanged.
 | Condition | Behaviour |
 |---|---|
 | Gateway unreachable / DNS / timeout | `NETWORK_ERROR` → publish falls back to manual route (existing path) |
-| 4xx/5xx Problem body | `QUOTE_SERVICE_ERROR` with `code`, `title`, `detail`, `requestId`; 401/403 add the API-key hint; no manual fallback for auth errors |
+| 401/403 or Problem `code: invalid-api-key` | `RoutesCliError` (`QUOTE_SERVICE_ERROR`, user error) naming `ECO_API_KEY`; no manual fallback |
+| Any other 4xx/5xx Problem body | `EcoApiRequestError` carrying `code`, `title`, `detail`, `requestId`; publish falls back to manual route (as any quote failure does today) |
 | Quote without execution / private | `QUOTE_SERVICE_ERROR`, no fallback |
 | Unknown status word | printed verbatim, `fulfilled = false` |
 
