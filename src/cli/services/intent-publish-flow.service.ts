@@ -9,7 +9,7 @@ import { AddressNormalizerService } from '@/blockchain/address-normalizer.servic
 import { PublishResult } from '@/blockchain/base.publisher';
 import { PublisherFactory } from '@/blockchain/publisher-factory.service';
 import { getErrorMessage } from '@/commons/utils/error-handler';
-import { ConfigService } from '@/config/config.service';
+import { ConfigService, GatewayEnv } from '@/config/config.service';
 import { TOKEN_CONFIGS } from '@/config/tokens.config';
 import { IntentBuilder } from '@/intent/intent-builder.service';
 import { IntentStorage } from '@/intent/intent-storage.service';
@@ -39,6 +39,8 @@ export interface PublishFlowOptions {
   dryRun?: boolean;
   watch?: boolean;
   yes?: boolean;
+  /** Eco API gateway environment for quotes (`--env`); overrides ECO_ENV. */
+  env?: GatewayEnv;
 }
 
 export interface TokenSelection {
@@ -138,6 +140,7 @@ export class IntentPublishFlow {
       recipientRaw,
       recipient,
       overrides,
+      options,
     });
 
     const sourcePortal = await this.resolveSourcePortal(sourceChain, portalFromQuote, options);
@@ -277,6 +280,7 @@ export class IntentPublishFlow {
     recipientRaw: string;
     recipient: UniversalAddress;
     overrides: PublishFlowOverrides;
+    options: PublishFlowOptions;
   }): Promise<{
     encodedRoute: string;
     sourcePortal?: UniversalAddress;
@@ -298,6 +302,7 @@ export class IntentPublishFlow {
       recipientRaw,
       recipient,
       overrides,
+      options,
     } = args;
 
     try {
@@ -310,6 +315,10 @@ export class IntentPublishFlow {
         recipient: recipientRaw,
         routeToken: routeToken.address,
         rewardToken: rewardToken.address,
+        env: options.env,
+        sourcePortalFallback: sourceChain.portalAddress
+          ? this.normalizer.denormalize(sourceChain.portalAddress, sourceChain.type)
+          : undefined,
       });
       this.display.succeed('Quote received');
       this.display.displayQuote(quote, rewardToken, rewardAmount, routeToken);

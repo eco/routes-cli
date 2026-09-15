@@ -111,7 +111,7 @@ function buildFlow(): FlowMocks {
     getRewardDeadlineBufferSeconds: () => 87000,
   };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const normalizer: any = { normalize: () => FAKE_UNIVERSAL };
+  const normalizer: any = { normalize: () => FAKE_UNIVERSAL, denormalize: () => '0xportal' };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const display: any = {
     title: () => undefined,
@@ -241,6 +241,27 @@ describe('IntentPublishFlow.publish', () => {
     expect(out.intent).toBeNull();
     expect(publisher.publish).not.toHaveBeenCalled();
     expect(publisherFactory.create).not.toHaveBeenCalled();
+  });
+
+  it('forwards --env and the source chain portal to the quote request', async () => {
+    const { flow, quoteService } = buildFlow();
+    await flow.publish({
+      sourceChain: { ...SOURCE_CHAIN, portalAddress: FAKE_UNIVERSAL },
+      destChain: DEST_CHAIN,
+      options: { privateKey: TEST_PRIVATE_KEY, env: 'staging' },
+      overrides: {
+        rewardToken: TOKEN_USDC,
+        routeToken: TOKEN_USDC,
+        rewardAmount: 1_000_000n,
+        recipientRaw: '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045',
+      },
+    });
+    const quoteCall = quoteService.getQuote.mock.calls[0][0] as {
+      env?: string;
+      sourcePortalFallback?: string;
+    };
+    expect(quoteCall.env).toBe('staging');
+    expect(quoteCall.sourcePortalFallback).toBe('0xportal');
   });
 
   it('quoteDestinationChainIdOverride only affects the quote request — published intent uses destChain.id', async () => {
