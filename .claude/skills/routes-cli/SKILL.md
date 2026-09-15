@@ -18,7 +18,8 @@ Required env (`.env`): `EVM_PRIVATE_KEY`, `TVM_PRIVATE_KEY`, `SVM_PRIVATE_KEY` �
 the chain types you touch. NEVER print these values or echo them into logs or commands.
 
 Optional env: `ECO_ENV=production|staging` (Eco API gateway host, default production),
-`ECO_API_KEY` (sent as `x-api-key`; required on staging — never print it), `ECO_API_URL` (gateway
+`ECO_API_KEY_STAGING` / `ECO_API_KEY_PRODUCTION` (sent as `x-api-key` to that host only; staging
+requires one, production rejects unknown keys — never print them; `ECO_API_KEY` is the fallback), `ECO_API_URL` (gateway
 host override), `SOLVER_URL` / `QUOTES_API_URL` / `QUOTES_PREPROD` (bypass the gateway),
 `NODE_CHAINS_ENV=development` (testnet chains), `DEBUG=1` (stack traces + request logs).
 
@@ -89,4 +90,4 @@ Any `X not specified. Pass --flag when running non-interactively.` → add that 
 | `Token "X" is neither a known symbol…` | run `pnpm dev tokens`, or pass a raw address plus the matching `-decimals` flag |
 | `--amount requires --reward-token` | pass both flags together |
 | `No private key configured for EVM` | set `EVM_PRIVATE_KEY` in `.env` — never paste keys into the command line |
-| `Eco API error 401/403 … ECO_API_KEY` | set `ECO_API_KEY` in `.env` (staging always needs one); or pass `--env production` |
+| `Eco API error 401/403 … ECO_API_KEY` | staging: set `ECO_API_KEY_STAGING` in `.env`; production `invalid-api-key`: you are sending a key production does not know — drop it or set a valid `ECO_API_KEY_PRODUCTION` |

@@ -39,10 +39,29 @@ describe('ConfigService.getQuoteEndpoint — gateway default', () => {
     });
   });
 
-  it('carries ECO_API_KEY without exposing it anywhere else', () => {
-    const cfg = build({ ECO_API_KEY: 'k-123' });
-    expect(cfg.getQuoteEndpoint()).toMatchObject({ type: 'gateway', apiKey: 'k-123' });
-    expect(cfg.getApiKey()).toBe('k-123');
+  it('ECO_API_KEY is the fallback key for every environment', () => {
+    const cfg = build({ ECO_API_KEY: 'k-any' });
+    expect(cfg.getQuoteEndpoint()).toMatchObject({ type: 'gateway', apiKey: 'k-any' });
+    expect(cfg.getApiKey('production')).toBe('k-any');
+    expect(cfg.getApiKey('staging')).toBe('k-any');
+  });
+
+  it('per-environment keys win over ECO_API_KEY and never leak across environments', () => {
+    const cfg = build({ ECO_API_KEY_STAGING: 'k-stag', ECO_API_KEY: 'k-any' });
+    expect(cfg.getApiKey('staging')).toBe('k-stag');
+    expect(cfg.getApiKey('production')).toBe('k-any');
+    expect(cfg.getQuoteEndpoint('staging')).toMatchObject({ apiKey: 'k-stag' });
+  });
+
+  it('a staging-only key sends nothing to production (which answers keyless)', () => {
+    const cfg = build({ ECO_API_KEY_STAGING: 'k-stag' });
+    expect(cfg.getApiKey('production')).toBeUndefined();
+    expect(cfg.getQuoteEndpoint()).toEqual({
+      type: 'gateway',
+      baseUrl: 'https://api.eco.com',
+      env: 'production',
+    });
+    expect(build({ ECO_API_KEY_PRODUCTION: 'k-prod' }).getApiKey('staging')).toBeUndefined();
   });
 
   it('SOLVER_URL still wins over everything', () => {

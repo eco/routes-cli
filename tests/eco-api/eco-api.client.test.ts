@@ -15,7 +15,7 @@ function client(
         (env === 'staging' ? 'https://api.stag.eco.com' : 'https://api.eco.com'),
       env: env ?? 'production',
     }),
-    getApiKey: () => overrides.apiKey,
+    getApiKey: jest.fn((_env?: 'production' | 'staging') => overrides.apiKey),
     isDebug: () => overrides.debug ?? false,
   };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -67,10 +67,14 @@ describe('EcoApiClient', () => {
 
   it('omits x-api-key when no key is configured and honours the env override', async () => {
     fetchMock.mockResolvedValue(jsonResponse(200, minimalQuote));
-    await client().quote({} as never, { env: 'staging' });
+    const c = client();
+    await c.quote({} as never, { env: 'staging' });
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(url).toBe('https://api.stag.eco.com/v1/quotes');
     expect(init.headers).not.toHaveProperty('x-api-key');
+    // The key is looked up for the environment actually being called.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect((c as any).config.getApiKey).toHaveBeenCalledWith('staging');
   });
 
   it('GETs /v1/intents/status with the hash as a query parameter and unwraps results', async () => {

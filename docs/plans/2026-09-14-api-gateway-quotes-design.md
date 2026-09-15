@@ -23,10 +23,13 @@ speak that contract natively rather than through an internal path that may not e
 - **Environment selects the host.** `ECO_ENV=production|staging` (default `production`) maps to
   `https://api.eco.com` / `https://api.stag.eco.com`. `ECO_API_URL` overrides the host outright.
   `publish` and `status` accept `--env <production|staging>`, which wins over `ECO_ENV`.
-- **`ECO_API_KEY` is optional** and sent as `x-api-key` when present. Production currently answers
-  keyless for quotes and reads; staging and future registry versions require a key. The CLI never
-  prints the value: debug output logs header *names*, and `config list` redacts any key containing
-  `private` or `api_key`.
+- **API keys are per environment.** `ECO_API_KEY_PRODUCTION` / `ECO_API_KEY_STAGING` are sent as
+  `x-api-key` to their own host only; `ECO_API_KEY` is the fallback for an environment without its
+  own key. Production currently answers keyless for quotes and reads but *rejects unknown keys*
+  (401 `invalid-api-key`, observed 2026-09-15 with a staging key), so a single shared variable
+  would break production for anyone holding only a staging key. Staging and future registry
+  versions require a key. The CLI never prints values: debug output logs header *names*, and
+  `config list` redacts any key containing `private` or `api_key`.
 - **Native v1 client + adapter.** A new `EcoApiClient` speaks the public contract; a small adapter
   maps a `V1QuoteResponse` onto the CLI's existing `QuoteResult`, so the publish flow, publishers,
   and portal/prover resolution are untouched.

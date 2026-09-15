@@ -24,7 +24,12 @@ export const EnvSchema = z.object({
   // Eco API gateway — the default quote source: host by env, optional override + key.
   ECO_ENV: z.enum(['production', 'staging']).default('production'),
   ECO_API_URL: z.string().url().optional(),
+  // Keys are per gateway environment: ECO_API_KEY_<ENV> wins, ECO_API_KEY is the fallback.
+  // Production answers keyless today but rejects unknown keys, so a staging-only key must
+  // never be sent to api.eco.com.
   ECO_API_KEY: z.string().min(1).optional(),
+  ECO_API_KEY_PRODUCTION: z.string().min(1).optional(),
+  ECO_API_KEY_STAGING: z.string().min(1).optional(),
 
   NODE_CHAINS_ENV: z.enum(['production', 'development']).default('production'),
   DEBUG: z.string().optional(),

@@ -70,9 +70,9 @@ export class EcoApiClient {
     opts: EcoApiCallOptions,
     body?: unknown
   ): Promise<T> {
-    const { baseUrl } = this.config.getGatewayBaseUrl(opts.env);
+    const { baseUrl, env } = this.config.getGatewayBaseUrl(opts.env);
     const url = `${baseUrl}${path}`;
-    const apiKey = this.config.getApiKey();
+    const apiKey = this.config.getApiKey(env);
     const headers: Record<string, string> = {
       accept: 'application/json',
       ...(body !== undefined && { 'content-type': 'application/json' }),

@@ -82,7 +82,7 @@ export class ConfigService {
       return { url: 'https://quotes-preprod.eco.com/api/v3/quotes/single', type: 'custom' };
     }
     const { baseUrl, env } = this.getGatewayBaseUrl(envOverride);
-    const apiKey = this.getApiKey();
+    const apiKey = this.getApiKey(env);
     return { type: 'gateway', baseUrl, env, ...(apiKey && { apiKey }) };
   }
 
@@ -93,8 +93,12 @@ export class ConfigService {
     return { baseUrl: override ?? GATEWAY_HOSTS[env], env };
   }
 
-  getApiKey(): string | undefined {
-    return this.config.get<string>('ECO_API_KEY');
+  /** API key for one gateway environment: ECO_API_KEY_<ENV>, else the ECO_API_KEY fallback. */
+  getApiKey(env: GatewayEnv): string | undefined {
+    return (
+      this.config.get<string>(`ECO_API_KEY_${env.toUpperCase()}`) ??
+      this.config.get<string>('ECO_API_KEY')
+    );
   }
 
   getDeadlineOffsetSeconds(): number {
