@@ -3,7 +3,7 @@ import { Injectable } from '@nestjs/common';
 import { Address } from 'viem';
 
 import { DisplayService } from '@/cli/services/display.service';
-import { ConfigService } from '@/config/config.service';
+import { ConfigService, GatewayEnv } from '@/config/config.service';
 
 export interface QuoteRequest {
   source: bigint;
@@ -13,6 +13,13 @@ export interface QuoteRequest {
   recipient: string;
   routeToken: string;
   rewardToken: string;
+  /** Gateway only: per-command `--env` override. */
+  env?: GatewayEnv;
+  /**
+   * Gateway only: chain-native source Portal used when the funding transaction is not EVM
+   * (an SVM funding tx has no `to`). Comes from the source chain's configured portalAddress.
+   */
+  sourcePortalFallback?: string;
 }
 
 export interface QuoteResult {
