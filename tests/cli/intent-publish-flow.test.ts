@@ -243,7 +243,7 @@ describe('IntentPublishFlow.publish', () => {
     expect(publisherFactory.create).not.toHaveBeenCalled();
   });
 
-  it('forwards --env and the source chain portal to the quote request', async () => {
+  it('forwards --env to the quote request', async () => {
     const { flow, quoteService } = buildFlow();
     await flow.publish({
       sourceChain: { ...SOURCE_CHAIN, portalAddress: FAKE_UNIVERSAL },
@@ -256,12 +256,9 @@ describe('IntentPublishFlow.publish', () => {
         recipientRaw: '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045',
       },
     });
-    const quoteCall = quoteService.getQuote.mock.calls[0][0] as {
-      env?: string;
-      sourcePortalFallback?: string;
-    };
+    const quoteCall = quoteService.getQuote.mock.calls[0][0] as { env?: string };
     expect(quoteCall.env).toBe('staging');
-    expect(quoteCall.sourcePortalFallback).toBe('0xportal');
+    expect(quoteCall).not.toHaveProperty('sourcePortalFallback');
   });
 
   it('quoteDestinationChainIdOverride only affects the quote request — published intent uses destChain.id', async () => {

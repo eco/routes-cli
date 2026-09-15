@@ -46,10 +46,10 @@ describe('EcoApiClient', () => {
   it('POSTs /v1/quotes on the production host with JSON and the API key header', async () => {
     fetchMock.mockResolvedValue(jsonResponse(200, minimalQuote));
     const req = {
-      swapType: 'exact-in',
-      funder: '0xf',
-      source: { chainId: 8453, token: '0xa' },
+      type: 'exact-in',
+      source: { chainId: 8453, token: '0xa', funder: '0xf' },
       destination: { chainId: 10, token: '0xb', recipient: '0xr' },
+      dappId: 'eco-routes-cli',
     } as const;
 
     const res = await client({ apiKey: 'secret-key' }).quote(req);

@@ -18,11 +18,6 @@ export interface QuoteRequest {
   rewardToken: string;
   /** Gateway only: per-command `--env` override. */
   env?: GatewayEnv;
-  /**
-   * Gateway only: chain-native source Portal used when the funding transaction is not EVM
-   * (an SVM funding tx has no `to`). Comes from the source chain's configured portalAddress.
-   */
-  sourcePortalFallback?: string;
 }
 
 export interface QuoteResult {

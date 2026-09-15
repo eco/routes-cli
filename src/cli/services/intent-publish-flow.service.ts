@@ -316,9 +316,6 @@ export class IntentPublishFlow {
         routeToken: routeToken.address,
         rewardToken: rewardToken.address,
         env: options.env,
-        sourcePortalFallback: sourceChain.portalAddress
-          ? this.normalizer.denormalize(sourceChain.portalAddress, sourceChain.type)
-          : undefined,
       });
       this.display.succeed('Quote received');
       this.display.displayQuote(quote, rewardToken, rewardAmount, routeToken);

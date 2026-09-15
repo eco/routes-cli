@@ -1,5 +1,7 @@
 import type { V1QuoteResponse } from '@eco-foundation/api-schemas/v1/types';
+import { encodeAbiParameters, encodeFunctionData, type Hex } from 'viem';
 
+import { EVMRouteAbiItem, portalAbi } from '@/commons/abis/portal.abi';
 import { QuoteRequest, QuoteService } from '@/quote/quote.service';
 
 const req: QuoteRequest = {
@@ -13,25 +15,49 @@ const req: QuoteRequest = {
   env: 'staging',
 };
 
+const ROUTE = {
+  salt: `0x${'22'.repeat(32)}` as Hex,
+  deadline: 1_800_000_000n,
+  source: 8453n,
+  destination: 10n,
+  portal: '0xEC000064576f9C95a8623Bc0eff3db6d296ea6df' as const,
+  nativeAmount: 0n,
+  tokens: [],
+  calls: [],
+};
+const ENCODED_ROUTE = encodeAbiParameters([EVMRouteAbiItem], [ROUTE]);
 const v1Quote = {
   id: 'q',
-  visibility: 'public',
-  destination: { chainId: 10, amount: '990000' },
+  type: 'exact-in',
+  destination: { chainId: 10, amountOut: '990000' },
   steps: [],
   execution: {
     transaction: {
-      kind: 'evm',
+      type: 'evm',
       chainId: 8453,
       to: '0xEC000064576f9C95a8623Bc0eff3db6d296ea6df',
-      data: '0x',
+      data: encodeFunctionData({
+        abi: portalAbi,
+        functionName: 'publishAndFund',
+        args: [
+          10n,
+          ENCODED_ROUTE,
+          {
+            deadline: 1_800_000_000n,
+            creator: req.funder as Hex,
+            prover: '0xec004Ab4870c4e177c66949329dCdb503CE41022',
+            nativeAmount: 0n,
+            tokens: [],
+          },
+          false,
+        ],
+      }),
       value: '0',
     },
     intent: {
       route: { portal: '0xEC000064576f9C95a8623Bc0eff3db6d296ea6df' },
       reward: { prover: '0xec004Ab4870c4e177c66949329dCdb503CE41022', deadline: 1_800_000_000 },
     },
-    encodedRoute: '0xfeed',
-    encodedReward: '0x',
   },
 } as unknown as V1QuoteResponse;
 
@@ -64,14 +90,13 @@ describe('QuoteService — gateway branch', () => {
     expect(config.getQuoteEndpoint).toHaveBeenCalledWith('staging');
     expect(ecoApi.quote).toHaveBeenCalledWith(
       expect.objectContaining({
-        swapType: 'exact-in',
-        funder: req.funder,
+        type: 'exact-in',
+        source: expect.objectContaining({ funder: req.funder }),
         dappId: 'eco-routes-cli',
-        options: { visibility: 'public' },
       }),
       { env: 'staging' }
     );
-    expect(result.encodedRoute).toBe('0xfeed');
+    expect(result.encodedRoute).toBe(ENCODED_ROUTE);
     expect(result.sourcePortal).toBe('0xEC000064576f9C95a8623Bc0eff3db6d296ea6df');
     expect(result.prover).toBe('0xec004Ab4870c4e177c66949329dCdb503CE41022');
     expect(result.destinationAmount).toBe('990000');

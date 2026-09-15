@@ -67,8 +67,8 @@ importers:
         specifier: ^2.29.8
         version: 2.30.0(@types/node@20.19.33)
       '@eco-foundation/api-schemas':
-        specifier: 0.8.0
-        version: 0.8.0(zod@4.3.6)
+        specifier: 0.9.0
+        version: 0.9.0(zod@4.3.6)
       '@eslint/eslintrc':
         specifier: ^3.3.5
         version: 3.3.5
@@ -403,8 +403,8 @@ packages:
     resolution: {integrity: sha512-IchNf6dN4tHoMFIn/7OE8LWZ19Y6q/67Bmf6vnGREv8RSbBVb9LPJxEcnwrcwX6ixSvaiGoomAUvu4YSxXrVgw==}
     engines: {node: '>=12'}
 
-  '@eco-foundation/api-schemas@0.8.0':
-    resolution: {integrity: sha512-3Z43/Mz7nbruajLx0JQfmfNMFnppUV3oOcJNMsW72vuInGn2rFha69X7L66G282qeL/IBfe8i1RgnqFdpGVIog==}
+  '@eco-foundation/api-schemas@0.9.0':
+    resolution: {integrity: sha512-S4ckaSH3Hn531KZNlLj1WAt4WsAp7bL8bAyd6wcqpqA7hujn66IBh5b9nYbpJRF/vc33RJRF1ScLf9Wq4MiYCA==}
     engines: {node: '>=22.11 <23'}
     peerDependencies:
       zod: ^4.3.0
@@ -3648,7 +3648,7 @@ snapshots:
     dependencies:
       '@jridgewell/trace-mapping': 0.3.9
 
-  '@eco-foundation/api-schemas@0.8.0(zod@4.3.6)':
+  '@eco-foundation/api-schemas@0.9.0(zod@4.3.6)':
     dependencies:
       '@noble/hashes': 1.8.0
     optionalDependencies:

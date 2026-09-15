@@ -33,10 +33,14 @@ speak that contract natively rather than through an internal path that may not e
 - **Native v1 client + adapter.** A new `EcoApiClient` speaks the public contract; a small adapter
   maps a `V1QuoteResponse` onto the CLI's existing `QuoteResult`, so the publish flow, publishers,
   and portal/prover resolution are untouched.
-- **Public visibility only.** The CLI needs `encodedRoute` to call `publishAndFund` itself;
-  private-visibility quotes null it. Requests set `options.visibility: 'public'`, and a response
-  with `execution: null` or a null `encodedRoute` is a hard error (never a silent manual fallback).
-- **Types, not runtime, from the schemas package.** `@eco-foundation/api-schemas@0.8.0` is a
+- **Route bytes come from the router's own funding calldata.** The 0.9.0 wire returns no
+  `encodedRoute`; it returns the exact `Portal.publishAndFund` transaction the router built. The
+  CLI still signs its own approve + publish, so it decodes that calldata and takes the `route`
+  argument as-is — the bytes the router hashed and signed are the ones published. A response with
+  `execution: null`, a non-EVM funding transaction, or a funding call that is not
+  `publishAndFund` is a hard error (never a silent manual fallback). SVM-sourced quotes through
+  the gateway are out of scope for this PR; `SOLVER_URL` still covers them.
+- **Types, not runtime, from the schemas package.** `@eco-foundation/api-schemas@0.9.0` is a
   devDependency used for `V1QuoteRequest`, `V1QuoteResponse`, `V1StatusEntry`, `V1ProblemBody`.
   Nothing from it ships in the ncc bundle.
 - **Out of scope (follow-ups):** sending the gateway's prebuilt `execution.transaction` instead of
@@ -87,30 +91,35 @@ Request (`QuoteRequest` → `V1QuoteRequest`):
 
 | v1 field | source |
 |---|---|
-| `swapType` | `'exact-in'` |
-| `source.chainId/token/amount` | source chain id, reward token, reward amount |
+| `type` | `'exact-in'` |
+| `source.chainId/token/amount/funder` | source chain id, reward token, reward amount, sender |
 | `destination.chainId/token/recipient` | destination chain id, route token, recipient |
-| `funder`, `refundRecipient` | sender address (both) |
-| `dappId` | `DAPP_ID` (default `eco-routes-cli`) |
-| `options.visibility` | `'public'` |
+| `refundRecipient` | sender address |
+| `dappId` (required) | `DAPP_ID` (default `eco-routes-cli`) |
 
 Response (`V1QuoteResponse` → `QuoteResult`):
 
 | `QuoteResult` field | v1 source |
 |---|---|
-| `encodedRoute` | `execution.encodedRoute` (required) |
+| `encodedRoute` | `route` argument decoded from `execution.transaction.data` (`Portal.publishAndFund`) |
 | `prover` | `execution.intent.reward.prover` |
 | `deadline` | `execution.intent.reward.deadline` |
 | `destinationPortalAddress` | `execution.intent.route.portal` |
-| `sourcePortal` | `execution.transaction.to` when `kind === 'evm'`; otherwise the source chain's configured portal |
-| `destinationAmount` | `destination.amount` |
+| `sourcePortal` | `execution.transaction.to` (EVM funding transaction) |
+| `destinationAmount` | `destination.amountOut` |
 | `estimatedFulfillTimeSec` | Σ `steps[].estimatedDurationSec` |
 | `intentExecutionType` | `'SELF_PUBLISH'` |
 | `destinationChainId` | `destination.chainId` |
 
-Errors: `execution` null → "quote carries no execution material"; `encodedRoute` null → "quote is
-private; the CLI needs a public quote to self-publish". Both are `RoutesCliError` (quote-service
-error code), so they surface instead of falling back.
+Errors: `execution` null → "quote carries no execution material"; funding transaction not EVM →
+"routes-cli only self-publishes EVM-sourced gateway quotes"; funding call not `publishAndFund` →
+named as such. All are `RoutesCliError` (quote-service error code), so they surface instead of
+falling back.
+
+**Wire version skew.** eco-router adopted 0.9.0 in router #51 (staging redeployed 2026-09-15);
+production's router is pinned to an earlier image and still validates the 0.8.0 shape (`swapType`,
+top-level `funder`) until app-deploy bumps its digest. This CLI speaks 0.9.0 only, so it must ship
+after that bump; `QUOTES_API_URL` remains the bypass in the meantime.
 
 `QuoteService.getQuote()` dispatches on `getQuoteEndpoint().type`; the solver-v2 and v3 branches
 are unchanged.
@@ -147,7 +156,7 @@ are unchanged.
 
 - Unit (`tests/eco-api/`, `tests/quote/`, `tests/config/`, `tests/status/`): mocked `fetch`
   for the client (headers, Problem mapping, key hint, network error), adapter request/response
-  mapping including the SVM source-portal branch and the two hard errors, env → host resolution
+  mapping including the three hard errors (no execution, non-EVM funding tx, non-publishAndFund call), env → host resolution
   and precedence, status word mapping.
 - Integration (`tests/integration/publish-non-interactive.test.ts`): a gateway variant with an
   unroutable `ECO_API_URL` proving the manual-route fallback still works when nothing else is set.
