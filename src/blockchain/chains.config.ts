@@ -119,6 +119,16 @@ export const RAW_CHAIN_CONFIGS: RawChainConfig[] = [
     nativeCurrency: hyperEvm.nativeCurrency,
   },
   {
+    id: 9745n,
+    name: 'Plasma',
+    type: ChainType.EVM,
+    env: 'production',
+    rpcUrl: 'https://rpc.plasma.to',
+    portalAddress: '0x399Dbd5DF04f83103F77A58cBa2B7c4d3cdede97',
+    provers: { Hyperlane: '0xC972B26C1E208845Ca8C18c6B83466bFCeED8c2F' },
+    nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+  },
+  {
     id: BigInt(unichain.id),
     name: unichain.name,
     type: ChainType.EVM,
