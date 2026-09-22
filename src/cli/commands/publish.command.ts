@@ -5,6 +5,7 @@ import { Command, CommandRunner, Option } from 'nest-commander';
 import { ChainsService } from '@/blockchain/chains.service';
 import { getErrorMessage } from '@/commons/utils/error-handler';
 import { serialize } from '@/commons/utils/serialize';
+import { GatewayEnv } from '@/config/config.service';
 import { RoutesCliError } from '@/shared/errors';
 import { ChainConfig } from '@/shared/types';
 
@@ -193,6 +194,19 @@ export class PublishCommand extends CommandRunner {
       'Route amount in human units for the quote-failure fallback (requires --route-token)',
   })
   parseRouteAmount(val: string): string {
+    return val;
+  }
+
+  @Option({
+    flags: '--env <environment>',
+    description: 'Eco API gateway environment for quotes: production (default) or staging',
+  })
+  parseEnv(val: string): GatewayEnv {
+    if (val !== 'production' && val !== 'staging') {
+      throw RoutesCliError.configurationError(
+        `--env must be "production" or "staging", got "${val}".`
+      );
+    }
     return val;
   }
 

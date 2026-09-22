@@ -16,9 +16,20 @@ export const EnvSchema = z.object({
   SVM_RPC_URL: z.string().url().default('https://api.mainnet-beta.solana.com'),
   SVM_RPC_URL_2: z.string().url().default('https://solana.publicnode.com'),
 
+  // Quote source escape hatches (see ConfigService.getQuoteEndpoint for precedence).
   SOLVER_URL: z.string().url().optional(),
-  QUOTES_API_URL: z.string().optional(),
+  QUOTES_API_URL: z.string().url().optional(),
   QUOTES_PREPROD: z.string().optional(),
+
+  // Eco API gateway — the default quote source: host by env, optional override + key.
+  ECO_ENV: z.enum(['production', 'staging']).default('production'),
+  ECO_API_URL: z.string().url().optional(),
+  // Keys are per gateway environment: ECO_API_KEY_<ENV> wins, ECO_API_KEY is the fallback.
+  // Production answers keyless today but rejects unknown keys, so a staging-only key must
+  // never be sent to api.eco.com.
+  ECO_API_KEY: z.string().min(1).optional(),
+  ECO_API_KEY_PRODUCTION: z.string().min(1).optional(),
+  ECO_API_KEY_STAGING: z.string().min(1).optional(),
 
   NODE_CHAINS_ENV: z.enum(['production', 'development']).default('production'),
   DEBUG: z.string().optional(),

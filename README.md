@@ -140,8 +140,13 @@ Copy `.env.example` to `.env`. All variables except the private keys are optiona
 | `SVM_PRIVATE_KEY` | For Solana | Solana wallet key (base58, array, or bytes) |
 | `EVM_RPC_URL` | No | Override RPC for all EVM chains |
 | `SVM_RPC_URL` | No | Override Solana RPC (default: mainnet-beta) |
-| `SOLVER_URL` | No | Use a custom solver endpoint for quotes |
-| `QUOTES_PREPROD` | No | Force preprod quote service (set to `true`) |
+| `ECO_ENV` | No | Eco API gateway environment for quotes and `status`: `production` (default, `api.eco.com`) or `staging` (`api.stag.eco.com`). `--env` on `publish`/`status` overrides it per command |
+| `ECO_API_URL` | No | Override the Eco API gateway base URL |
+| `ECO_API_KEY_PRODUCTION` / `ECO_API_KEY_STAGING` | No | Per-environment API key sent as `x-api-key` to that gateway host only (staging requires one; production answers keyless but rejects unknown keys). Never commit them |
+| `ECO_API_KEY` | No | Fallback key used for any environment without a per-environment key |
+| `SOLVER_URL` | No | Bypass the gateway: quote directly from a solver-v2 host |
+| `QUOTES_API_URL` | No | Bypass the gateway: use this exact quote-service v3 URL |
+| `QUOTES_PREPROD` | No | Bypass the gateway: use the preprod quote service (set to `true`) |
 | `PORTAL_ADDRESS_ETH` | No | Override Ethereum portal contract |
 | `PORTAL_ADDRESS_BASE` | No | Override Base portal contract |
 | `PORTAL_ADDRESS_OPTIMISM` | No | Override Optimism portal contract |

@@ -3,7 +3,10 @@ import { Injectable } from '@nestjs/common';
 import { Address } from 'viem';
 
 import { DisplayService } from '@/cli/services/display.service';
-import { ConfigService } from '@/config/config.service';
+import { ConfigService, GatewayEnv, QuoteEndpoint } from '@/config/config.service';
+import { EcoApiClient } from '@/eco-api/eco-api.client';
+
+import { fromV1QuoteResponse, toV1QuoteRequest } from './gateway-quote.adapter';
 
 export interface QuoteRequest {
   source: bigint;
@@ -13,6 +16,8 @@ export interface QuoteRequest {
   recipient: string;
   routeToken: string;
   rewardToken: string;
+  /** Gateway only: per-command `--env` override. */
+  env?: GatewayEnv;
 }
 
 export interface QuoteResult {
@@ -88,11 +93,28 @@ interface QuoteRequestPayload {
 export class QuoteService {
   constructor(
     private readonly config: ConfigService,
-    private readonly display: DisplayService
+    private readonly display: DisplayService,
+    private readonly ecoApi: EcoApiClient
   ) {}
 
   async getQuote(params: QuoteRequest): Promise<QuoteResult> {
-    const { url, type } = this.config.getQuoteEndpoint();
+    const endpoint = this.config.getQuoteEndpoint(params.env);
+    if (endpoint.type === 'gateway') return this.getGatewayQuote(params);
+    return this.getLegacyQuote(params, endpoint);
+  }
+
+  /** Default path: the public Eco API gateway (`POST /v1/quotes`). */
+  private async getGatewayQuote(params: QuoteRequest): Promise<QuoteResult> {
+    const request = toV1QuoteRequest(params, this.config.getDappId());
+    const response = await this.ecoApi.quote(request, { env: params.env });
+    return fromV1QuoteResponse(response, params);
+  }
+
+  /** Escape hatches: a solver-v2 host (SOLVER_URL) or a quote-service v3 URL. */
+  private async getLegacyQuote(
+    params: QuoteRequest,
+    { url, type }: Extract<QuoteEndpoint, { type: 'solver-v2' | 'custom' }>
+  ): Promise<QuoteResult> {
     const dAppID = this.config.getDappId();
     const isSolverV2 = type === 'solver-v2';
 

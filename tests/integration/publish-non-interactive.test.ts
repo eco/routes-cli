@@ -76,6 +76,33 @@ describe('publish non-interactive (spawned CLI, no TTY)', () => {
     expect(res.stderr).toContain('--reward-token');
   });
 
+  it('with only an unreachable ECO_API_URL set, the gateway quote fails and the manual route still dry-runs', () => {
+    const env: NodeJS.ProcessEnv = { ...process.env, EVM_PRIVATE_KEY: TEST_PRIVATE_KEY };
+    delete env.SOLVER_URL;
+    delete env.QUOTES_API_URL;
+    delete env.QUOTES_PREPROD;
+    env.ECO_API_URL = 'http://127.0.0.1:9'; // unroutable → EcoApiRequestError → manual fallback
+    const res = spawnSync(
+      'npx',
+      [
+        'ts-node',
+        '--transpile-only',
+        '-r',
+        'tsconfig-paths/register',
+        'src/main.ts',
+        'publish',
+        ...FULL_FLAGS,
+        '--json',
+      ],
+      { cwd: REPO_ROOT, encoding: 'utf8', input: '', timeout: 120_000, env }
+    );
+    expect(res.status).toBe(0);
+    expect(res.stderr).toContain('Quote failed');
+    expect(res.stderr).toContain('127.0.0.1:9');
+    const payload = JSON.parse(res.stdout.trim()) as Record<string, unknown>;
+    expect(payload.dryRun).toBe(true);
+  });
+
   it('rejects the removed --rpc flag', () => {
     const res = runCli([...FULL_FLAGS, '--rpc', 'http://localhost:8545']);
     expect(res.status).not.toBe(0);
