@@ -59,6 +59,9 @@ export const TOKEN_CONFIGS: Record<string, TokenConfig> = {
       '146': AddressNormalizer.normalizeEvm(
         '0x29219dd400f2bf60e5a23d13be72b486d4038894' as EvmAddress
       ), // Sonic
+      '5042': AddressNormalizer.normalizeEvm(
+        '0x3600000000000000000000000000000000000000' as EvmAddress
+      ), // Arc — native-backed USDC precompile (6 dp)
       '84532': AddressNormalizer.normalizeEvm(
         '0x036cbd53842c5426634e7929541ec2318f3dcf7e' as EvmAddress
       ), // Base Sepolia

@@ -74,11 +74,12 @@ describe('RAW_CHAIN_CONFIGS — new production EVM chains', () => {
   });
 });
 
-describe('every production EVM chain id resolves in viem/chains', () => {
-  // This is what EvmPublisher.getChain relies on: it searches
-  // Object.values(chains) for a matching numeric id with no explicit map, so
-  // an id that doesn't exist in the installed viem version fails only at
-  // publish time. Guard it here instead.
+describe('every production EVM chain id is publishable by EvmPublisher', () => {
+  // EvmPublisher.getChain first searches Object.values(chains) for a matching
+  // numeric id; a chain missing from the installed viem version (e.g. Arc 5042
+  // on viem 2.40) is built from RAW_CHAIN_CONFIGS via defineChain instead. Guard
+  // both branches here rather than at publish time: an id must either exist in
+  // viem/chains or carry everything the fallback needs to build a Chain.
   const viemChainIds = new Set<number>(
     Object.values(viemChains).map(c => Number((c as { id: number }).id))
   );
@@ -88,9 +89,18 @@ describe('every production EVM chain id resolves in viem/chains', () => {
   );
 
   it.each(productionEvmConfigs.map(c => [c.name, c.id] as const))(
-    '%s (%s) exists in viem/chains',
+    '%s (%s) exists in viem/chains or is fully described for the config fallback',
     (_name, id) => {
-      expect(viemChainIds.has(Number(id))).toBe(true);
+      if (viemChainIds.has(Number(id))) return;
+      const raw = RAW_CHAIN_CONFIGS.find(c => c.id === id)!;
+      expect(raw.rpcUrl).toMatch(/^https?:\/\//);
+      expect(raw.nativeCurrency.symbol).toBeTruthy();
+      expect(raw.nativeCurrency.decimals).toBeGreaterThan(0);
     }
   );
+
+  it('Arc (5042) is the only production EVM chain relying on the config fallback', () => {
+    const fallbackOnly = productionEvmConfigs.filter(c => !viemChainIds.has(Number(c.id)));
+    expect(fallbackOnly.map(c => c.id)).toEqual([5042n]);
+  });
 });

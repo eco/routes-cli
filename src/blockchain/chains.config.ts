@@ -159,6 +159,21 @@ export const RAW_CHAIN_CONFIGS: RawChainConfig[] = [
     nativeCurrency: ink.nativeCurrency,
   },
 
+  {
+    // Arc — Circle's L1 (private mainnet until the 2026-09-16 public launch). Native gas token
+    // is USDC (18 dp at the native layer); the 6-dp ERC-20 view is the precompile 0x3600…0000.
+    // rpc.mainnet.arc.io is IP-allowlisted while private: set EVM_RPC_URL_5042 (e.g. Alchemy).
+    id: 5042n,
+    name: 'Arc',
+    type: ChainType.EVM,
+    env: 'production',
+    rpcUrl: 'https://rpc.mainnet.arc.io',
+    // Dedicated CreateX CREATE3 Portal (version() = 2.10.0) — NOT the fleet CREATE2 0xEC000064…
+    portalAddress: '0xEC002CA16cE20c2a9F3C6200EF04E7d92a3dfBD8',
+    // Fleet HyperProver; its PORTAL() immutable on Arc is the dedicated Portal above.
+    provers: { Hyperlane: '0xec004Ab4870c4e177c66949329dCdb503CE41022' },
+    nativeCurrency: { name: 'USDC', symbol: 'USDC', decimals: 18 },
+  },
   // EVM - Development
   {
     id: 84532n,
@@ -172,6 +187,15 @@ export const RAW_CHAIN_CONFIGS: RawChainConfig[] = [
       LayerZero: '0x6D8D9E68627b8eb2D4A3c1110be3FE46Ff6e92A3',
     },
     nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+  },
+  {
+    id: 5042002n,
+    name: 'Arc Testnet',
+    type: ChainType.EVM,
+    env: 'development',
+    rpcUrl: 'https://rpc.testnet.arc.network',
+    portalAddress: '0x9bA7F9Fa8E5F6B8A216Ca8e4640E6Fd95a55668e',
+    nativeCurrency: { name: 'USDC', symbol: 'USDC', decimals: 18 },
   },
   {
     id: 11155420n,
