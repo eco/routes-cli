@@ -77,6 +77,15 @@ export const TOKEN_CONFIGS: Record<string, TokenConfig> = {
       '1399811150': AddressNormalizer.normalizeSvm(
         '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU' as SvmAddress
       ),
+      '130': AddressNormalizer.normalizeEvm(
+        '0x078D782b760474a361dDA0AF3839290b0EF57AD6' as EvmAddress
+      ), // Unichain
+      '480': AddressNormalizer.normalizeEvm(
+        '0x79A02482A880bCE3F13e09Da970dC34db4CD24d1' as EvmAddress
+      ), // World Chain
+      '42220': AddressNormalizer.normalizeEvm(
+        '0xceba9300f2b948710d2653dd7b07f33a8b32118c' as EvmAddress
+      ), // Celo
       // Add more as needed
     },
   },
@@ -106,7 +115,35 @@ export const TOKEN_CONFIGS: Record<string, TokenConfig> = {
       '1399811149': AddressNormalizer.normalizeSvm(
         'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB' as SvmAddress
       ),
+      '42220': AddressNormalizer.normalizeEvm(
+        '0x48065fbbe25f71c9282ddf5e1cd6d6a887483d5e' as EvmAddress
+      ), // Celo
       // Add more as needed
+    },
+  },
+  USDT0: {
+    symbol: 'USDT0',
+    name: 'USDT0',
+    decimals: 6,
+    addresses: {
+      '130': AddressNormalizer.normalizeEvm(
+        '0x9151434b16b9763660705744891fA906F660EcC5' as EvmAddress
+      ), // Unichain
+      '137': AddressNormalizer.normalizeEvm(
+        '0xc2132d05d31c914a87c6611c10748aeb04b58e8f' as EvmAddress
+      ), // Polygon
+      '9745': AddressNormalizer.normalizeEvm(
+        '0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb' as EvmAddress
+      ), // Plasma
+      '42161': AddressNormalizer.normalizeEvm(
+        '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9' as EvmAddress
+      ), // Arbitrum
+      '57073': AddressNormalizer.normalizeEvm(
+        '0x0200c29006150606b650577bbe7b6248f58470c1' as EvmAddress
+      ), // Ink
+      // HyperEVM (999) intentionally omitted: 0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb
+      // is already listed under USDT for chain 999 (bridged USDT there is USDT0);
+      // adding it here too would create a conflicting duplicate address entry.
     },
   },
   USDG: {
@@ -117,6 +154,15 @@ export const TOKEN_CONFIGS: Record<string, TokenConfig> = {
       '1399811149': AddressNormalizer.normalizeSvm(
         '2u1tszSeqZ3qBWF3uNGPFc8TzMk2tdiwknnRMWGWjGWH' as SvmAddress
       ),
+      '1': AddressNormalizer.normalizeEvm(
+        '0xe343167631d89B6Ffc58B88d6b7fB0228795491D' as EvmAddress
+      ), // Ethereum
+      '8453': AddressNormalizer.normalizeEvm(
+        '0xe343167631d89B6Ffc58B88d6b7fB0228795491D' as EvmAddress
+      ), // Base
+      '57073': AddressNormalizer.normalizeEvm(
+        '0xe343167631d89B6Ffc58B88d6b7fB0228795491D' as EvmAddress
+      ), // Ink
     },
   },
   bUSDC: {

@@ -13,6 +13,17 @@ import { ChainConfig } from '@/shared/types';
 @Injectable()
 export class DisplayService {
   private activeSpinner: Ora | null = null;
+  private jsonMode = false;
+
+  /** In JSON mode all human output goes to stderr so stdout carries only JSON. */
+  setJsonMode(enabled: boolean): void {
+    this.jsonMode = enabled;
+  }
+
+  private writeLine(msg: string): void {
+    const stream = this.jsonMode ? process.stderr : process.stdout;
+    stream.write(`${msg}\n`);
+  }
 
   spinner(text: string): void {
     this.stopSpinner();
@@ -24,7 +35,7 @@ export class DisplayService {
       this.activeSpinner.succeed(text);
       this.activeSpinner = null;
     } else {
-      console.log(chalk.green(`✓ ${text}`));
+      this.writeLine(chalk.green(`✓ ${text}`));
     }
   }
   fail(text?: string): void {
@@ -51,14 +62,14 @@ export class DisplayService {
   log(msg: string): void {
     if (this.activeSpinner) {
       this.activeSpinner.stop();
-      console.log(chalk.gray(msg));
+      this.writeLine(chalk.gray(msg));
       this.activeSpinner.start();
     } else {
-      console.log(chalk.gray(msg));
+      this.writeLine(chalk.gray(msg));
     }
   }
   success(msg: string): void {
-    console.log(chalk.green(`✅ ${msg}`));
+    this.writeLine(chalk.green(`✅ ${msg}`));
   }
   error(msg: string): void {
     console.error(chalk.red(`❌ ${msg}`));
@@ -67,16 +78,16 @@ export class DisplayService {
     console.warn(chalk.yellow(`⚠️  ${msg}`));
   }
   title(msg: string): void {
-    console.log(chalk.bold.blue(msg));
+    this.writeLine(chalk.bold.blue(msg));
   }
   section(msg: string): void {
-    console.log(chalk.blue(msg));
+    this.writeLine(chalk.blue(msg));
   }
 
   displayTable(headers: string[], rows: string[][]): void {
     const table = new Table({ head: headers.map(h => chalk.cyan(h)), style: { border: ['gray'] } });
     rows.forEach(row => table.push(row));
-    console.log(table.toString());
+    this.writeLine(table.toString());
   }
 
   displayTransactionResult(result: PublishResult): void {

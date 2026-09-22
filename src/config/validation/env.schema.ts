@@ -25,6 +25,10 @@ export const EnvSchema = z.object({
 
   DAPP_ID: z.string().default('eco-routes-cli'),
   DEADLINE_OFFSET_SECONDS: z.coerce.number().positive().default(9000),
+  // Gap between the manual-fallback route deadline and reward deadline. Must be
+  // at least the destination prover's proving buffer (Polymer Tron corridors run
+  // 86400s) or the solver permanently rejects the intent at ExpirationValidation.
+  REWARD_DEADLINE_BUFFER_SECONDS: z.coerce.number().positive().default(87000),
 });
 
 export type EnvConfig = z.infer<typeof EnvSchema>;

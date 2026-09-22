@@ -38,3 +38,7 @@ coverage/
 CLAUDE.md
 thoughts/
 .worktrees/
+
+# Superpowers workflow artifacts
+docs/superpowers/
+.superpowers/

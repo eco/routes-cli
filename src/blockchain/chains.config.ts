@@ -1,4 +1,17 @@
-import { arbitrum, bsc, hyperEvm, mainnet, polygon, ronin, sonic } from 'viem/chains';
+import {
+  arbitrum,
+  bsc,
+  celo,
+  hyperEvm,
+  ink,
+  mainnet,
+  plasma,
+  polygon,
+  ronin,
+  sonic,
+  unichain,
+  worldchain,
+} from 'viem/chains';
 
 import { ChainType, ProverType } from '@/shared/types';
 
@@ -50,7 +63,15 @@ export const RAW_CHAIN_CONFIGS: RawChainConfig[] = [
     env: 'production',
     rpcUrl: 'https://mainnet.base.org',
     portalAddress: '0x399Dbd5DF04f83103F77A58cBa2B7c4d3cdede97', // prod portal
-    provers: { LayerZero: '0x0C4E3063239c9f4f323A956C79738916594D8Fd4' }, // prod prover
+    provers: {
+      LayerZero: '0x0C4E3063239c9f4f323A956C79738916594D8Fd4', // prod prover
+      // v2.6 Tron<>EVM Polymer mesh (Tron corridor endpoint). The same CREATE3
+      // prover exists on Ethereum/Optimism/Arbitrum/Polygon but is deliberately
+      // not listed there: a second common prover type between two EVM chains
+      // would break the single-common-prover auto-selection in the manual
+      // fallback. Use --prover-address 0xE3e4... on those chains if needed.
+      Polymer: '0xE3e4e6F284f1c8E17bafE4268EB98c36886B4d8B',
+    },
     nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
   },
   {
@@ -106,6 +127,46 @@ export const RAW_CHAIN_CONFIGS: RawChainConfig[] = [
     portalAddress: '0x399Dbd5DF04f83103F77A58cBa2B7c4d3cdede97',
     provers: { Hyperlane: '0xC972B26C1E208845Ca8C18c6B83466bFCeED8c2F' },
     nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+  },
+  {
+    id: BigInt(unichain.id),
+    name: unichain.name,
+    type: ChainType.EVM,
+    env: 'production',
+    rpcUrl: unichain.rpcUrls.default.http[0],
+    nativeCurrency: unichain.nativeCurrency,
+  },
+  {
+    id: BigInt(worldchain.id),
+    name: worldchain.name,
+    type: ChainType.EVM,
+    env: 'production',
+    rpcUrl: worldchain.rpcUrls.default.http[0],
+    nativeCurrency: worldchain.nativeCurrency,
+  },
+  {
+    id: BigInt(plasma.id),
+    name: plasma.name,
+    type: ChainType.EVM,
+    env: 'production',
+    rpcUrl: plasma.rpcUrls.default.http[0],
+    nativeCurrency: plasma.nativeCurrency,
+  },
+  {
+    id: BigInt(celo.id),
+    name: celo.name,
+    type: ChainType.EVM,
+    env: 'production',
+    rpcUrl: celo.rpcUrls.default.http[0],
+    nativeCurrency: celo.nativeCurrency,
+  },
+  {
+    id: BigInt(ink.id),
+    name: ink.name,
+    type: ChainType.EVM,
+    env: 'production',
+    rpcUrl: ink.rpcUrls.default.http[0],
+    nativeCurrency: ink.nativeCurrency,
   },
 
   // EVM - Development
@@ -166,8 +227,11 @@ export const RAW_CHAIN_CONFIGS: RawChainConfig[] = [
     type: ChainType.TVM,
     env: 'production',
     rpcUrl: 'https://api.trongrid.io',
-    portalAddress: 'TTXNcSeX5aYb1ETWYjcX3fvumynWoyFgYw', // prod portal
-    provers: { LayerZero: 'TFu38RELzp7jdR9s7vj4JSpw2kFuTSAq3E' }, // prod prover
+    // v2.6 Tron<>EVM Polymer mesh. Portal and prover must stay paired: the old
+    // LayerZero prover (TFu38RELzp7jdR9s7vj4JSpw2kFuTSAq3E) belongs to the old
+    // portal (TTXNcSeX5aYb1ETWYjcX3fvumynWoyFgYw) and cannot prove v2.6 intents.
+    portalAddress: 'TT6jKgnBXoj7vZ7m2Yioq5mxTfrDpgir44',
+    provers: { Polymer: 'TLvVHqZZbs4Juf7umHYAepYgZkSdKxb649' },
     nativeCurrency: { name: 'Tron', symbol: 'TRX', decimals: 6 },
   },
   {

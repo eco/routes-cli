@@ -13,12 +13,14 @@ import { TokensCommand } from './commands/tokens.command';
 import { DisplayModule } from './services/display.module';
 import { IntentPublishFlow } from './services/intent-publish-flow.service';
 import { PromptService } from './services/prompt.service';
+import { TokenResolverService } from './services/token-resolver.service';
 
 @Module({
   imports: [QuoteModule, IntentModule, StatusModule, DisplayModule],
   providers: [
     PromptService,
     IntentPublishFlow,
+    TokenResolverService,
     PublishCommand,
     FeatureHypercoreCommand,
     StatusCommand,

@@ -1,7 +1,7 @@
 import { ChainType } from './intent.interface';
 import { UniversalAddress } from './universal-address';
 
-export const PROVER_TYPES = ['LayerZero', 'Hyperlane'] as const;
+export const PROVER_TYPES = ['LayerZero', 'Hyperlane', 'Polymer'] as const;
 export type ProverType = (typeof PROVER_TYPES)[number];
 
 export interface ChainConfig {

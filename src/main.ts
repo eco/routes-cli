@@ -34,6 +34,11 @@ async function bootstrap(): Promise<void> {
       if (process.env['DEBUG']) console.error(err.stack);
       process.exit(1);
     },
+    serviceErrorHandler: err => {
+      console.error(err instanceof Error ? err.message : String(err));
+      if (process.env['DEBUG'] && err instanceof Error && err.stack) console.error(err.stack);
+      process.exitCode = 1;
+    },
   });
 }
 

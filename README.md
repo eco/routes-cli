@@ -92,14 +92,31 @@ This is powered by the [Eco Routes Protocol](https://github.com/eco/eco-routes/)
 |------|-------|-------------|
 | `--source` | `-s` | Source chain name or ID |
 | `--destination` | `-d` | Destination chain name or ID |
+| `--route-token <symbol\|address>` | | Token delivered on the destination chain |
+| `--reward-token <symbol\|address>` | | Token paid on the source chain |
+| `--route-token-decimals <n>` | | Token decimals; required when `--route-token` is a raw address |
+| `--reward-token-decimals <n>` | | Token decimals; required when `--reward-token` is a raw address |
+| `--amount <value>` | | Reward amount in human units (e.g. `5`); requires `--reward-token` |
+| `--route-amount <value>` | | Route amount in human units, only needed as a manual fallback when the quote service is down; requires `--route-token` |
 | `--private-key` | `-k` | EVM private key (overrides `EVM_PRIVATE_KEY` env) |
+| `--private-key-tvm` | | TVM (Tron) private key (overrides `TVM_PRIVATE_KEY` env) |
 | `--private-key-svm` | | SVM private key (overrides `SVM_PRIVATE_KEY` env) |
 | `--recipient` | | Recipient address on the destination chain |
 | `--portal-address` | | Portal contract address on the source chain |
 | `--prover-address` | | Prover contract address on the source chain |
-| `--rpc` | `-r` | RPC URL override for the source chain |
+| `--prover-type <name>` | | Prover type to use (e.g. `LayerZero`, `Hyperlane`) |
 | `--dry-run` | | Validate and preview without broadcasting |
+| `--yes` | `-y` | Skip the confirmation prompt (required for a non-interactive publish) |
+| `--json` | | Machine-readable output: one JSON object on stdout, human logs on stderr |
 | `--watch` | `-w` | Watch for fulfillment after publishing |
+
+**Publish non-interactively:**
+
+```bash
+eco-routes-cli publish -s base -d optimism \
+  --reward-token USDC --route-token USDC --amount 5 \
+  --recipient 0xYourRecipient -y --json
+```
 
 **Private key formats:**
 
