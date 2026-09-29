@@ -1,14 +1,10 @@
 import {
   arbitrum,
-  bsc,
-  celo,
   hyperEvm,
-  ink,
   mainnet,
   plasma,
   polygon,
   ronin,
-  sonic,
   unichain,
   worldchain,
 } from 'viem/chains';
@@ -26,6 +22,12 @@ export interface RawChainConfig {
   nativeCurrency: { name: string; symbol: string; decimals: number };
 }
 
+// eco-routes v2.12 (proven cancellation): one CREATE3 address on every v2.12
+// EVM chain. Must match the generation the production solvers run — a solver
+// cannot fill an intent published on another Portal generation.
+const V2_12_PORTAL = '0xEC000769A73b70e16f361a442292500b3BCf4A85';
+const V2_12_HYPER_PROVER = '0xEC08fb4647f3f50d1162a578d481266687C60fc5';
+
 export const RAW_CHAIN_CONFIGS: RawChainConfig[] = [
   // EVM - Production
   {
@@ -34,8 +36,8 @@ export const RAW_CHAIN_CONFIGS: RawChainConfig[] = [
     type: ChainType.EVM,
     env: 'production',
     rpcUrl: 'https://ethereum-rpc.publicnode.com',
-    portalAddress: '0x399Dbd5DF04f83103F77A58cBa2B7c4d3cdede97', // prod portal
-    provers: { LayerZero: '0x0C4E3063239c9f4f323A956C79738916594D8Fd4' }, // prod prover
+    portalAddress: V2_12_PORTAL,
+    provers: { Hyperlane: V2_12_HYPER_PROVER },
     nativeCurrency: mainnet.nativeCurrency,
   },
   {
@@ -44,17 +46,9 @@ export const RAW_CHAIN_CONFIGS: RawChainConfig[] = [
     type: ChainType.EVM,
     env: 'production',
     rpcUrl: 'https://mainnet.optimism.io',
-    portalAddress: '0x399Dbd5DF04f83103F77A58cBa2B7c4d3cdede97', // prod portal
-    provers: { LayerZero: '0x0C4E3063239c9f4f323A956C79738916594D8Fd4' }, // prod prover
+    portalAddress: V2_12_PORTAL,
+    provers: { Hyperlane: V2_12_HYPER_PROVER },
     nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
-  },
-  {
-    id: BigInt(bsc.id),
-    name: bsc.name,
-    type: ChainType.EVM,
-    env: 'production',
-    rpcUrl: bsc.rpcUrls.default.http[0],
-    nativeCurrency: bsc.nativeCurrency,
   },
   {
     id: 8453n,
@@ -62,15 +56,15 @@ export const RAW_CHAIN_CONFIGS: RawChainConfig[] = [
     type: ChainType.EVM,
     env: 'production',
     rpcUrl: 'https://mainnet.base.org',
-    portalAddress: '0x399Dbd5DF04f83103F77A58cBa2B7c4d3cdede97', // prod portal
+    portalAddress: V2_12_PORTAL,
     provers: {
-      LayerZero: '0x0C4E3063239c9f4f323A956C79738916594D8Fd4', // prod prover
-      // v2.6 Tron<>EVM Polymer mesh (Tron corridor endpoint). The same CREATE3
-      // prover exists on Ethereum/Optimism/Arbitrum/Polygon but is deliberately
-      // not listed there: a second common prover type between two EVM chains
-      // would break the single-common-prover auto-selection in the manual
-      // fallback. Use --prover-address 0xE3e4... on those chains if needed.
-      Polymer: '0xE3e4e6F284f1c8E17bafE4268EB98c36886B4d8B',
+      Hyperlane: V2_12_HYPER_PROVER,
+      // Tron<>EVM Polymer corridor endpoint. The same CREATE3 prover exists on
+      // every v2.12 EVM chain but is deliberately not listed elsewhere: a
+      // second common prover type between two EVM chains would break the
+      // single-common-prover auto-selection in the manual fallback. Use
+      // --prover-address 0xEC0DeD08... on those chains if needed.
+      Polymer: '0xEC0DeD087Ee6C55991Bb4D4567ca1134c5353Ed6',
     },
     nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
   },
@@ -80,8 +74,8 @@ export const RAW_CHAIN_CONFIGS: RawChainConfig[] = [
     type: ChainType.EVM,
     env: 'production',
     rpcUrl: arbitrum.rpcUrls.default.http[0],
-    portalAddress: '0x399Dbd5DF04f83103F77A58cBa2B7c4d3cdede97', // prod portal
-    provers: { LayerZero: '0x0C4E3063239c9f4f323A956C79738916594D8Fd4' }, // prod prover
+    portalAddress: V2_12_PORTAL,
+    provers: { Hyperlane: V2_12_HYPER_PROVER },
     nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
   },
   {
@@ -90,8 +84,8 @@ export const RAW_CHAIN_CONFIGS: RawChainConfig[] = [
     type: ChainType.EVM,
     env: 'production',
     rpcUrl: 'https://polygon.drpc.org',
-    portalAddress: '0x399Dbd5DF04f83103F77A58cBa2B7c4d3cdede97', // prod portal
-    provers: { LayerZero: '0x0C4E3063239c9f4f323A956C79738916594D8Fd4' }, // prod prover
+    portalAddress: V2_12_PORTAL,
+    provers: { Hyperlane: V2_12_HYPER_PROVER },
     nativeCurrency: polygon.nativeCurrency,
   },
   {
@@ -101,14 +95,6 @@ export const RAW_CHAIN_CONFIGS: RawChainConfig[] = [
     env: 'production',
     rpcUrl: ronin.rpcUrls.default.http[0],
     nativeCurrency: ronin.nativeCurrency,
-  },
-  {
-    id: BigInt(sonic.id),
-    name: sonic.name,
-    type: ChainType.EVM,
-    env: 'production',
-    rpcUrl: sonic.rpcUrls.default.http[0],
-    nativeCurrency: sonic.nativeCurrency,
   },
   {
     id: BigInt(hyperEvm.id),
@@ -142,22 +128,6 @@ export const RAW_CHAIN_CONFIGS: RawChainConfig[] = [
     rpcUrl: plasma.rpcUrls.default.http[0],
     nativeCurrency: plasma.nativeCurrency,
   },
-  {
-    id: BigInt(celo.id),
-    name: celo.name,
-    type: ChainType.EVM,
-    env: 'production',
-    rpcUrl: celo.rpcUrls.default.http[0],
-    nativeCurrency: celo.nativeCurrency,
-  },
-  {
-    id: BigInt(ink.id),
-    name: ink.name,
-    type: ChainType.EVM,
-    env: 'production',
-    rpcUrl: ink.rpcUrls.default.http[0],
-    nativeCurrency: ink.nativeCurrency,
-  },
 
   {
     // Arc — Circle's L1 (private mainnet until the 2026-09-16 public launch). Native gas token
@@ -168,10 +138,8 @@ export const RAW_CHAIN_CONFIGS: RawChainConfig[] = [
     type: ChainType.EVM,
     env: 'production',
     rpcUrl: 'https://rpc.mainnet.arc.io',
-    // Dedicated CreateX CREATE3 Portal (version() = 2.10.0) — NOT the fleet CREATE2 0xEC000064…
-    portalAddress: '0xEC002CA16cE20c2a9F3C6200EF04E7d92a3dfBD8',
-    // Fleet HyperProver; its PORTAL() immutable on Arc is the dedicated Portal above.
-    provers: { Hyperlane: '0xec004Ab4870c4e177c66949329dCdb503CE41022' },
+    portalAddress: V2_12_PORTAL,
+    provers: { Hyperlane: V2_12_HYPER_PROVER },
     nativeCurrency: { name: 'USDC', symbol: 'USDC', decimals: 18 },
   },
   // EVM - Development
@@ -241,11 +209,11 @@ export const RAW_CHAIN_CONFIGS: RawChainConfig[] = [
     type: ChainType.TVM,
     env: 'production',
     rpcUrl: 'https://api.trongrid.io',
-    // v2.6 Tron<>EVM Polymer mesh. Portal and prover must stay paired: the old
-    // LayerZero prover (TFu38RELzp7jdR9s7vj4JSpw2kFuTSAq3E) belongs to the old
-    // portal (TTXNcSeX5aYb1ETWYjcX3fvumynWoyFgYw) and cannot prove v2.6 intents.
-    portalAddress: 'TT6jKgnBXoj7vZ7m2Yioq5mxTfrDpgir44',
-    provers: { Polymer: 'TLvVHqZZbs4Juf7umHYAepYgZkSdKxb649' },
+    // v2.12 Tron<>EVM Polymer corridor. Portal and prover must stay paired: a
+    // prover's PORTAL() is immutable, so an older-generation prover (e.g. the
+    // v2.6 TLvVHqZZ... bound to TT6jKgnB...) cannot prove v2.12 intents.
+    portalAddress: 'TDYD42VmbScmqYkqG97aLgRN74Dqq9Fuva',
+    provers: { Polymer: 'TU42qLG4ixTZ56jYFVAke32DmTcEkiU4zv' },
     nativeCurrency: { name: 'Tron', symbol: 'TRX', decimals: 6 },
   },
   {

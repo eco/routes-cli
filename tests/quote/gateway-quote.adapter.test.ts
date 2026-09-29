@@ -7,9 +7,11 @@ import type { QuoteRequest } from '@/quote/quote.service';
 import { RoutesCliError } from '@/shared/errors';
 
 const FUNDER = '0x256B70644f5D77bc8e2bb82C731Ddf747ecb1471' as const;
-const BASE_PORTAL = '0xEC000064576f9C95a8623Bc0eff3db6d296ea6df' as const;
+const BASE_PORTAL = '0xEC000769A73b70e16f361a442292500b3BCf4A85' as const;
+// Deliberately differs from BASE_PORTAL (production v2.12 uses one Portal address on every
+// chain) so the test can tell the source Portal (tx.to) from the destination one (route.portal).
 const ARC_PORTAL = '0xEC002CA16cE20c2a9F3C6200EF04E7d92a3dfBD8' as const;
-const PROVER = '0xec004Ab4870c4e177c66949329dCdb503CE41022' as const;
+const PROVER = '0xEC08fb4647f3f50d1162a578d481266687C60fc5' as const;
 const BASE_USDC = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' as const;
 const ARC_USDC = '0x3600000000000000000000000000000000000000' as const;
 
