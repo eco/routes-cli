@@ -3,8 +3,9 @@
  * production EVM chains routes-cli publishes intents from/to.
  *
  * Covers:
- *  - the five newly-added production EVM chains (Unichain, World Chain,
- *    Plasma, Celo, Ink) resolve by both name and numeric id
+ *  - the newly-added production EVM chains (Unichain, World Chain, Plasma)
+ *    resolve by both name and numeric id
+ *  - chains without an eco-routes v2.12 deployment are not configured
  *  - every production EVM chain id in RAW_CHAIN_CONFIGS resolves to a real
  *    chain in `viem/chains` — this is exactly what EvmPublisher.getChain
  *    relies on at publish time, so a typo'd id would otherwise only surface
@@ -37,8 +38,6 @@ describe('RAW_CHAIN_CONFIGS — new production EVM chains', () => {
     { name: 'Unichain', id: 130n },
     { name: 'World Chain', id: 480n },
     { name: 'Plasma', id: 9745n },
-    { name: 'Celo', id: 42220n },
-    { name: 'Ink', id: 57073n },
   ];
 
   it.each(NEW_CHAINS)('registers $name ($id) as a production EVM chain', ({ name, id }) => {
@@ -71,6 +70,19 @@ describe('RAW_CHAIN_CONFIGS — new production EVM chains', () => {
       expect(raw?.portalAddress).toBeUndefined();
       expect(raw?.provers).toBeUndefined();
     }
+  });
+});
+
+describe('RAW_CHAIN_CONFIGS — chains without a v2.12 deployment', () => {
+  // No solver serves these after the v2.12 cut-over (eco/eco-solver#1272 §10.3), so an
+  // intent published from or to them could never be filled.
+  it.each([
+    ['BNB Smart Chain', 56n],
+    ['Sonic', 146n],
+    ['Celo', 42220n],
+    ['Ink', 57073n],
+  ])('does not configure %s (%s)', (_name, id) => {
+    expect(RAW_CHAIN_CONFIGS.find(c => c.id === id)).toBeUndefined();
   });
 });
 

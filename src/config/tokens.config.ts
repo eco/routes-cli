@@ -56,9 +56,6 @@ export const TOKEN_CONFIGS: Record<string, TokenConfig> = {
       '42161': AddressNormalizer.normalizeEvm(
         '0xaf88d065e77c8cC2239327C5EDb3A432268e5831' as EvmAddress
       ), // Arbitrum
-      '146': AddressNormalizer.normalizeEvm(
-        '0x29219dd400f2bf60e5a23d13be72b486d4038894' as EvmAddress
-      ), // Sonic
       '5042': AddressNormalizer.normalizeEvm(
         '0x3600000000000000000000000000000000000000' as EvmAddress
       ), // Arc — native-backed USDC precompile (6 dp)
@@ -86,9 +83,6 @@ export const TOKEN_CONFIGS: Record<string, TokenConfig> = {
       '480': AddressNormalizer.normalizeEvm(
         '0x79A02482A880bCE3F13e09Da970dC34db4CD24d1' as EvmAddress
       ), // World Chain
-      '42220': AddressNormalizer.normalizeEvm(
-        '0xceba9300f2b948710d2653dd7b07f33a8b32118c' as EvmAddress
-      ), // Celo
       // Add more as needed
     },
   },
@@ -118,9 +112,6 @@ export const TOKEN_CONFIGS: Record<string, TokenConfig> = {
       '1399811149': AddressNormalizer.normalizeSvm(
         'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB' as SvmAddress
       ),
-      '42220': AddressNormalizer.normalizeEvm(
-        '0x48065fbbe25f71c9282ddf5e1cd6d6a887483d5e' as EvmAddress
-      ), // Celo
       // Add more as needed
     },
   },
@@ -141,9 +132,6 @@ export const TOKEN_CONFIGS: Record<string, TokenConfig> = {
       '42161': AddressNormalizer.normalizeEvm(
         '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9' as EvmAddress
       ), // Arbitrum
-      '57073': AddressNormalizer.normalizeEvm(
-        '0x0200c29006150606b650577bbe7b6248f58470c1' as EvmAddress
-      ), // Ink
       // HyperEVM (999) intentionally omitted: 0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb
       // is already listed under USDT for chain 999 (bridged USDT there is USDT0);
       // adding it here too would create a conflicting duplicate address entry.
@@ -163,29 +151,6 @@ export const TOKEN_CONFIGS: Record<string, TokenConfig> = {
       '8453': AddressNormalizer.normalizeEvm(
         '0xe343167631d89B6Ffc58B88d6b7fB0228795491D' as EvmAddress
       ), // Base
-      '57073': AddressNormalizer.normalizeEvm(
-        '0xe343167631d89B6Ffc58B88d6b7fB0228795491D' as EvmAddress
-      ), // Ink
-    },
-  },
-  bUSDC: {
-    symbol: 'bUSDC',
-    name: 'Binance USDC',
-    decimals: 18,
-    addresses: {
-      '56': AddressNormalizer.normalizeEvm(
-        '0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d' as EvmAddress
-      ), // BNB Smart Chain
-    },
-  },
-  bUSDT: {
-    symbol: 'bUSDT',
-    name: 'Binance USDT',
-    decimals: 18,
-    addresses: {
-      '56': AddressNormalizer.normalizeEvm(
-        '0x55d398326f99059fF775485246999027B3197955' as EvmAddress
-      ), // BNB Smart Chain
     },
   },
   ETH: {

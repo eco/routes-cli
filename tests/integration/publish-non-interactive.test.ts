@@ -5,7 +5,7 @@ const REPO_ROOT = path.resolve(__dirname, '../..');
 // Well-known public anvil dev key (account 0) — already used across this repo's tests.
 const TEST_PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
 const RECIPIENT = '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045';
-const PORTAL = '0x399Dbd5DF04f83103F77A58cBa2B7c4d3cdede97';
+const PORTAL = '0xEC000769A73b70e16f361a442292500b3BCf4A85';
 
 const FULL_FLAGS = [
   '--source',

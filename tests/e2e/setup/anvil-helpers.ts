@@ -17,6 +17,8 @@ export const TEST_ADDRESS = '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266' as cons
 
 // Base mainnet contract addresses
 export const USDC_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' as const;
+// Pre-v2.12 Portal on purpose: CI forks Base at FORK_BLOCK_NUMBER 28000000, which predates the
+// v2.12 Portal (0xEC000769…). Move both together.
 export const PORTAL_ADDRESS = '0x399Dbd5DF04f83103F77A58cBa2B7c4d3cdede97' as const;
 
 /**

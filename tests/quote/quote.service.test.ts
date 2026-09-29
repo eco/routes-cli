@@ -20,7 +20,7 @@ const ROUTE = {
   deadline: 1_800_000_000n,
   source: 8453n,
   destination: 10n,
-  portal: '0xEC000064576f9C95a8623Bc0eff3db6d296ea6df' as const,
+  portal: '0xEC000769A73b70e16f361a442292500b3BCf4A85' as const,
   nativeAmount: 0n,
   tokens: [],
   calls: [],
@@ -35,7 +35,7 @@ const v1Quote = {
     transaction: {
       type: 'evm',
       chainId: 8453,
-      to: '0xEC000064576f9C95a8623Bc0eff3db6d296ea6df',
+      to: '0xEC000769A73b70e16f361a442292500b3BCf4A85',
       data: encodeFunctionData({
         abi: portalAbi,
         functionName: 'publishAndFund',
@@ -45,7 +45,7 @@ const v1Quote = {
           {
             deadline: 1_800_000_000n,
             creator: req.funder as Hex,
-            prover: '0xec004Ab4870c4e177c66949329dCdb503CE41022',
+            prover: '0xEC08fb4647f3f50d1162a578d481266687C60fc5',
             nativeAmount: 0n,
             tokens: [],
           },
@@ -55,8 +55,8 @@ const v1Quote = {
       value: '0',
     },
     intent: {
-      route: { portal: '0xEC000064576f9C95a8623Bc0eff3db6d296ea6df' },
-      reward: { prover: '0xec004Ab4870c4e177c66949329dCdb503CE41022', deadline: 1_800_000_000 },
+      route: { portal: '0xEC000769A73b70e16f361a442292500b3BCf4A85' },
+      reward: { prover: '0xEC08fb4647f3f50d1162a578d481266687C60fc5', deadline: 1_800_000_000 },
     },
   },
 } as unknown as V1QuoteResponse;
@@ -97,8 +97,8 @@ describe('QuoteService — gateway branch', () => {
       { env: 'staging' }
     );
     expect(result.encodedRoute).toBe(ENCODED_ROUTE);
-    expect(result.sourcePortal).toBe('0xEC000064576f9C95a8623Bc0eff3db6d296ea6df');
-    expect(result.prover).toBe('0xec004Ab4870c4e177c66949329dCdb503CE41022');
+    expect(result.sourcePortal).toBe('0xEC000769A73b70e16f361a442292500b3BCf4A85');
+    expect(result.prover).toBe('0xEC08fb4647f3f50d1162a578d481266687C60fc5');
     expect(result.destinationAmount).toBe('990000');
   });
 
