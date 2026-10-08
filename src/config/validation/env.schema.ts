@@ -11,10 +11,12 @@ export const EnvSchema = z.object({
     .optional(),
   SVM_PRIVATE_KEY: z.string().min(1).optional(),
 
-  TVM_RPC_URL: z.string().url().default('https://api.trongrid.io'),
-  TVM_RPC_URL_2: z.string().url().default('https://tron.publicnode.com'),
-  SVM_RPC_URL: z.string().url().default('https://api.mainnet-beta.solana.com'),
-  SVM_RPC_URL_2: z.string().url().default('https://solana.publicnode.com'),
+  EVM_RPC_URL: z.string().url().optional(),
+  EVM_RPC_URL_2: z.string().url().optional(),
+  TVM_RPC_URL: z.string().url().optional(),
+  TVM_RPC_URL_2: z.string().url().optional(),
+  SVM_RPC_URL: z.string().url().optional(),
+  SVM_RPC_URL_2: z.string().url().optional(),
 
   // Quote source escape hatches (see ConfigService.getQuoteEndpoint for precedence).
   SOLVER_URL: z.string().url().optional(),

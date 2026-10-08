@@ -132,14 +132,21 @@ eco-routes-cli publish -s base -d optimism \
 
 ## Configuration Reference
 
-Copy `.env.example` to `.env`. All variables except the private keys are optional.
+Copy `.env.example` to `.env`. On-chain operations require a wallet key and an
+operator-managed RPC endpoint. Missing RPC configuration fails before a client
+is created; no public primary or secondary endpoint is selected automatically.
+Known public catalog endpoints are rejected even when explicitly supplied.
+Chain listing, API quotes and offline dry-runs do not require an RPC endpoint.
 
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `EVM_PRIVATE_KEY` | For EVM chains | EVM wallet private key (`0x…`) |
 | `SVM_PRIVATE_KEY` | For Solana | Solana wallet key (base58, array, or bytes) |
-| `EVM_RPC_URL` | No | Override RPC for all EVM chains |
-| `SVM_RPC_URL` | No | Override Solana RPC (default: mainnet-beta) |
+| `EVM_RPC_URL_<CHAIN_ID>` | For EVM operations | Dedicated per-chain RPC; e.g. `EVM_RPC_URL_2020` for Ronin. Takes precedence over `EVM_RPC_URL` |
+| `EVM_RPC_URL` | If no per-chain URL | Explicit EVM RPC endpoint; ensure it serves the chain being used |
+| `TVM_RPC_URL` | For Tron operations | Dedicated Tron RPC endpoint |
+| `SVM_RPC_URL` | For Solana operations | Dedicated Solana RPC endpoint |
+| `EVM_RPC_URL_2` / `TVM_RPC_URL_2` / `SVM_RPC_URL_2` | No | Explicit secondary endpoint; never defaults to a public RPC |
 | `ECO_ENV` | No | Eco API gateway environment for quotes and `status`: `production` (default, `api.eco.com`) or `staging` (`api.stag.eco.com`). `--env` on `publish`/`status` overrides it per command |
 | `ECO_API_URL` | No | Override the Eco API gateway base URL |
 | `ECO_API_KEY_PRODUCTION` / `ECO_API_KEY_STAGING` | No | Per-environment API key sent as `x-api-key` to that gateway host only (staging requires one; production answers keyless but rejects unknown keys). Never commit them |
@@ -164,7 +171,8 @@ See `.env.example` for the complete list of portal address overrides.
 | `Chain not found` | Run `eco-routes-cli chains` to verify the exact chain name or ID |
 | `Insufficient balance` | Ensure your wallet has the reward token plus gas on the source chain |
 | `Quote unavailable` | Not all chain pairs have live routes yet — try a different pair |
-| `RPC timeout` | Set a custom RPC endpoint via `EVM_RPC_URL` / `TVM_RPC_URL` / `SVM_RPC_URL` |
+| `No RPC configured` / `Public RPC endpoints are not permitted` | Set a dedicated per-chain `EVM_RPC_URL_<CHAIN_ID>`, `TVM_RPC_URL` or `SVM_RPC_URL`. Never commit provider credentials |
+| `RPC timeout` | Check the configured provider's health and rate limits; do not switch to a public RPC |
 
 Enable verbose output for more detail:
 
