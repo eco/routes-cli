@@ -38,10 +38,13 @@ describe('standalone intent examples require configured RPCs', () => {
     expect(http).not.toHaveBeenCalled();
   });
 
-  it('rejects the source chain public default', () => {
-    process.env.EVM_RPC_URL_10 = optimism.rpcUrls.default.http[0];
-    expect(() => new IntentCreator(config)).toThrow(/Public RPC/);
-  });
+  it.each([optimism.rpcUrls.default.http[0], 'https://api.roninchain.com/rpc'])(
+    'rejects a known public endpoint: %s',
+    url => {
+      process.env.EVM_RPC_URL_10 = url;
+      expect(() => new IntentCreator(config)).toThrow(/Public RPC/);
+    }
+  );
 
   it('rejects malformed endpoints without revealing their value', () => {
     process.env.EVM_RPC_URL_10 = 'not-a-url/synthetic-secret';

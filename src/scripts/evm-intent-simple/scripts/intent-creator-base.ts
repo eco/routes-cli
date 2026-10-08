@@ -22,6 +22,8 @@ import {
 } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 
+import { isPublicRpcEndpoint } from '../../../blockchain/public-rpc-policy';
+
 // ============================================================================
 // Type Definitions
 // ============================================================================
@@ -281,10 +283,7 @@ export class IntentCreator {
     } catch {
       throw new Error(`Invalid RPC endpoint for ${chain.name}.`);
     }
-    const publicHosts = Object.values(chain.rpcUrls).flatMap(rpcs =>
-      rpcs.http.map(endpoint => new URL(endpoint).hostname.toLowerCase())
-    );
-    if (publicHosts.includes(parsed.hostname.toLowerCase().replace(/\.$/, ''))) {
+    if (isPublicRpcEndpoint(parsed)) {
       throw new Error(`Public RPC endpoints are not permitted for ${chain.name}.`);
     }
     return url;

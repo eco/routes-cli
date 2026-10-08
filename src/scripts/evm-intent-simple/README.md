@@ -56,8 +56,8 @@ Before running any script, you need:
    - Use a test wallet for initial testing
 
 Scripts require `EVM_RPC_URL_<SOURCE_CHAIN_ID>` (or an explicit `EVM_RPC_URL`).
-They fail before client construction if missing, and reject the source chain's
-public catalog hosts. They never use viem's implicit public transport.
+They fail before client construction if missing, and share the CLI's policy
+for rejecting known public catalog endpoints. They never use viem's implicit public transport.
 
 ## Usage Examples
 

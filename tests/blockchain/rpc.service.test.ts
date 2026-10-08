@@ -32,6 +32,30 @@ describe('RPC selection never silently uses public endpoints', () => {
     expect(() => service().getUrl(raw as ChainConfig)).toThrow(/RPC.*configured/i);
   });
 
+  it.each(RAW_CHAIN_CONFIGS)('rejects the catalog public endpoint for $name', raw => {
+    const variable = raw.type === ChainType.EVM ? `EVM_RPC_URL_${raw.id}` : `${raw.type}_RPC_URL`;
+    process.env[variable] = raw.rpcUrl;
+    expect(() => service({ [variable]: raw.rpcUrl }).getUrl(raw as ChainConfig)).toThrow(
+      /public RPC/i
+    );
+  });
+
+  it('allows a keyed World Chain endpoint on the shared public-provider host', () => {
+    const chain = RAW_CHAIN_CONFIGS.find(raw => raw.id === 480n)! as ChainConfig;
+    process.env.EVM_RPC_URL_480 =
+      'https://worldchain-mainnet.g.alchemy.com/v2/synthetic-private-key';
+    expect(service().getUrl(chain)).toBe(process.env.EVM_RPC_URL_480);
+  });
+
+  it.each(['/public', '/v2/demo', '/v2/DEMO', '/v2/%64emo', '/v2/public', '/v2/%ZZ'])(
+    'rejects a World Chain public or malformed provider path: %s',
+    path => {
+      const chain = RAW_CHAIN_CONFIGS.find(raw => raw.id === 480n)! as ChainConfig;
+      process.env.EVM_RPC_URL_480 = `https://worldchain-mainnet.g.alchemy.com${path}`;
+      expect(() => service().getUrl(chain)).toThrow(/public RPC/i);
+    }
+  );
+
   it('uses the configured Ronin endpoint instead of the catalog public default', () => {
     process.env.EVM_RPC_URL_2020 = 'https://ronin.private.example/rpc';
     expect(service().getUrl(ronin)).toBe('https://ronin.private.example/rpc');
@@ -122,11 +146,15 @@ describe('RPC selection never silently uses public endpoints', () => {
     ).toBe('https://solana.private.example/rpc');
   });
 
-  it('rejects an explicitly configured public secondary endpoint', () => {
+  it.each([
+    ['EVM_RPC_URL_2', ChainType.EVM, ronin.rpcUrl],
+    ['TVM_RPC_URL_2', ChainType.TVM, 'https://tron.publicnode.com'],
+    ['SVM_RPC_URL_2', ChainType.SVM, 'https://solana.publicnode.com'],
+  ])('rejects an explicitly configured public secondary endpoint via %s', (variable, type, url) => {
     expect(() =>
-      service({ SVM_RPC_URL_2: 'https://solana.publicnode.com' }).getFallbackUrl({
+      service({ [variable]: url }).getFallbackUrl({
         ...ronin,
-        type: ChainType.SVM,
+        type,
       })
     ).toThrow(/public RPC/i);
   });

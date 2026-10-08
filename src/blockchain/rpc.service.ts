@@ -6,15 +6,7 @@ import { ChainConfig, ChainType } from '@/shared/types';
 
 import 'dotenv/config';
 
-import { RAW_CHAIN_CONFIGS } from './chains.config';
-
-// Chain catalog endpoints describe network metadata; they are public/shared and
-// must never become runtime defaults, including after a private endpoint fails.
-const PUBLIC_RPC_HOSTS = new Set([
-  ...RAW_CHAIN_CONFIGS.map(chain => new URL(chain.rpcUrl).hostname),
-  'solana.publicnode.com',
-  'tron.publicnode.com',
-]);
+import { isPublicRpcEndpoint } from './public-rpc-policy';
 
 @Injectable()
 export class RpcService {
@@ -55,7 +47,7 @@ export class RpcService {
         `Invalid RPC endpoint for ${chain.name} (${chain.id}).`
       );
     }
-    if (PUBLIC_RPC_HOSTS.has(parsed.hostname.toLowerCase().replace(/\.$/, ''))) {
+    if (isPublicRpcEndpoint(parsed)) {
       throw RoutesCliError.configurationError(
         `Public RPC endpoints are not permitted for ${chain.name} (${chain.id}); configure a dedicated provider endpoint.`
       );
