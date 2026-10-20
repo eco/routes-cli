@@ -128,7 +128,10 @@ export class ConfigCommand extends CommandRunner {
     const target = profileName ? (config.profiles?.[profileName] ?? {}) : config;
     const val = this.getNestedValue(target, key);
     if (val !== undefined) {
-      console.log(key.toLowerCase().includes('private') ? '***[HIDDEN]***' : String(val));
+      const lower = key.toLowerCase();
+      const secret =
+        lower.includes('private') || lower.includes('api_key') || lower.includes('apikey');
+      console.log(secret ? '***[HIDDEN]***' : String(val));
     } else {
       console.warn(`Configuration key '${key}' not found`);
       process.exit(1);

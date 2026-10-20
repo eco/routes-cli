@@ -3,8 +3,9 @@
  * production EVM chains routes-cli publishes intents from/to.
  *
  * Covers:
- *  - the five newly-added production EVM chains (Unichain, World Chain,
- *    Plasma, Celo, Ink) resolve by both name and numeric id
+ *  - the newly-added production EVM chains (Unichain, World Chain, Plasma)
+ *    resolve by both name and numeric id
+ *  - chains without an eco-routes v2.12 deployment are not configured
  *  - every production EVM chain id in RAW_CHAIN_CONFIGS resolves to a real
  *    chain in `viem/chains` — this is exactly what EvmPublisher.getChain
  *    relies on at publish time, so a typo'd id would otherwise only surface
@@ -37,8 +38,6 @@ describe('RAW_CHAIN_CONFIGS — new production EVM chains', () => {
     { name: 'Unichain', id: 130n },
     { name: 'World Chain', id: 480n },
     { name: 'Plasma', id: 9745n },
-    { name: 'Celo', id: 42220n },
-    { name: 'Ink', id: 57073n },
   ];
 
   it.each(NEW_CHAINS)('registers $name ($id) as a production EVM chain', ({ name, id }) => {
@@ -74,11 +73,25 @@ describe('RAW_CHAIN_CONFIGS — new production EVM chains', () => {
   });
 });
 
-describe('every production EVM chain id resolves in viem/chains', () => {
-  // This is what EvmPublisher.getChain relies on: it searches
-  // Object.values(chains) for a matching numeric id with no explicit map, so
-  // an id that doesn't exist in the installed viem version fails only at
-  // publish time. Guard it here instead.
+describe('RAW_CHAIN_CONFIGS — chains without a v2.12 deployment', () => {
+  // No solver serves these after the v2.12 cut-over (eco/eco-solver#1272 §10.3), so an
+  // intent published from or to them could never be filled.
+  it.each([
+    ['BNB Smart Chain', 56n],
+    ['Sonic', 146n],
+    ['Celo', 42220n],
+    ['Ink', 57073n],
+  ])('does not configure %s (%s)', (_name, id) => {
+    expect(RAW_CHAIN_CONFIGS.find(c => c.id === id)).toBeUndefined();
+  });
+});
+
+describe('every production EVM chain id is publishable by EvmPublisher', () => {
+  // EvmPublisher.getChain first searches Object.values(chains) for a matching
+  // numeric id; a chain missing from the installed viem version (e.g. Arc 5042
+  // on viem 2.40) is built from RAW_CHAIN_CONFIGS via defineChain instead. Guard
+  // both branches here rather than at publish time: an id must either exist in
+  // viem/chains or carry everything the fallback needs to build a Chain.
   const viemChainIds = new Set<number>(
     Object.values(viemChains).map(c => Number((c as { id: number }).id))
   );
@@ -88,9 +101,18 @@ describe('every production EVM chain id resolves in viem/chains', () => {
   );
 
   it.each(productionEvmConfigs.map(c => [c.name, c.id] as const))(
-    '%s (%s) exists in viem/chains',
+    '%s (%s) exists in viem/chains or is fully described for the config fallback',
     (_name, id) => {
-      expect(viemChainIds.has(Number(id))).toBe(true);
+      if (viemChainIds.has(Number(id))) return;
+      const raw = RAW_CHAIN_CONFIGS.find(c => c.id === id)!;
+      expect(raw.rpcUrl).toMatch(/^https?:\/\//);
+      expect(raw.nativeCurrency.symbol).toBeTruthy();
+      expect(raw.nativeCurrency.decimals).toBeGreaterThan(0);
     }
   );
+
+  it('Arc (5042) is the only production EVM chain relying on the config fallback', () => {
+    const fallbackOnly = productionEvmConfigs.filter(c => !viemChainIds.has(Number(c.id)));
+    expect(fallbackOnly.map(c => c.id)).toEqual([5042n]);
+  });
 });

@@ -46,12 +46,18 @@ Before running any script, you need:
    ```env
    # Required: Your EVM private key (with 0x prefix)
    PRIVATE_KEY=0x_your_private_key_here
+   # Required: a dedicated RPC for the source chain (Optimism in these examples)
+   EVM_RPC_URL_10=https://opt-mainnet.g.alchemy.com/v2/YOUR_KEY
    ```
 
    **⚠️ SECURITY WARNING:**
    - NEVER share your private key
    - NEVER commit `.env` to version control
    - Use a test wallet for initial testing
+
+Scripts require `EVM_RPC_URL_<SOURCE_CHAIN_ID>` (or an explicit `EVM_RPC_URL`).
+They fail before client construction if missing, and share the CLI's policy
+for rejecting known public catalog endpoints. They never use viem's implicit public transport.
 
 ## Usage Examples
 

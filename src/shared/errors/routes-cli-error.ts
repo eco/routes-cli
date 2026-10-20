@@ -10,6 +10,14 @@ export enum ErrorCode {
   NON_INTERACTIVE = 'NON_INTERACTIVE',
 }
 
+/** An RFC 7807 problem document as returned by the Eco API gateway. */
+export interface ApiProblem {
+  status: number;
+  code: string;
+  title: string;
+  detail?: string;
+}
+
 export class RoutesCliError extends Error {
   constructor(
     public readonly code: ErrorCode,
@@ -89,6 +97,26 @@ export class RoutesCliError extends Error {
       false,
       cause
     );
+  }
+
+  static isAuthProblem(problem: ApiProblem): boolean {
+    return problem.status === 401 || problem.status === 403 || problem.code === 'invalid-api-key';
+  }
+
+  /** An RFC 7807 problem returned by the Eco API gateway; auth problems are user errors. */
+  static apiError(problem: ApiProblem, requestId?: string): RoutesCliError {
+    const auth = RoutesCliError.isAuthProblem(problem);
+    const lines = [
+      `Eco API error ${problem.status} (${problem.code}): ${problem.title}`,
+      ...(problem.detail ? [`  ${problem.detail}`] : []),
+      ...(requestId ? [`  Request ID: ${requestId}`] : []),
+      ...(auth
+        ? [
+            '  Fix: set ECO_API_KEY in your .env file to a key with access to the v1 API (mint one in the API key dashboard).',
+          ]
+        : []),
+    ];
+    return new RoutesCliError(ErrorCode.QUOTE_SERVICE_ERROR, lines.join('\n'), auth);
   }
 
   static configurationError(message: string): RoutesCliError {

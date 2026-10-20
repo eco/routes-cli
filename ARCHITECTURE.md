@@ -988,16 +988,18 @@ pnpm docs             # typedoc → GitHub Pages
 
 | Name | ID | Type | Portal | RPC Default |
 |------|----|------|--------|-------------|
-| Ethereum | 1 | EVM | — | viem default |
-| Optimism | 10 | EVM | — | https://mainnet.optimism.io |
-| BSC | 56 | EVM | — | viem default |
-| Base | 8453 | EVM | `0x399Dbd5...` | https://mainnet.base.org |
-| Arbitrum | 42161 | EVM | — | viem default |
-| Polygon | 137 | EVM | — | viem default |
+| Ethereum | 1 | EVM | `0xEC000769...` | https://ethereum-rpc.publicnode.com |
+| Optimism | 10 | EVM | `0xEC000769...` | https://mainnet.optimism.io |
+| Base | 8453 | EVM | `0xEC000769...` | https://mainnet.base.org |
+| Arbitrum | 42161 | EVM | `0xEC000769...` | viem default |
+| Polygon | 137 | EVM | `0xEC000769...` | https://polygon.drpc.org |
 | Ronin | 2020 | EVM | — | viem default |
-| Sonic | 146 | EVM | — | viem default |
 | Hyper EVM | 999 | EVM | — | viem default |
-| Tron | 728126428 | TVM | — | https://api.trongrid.io |
+| Unichain | 130 | EVM | — | viem default |
+| World Chain | 480 | EVM | — | viem default |
+| Plasma | 9745 | EVM | — | viem default |
+| Arc | 5042 | EVM | `0xEC000769...` | https://rpc.mainnet.arc.io |
+| Tron | 728126428 | TVM | `TDYD42Vm...` | https://api.trongrid.io |
 | Solana | 1399811149 | SVM | — | https://api.mainnet-beta.solana.com |
 
 ### Development / Testnet Chains
@@ -1015,10 +1017,8 @@ pnpm docs             # typedoc → GitHub Pages
 
 | Symbol | Decimals | Chains |
 |--------|----------|--------|
-| USDC | 6 | ETH, OP, Base, Polygon, Arbitrum, HyperEVM, Ronin, Sonic, Base Sepolia, OP Sepolia, Plasma, Sepolia, Solana mainnet/devnet |
+| USDC | 6 | ETH, OP, Base, Polygon, Arbitrum, HyperEVM, Ronin, Arc, Unichain, World Chain, Base Sepolia, OP Sepolia, Plasma Testnet, Sepolia, Solana mainnet/devnet |
 | USDT | 6 | ETH, OP, Base, Tron mainnet/shasta, HyperEVM, Solana mainnet |
-| bUSDC | 18 | BSC |
-| bUSDT | 18 | BSC |
 
 ---
 

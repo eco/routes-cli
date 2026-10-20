@@ -5,7 +5,7 @@ const REPO_ROOT = path.resolve(__dirname, '../..');
 // Well-known public anvil dev key (account 0) — already used across this repo's tests.
 const TEST_PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
 const RECIPIENT = '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045';
-const PORTAL = '0x399Dbd5DF04f83103F77A58cBa2B7c4d3cdede97';
+const PORTAL = '0xEC000769A73b70e16f361a442292500b3BCf4A85';
 
 const FULL_FLAGS = [
   '--source',
@@ -74,6 +74,33 @@ describe('publish non-interactive (spawned CLI, no TTY)', () => {
     const res = runCli(args);
     expect(res.status).not.toBe(0);
     expect(res.stderr).toContain('--reward-token');
+  });
+
+  it('with only an unreachable ECO_API_URL set, the gateway quote fails and the manual route still dry-runs', () => {
+    const env: NodeJS.ProcessEnv = { ...process.env, EVM_PRIVATE_KEY: TEST_PRIVATE_KEY };
+    delete env.SOLVER_URL;
+    delete env.QUOTES_API_URL;
+    delete env.QUOTES_PREPROD;
+    env.ECO_API_URL = 'http://127.0.0.1:9'; // unroutable → EcoApiRequestError → manual fallback
+    const res = spawnSync(
+      'npx',
+      [
+        'ts-node',
+        '--transpile-only',
+        '-r',
+        'tsconfig-paths/register',
+        'src/main.ts',
+        'publish',
+        ...FULL_FLAGS,
+        '--json',
+      ],
+      { cwd: REPO_ROOT, encoding: 'utf8', input: '', timeout: 120_000, env }
+    );
+    expect(res.status).toBe(0);
+    expect(res.stderr).toContain('Quote failed');
+    expect(res.stderr).toContain('127.0.0.1:9');
+    const payload = JSON.parse(res.stdout.trim()) as Record<string, unknown>;
+    expect(payload.dryRun).toBe(true);
   });
 
   it('rejects the removed --rpc flag', () => {

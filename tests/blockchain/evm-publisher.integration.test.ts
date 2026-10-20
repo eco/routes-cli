@@ -28,7 +28,7 @@ const TEST_PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae78
 /** Address derived from TEST_PRIVATE_KEY. */
 const SENDER_ADDR = '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266';
 
-const PORTAL_ADDR_EVM = '0x399Dbd5DF04f83103F77A58cBa2B7c4d3cdede97'; // Base mainnet portal
+const PORTAL_ADDR_EVM = '0xEC000769A73b70e16f361a442292500b3BCf4A85'; // v2.12 Portal
 const CREATOR_ADDR_EVM = '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045'; // vitalik.eth
 const PROVER_ADDR_EVM = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'; // USDC contract (valid EVM addr)
 const TOKEN_ADDR_EVM = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'; // USDC on Base
@@ -39,19 +39,32 @@ const DEST_CHAIN_ID = 10n; // Optimism (production env)
 // Minimal mocks for the NestJS DI dependencies that EvmPublisher requires
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mockRegistry: any = { isRegistered: (_id: bigint) => true };
+/** A chain id that exists in chains.config but NOT in this viem version's `viem/chains`. */
+const CONFIG_ONLY_CHAIN_ID = 5042n; // Arc mainnet
+const CONFIG_ONLY_CHAIN = {
+  id: CONFIG_ONLY_CHAIN_ID,
+  name: 'Arc',
+  type: 'EVM',
+  env: 'production',
+  rpcUrl: 'https://rpc.mainnet.arc.io',
+  nativeCurrency: { name: 'USDC', symbol: 'USDC', decimals: 18 },
+};
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mockChains: any = {
-  findChainById: (id: bigint) =>
-    id === DEST_CHAIN_ID
-      ? {
-          id: DEST_CHAIN_ID,
-          name: 'Optimism',
-          type: 'EVM',
-          env: 'production',
-          rpcUrl: 'https://mainnet.optimism.io',
-          nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
-        }
-      : undefined,
+  findChainById: (id: bigint) => {
+    if (id === DEST_CHAIN_ID) {
+      return {
+        id: DEST_CHAIN_ID,
+        name: 'Optimism',
+        type: 'EVM',
+        env: 'production',
+        rpcUrl: 'https://mainnet.optimism.io',
+        nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+      };
+    }
+    if (id === CONFIG_ONLY_CHAIN_ID) return CONFIG_ONLY_CHAIN;
+    return undefined;
+  },
 };
 
 const portalUniversal = AddressNormalizer.normalize(PORTAL_ADDR_EVM, ChainType.EVM);
@@ -269,6 +282,33 @@ describe('EvmPublisher (integration — mocked clients)', () => {
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('Transaction failed');
+    });
+  });
+
+  // ── viem chain resolution ─────────────────────────────────────────────────────
+
+  describe('viem chain resolution', () => {
+    it('builds the viem Chain from chains.config when viem/chains lacks the id', async () => {
+      const factory = createMockEvmClientFactory();
+      publisher = new EvmPublisher('https://rpc.example.com', mockRegistry, mockChains, factory);
+
+      await publisher.getBalance(SENDER_ADDR, CONFIG_ONLY_CHAIN_ID);
+
+      expect(factory.createPublicClient).toHaveBeenCalledWith(
+        expect.objectContaining({
+          chain: expect.objectContaining({
+            id: Number(CONFIG_ONLY_CHAIN_ID),
+            name: CONFIG_ONLY_CHAIN.name,
+            nativeCurrency: CONFIG_ONLY_CHAIN.nativeCurrency,
+          }),
+        })
+      );
+    });
+
+    it('still rejects a chain id that is neither in viem/chains nor in chains.config', async () => {
+      await expect(publisher.getBalance(SENDER_ADDR, 424242424242n)).rejects.toThrow(
+        /Chain ID 424242424242 is not supported/
+      );
     });
   });
 });

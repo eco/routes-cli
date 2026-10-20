@@ -23,7 +23,7 @@ import {
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
 
-const PORTAL_ADDR_EVM = '0x399Dbd5DF04f83103F77A58cBa2B7c4d3cdede97';
+const PORTAL_ADDR_EVM = '0xEC000769A73b70e16f361a442292500b3BCf4A85';
 const PROVER_ADDR_EVM = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48';
 const CREATOR_ADDR_EVM = '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045'; // vitalik.eth
 const TOKEN_ADDR_EVM = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'; // USDC on Base

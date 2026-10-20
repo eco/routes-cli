@@ -22,6 +22,8 @@ import {
 } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 
+import { isPublicRpcEndpoint } from '../../../blockchain/public-rpc-policy';
+
 // ============================================================================
 // Type Definitions
 // ============================================================================
@@ -250,19 +252,41 @@ export class IntentCreator {
     // Validate configuration
     this.validateConfig();
 
+    const rpcUrl = this.getRpcUrl();
+
     // Initialize account and clients
     this.account = privateKeyToAccount(config.privateKey);
 
     this.walletClient = createWalletClient({
       account: this.account,
       chain: config.sourceChain,
-      transport: http(),
+      transport: http(rpcUrl),
     });
 
     this.publicClient = createPublicClient({
       chain: config.sourceChain,
-      transport: http(),
+      transport: http(rpcUrl),
     });
+  }
+
+  private getRpcUrl(): string {
+    const chain = this.config.sourceChain;
+    const variable = `EVM_RPC_URL_${chain.id}`;
+    const url = process.env[variable]?.trim() || process.env.EVM_RPC_URL?.trim();
+    if (!url) {
+      throw new Error(`No RPC configured for ${chain.name}. Set ${variable}.`);
+    }
+    let parsed: URL;
+    try {
+      parsed = new URL(url);
+      if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error('protocol');
+    } catch {
+      throw new Error(`Invalid RPC endpoint for ${chain.name}.`);
+    }
+    if (isPublicRpcEndpoint(parsed)) {
+      throw new Error(`Public RPC endpoints are not permitted for ${chain.name}.`);
+    }
+    return url;
   }
 
   /**

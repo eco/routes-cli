@@ -13,6 +13,8 @@ export interface IntentStatus {
   fulfillmentTxHash?: string;
   blockNumber?: bigint;
   timestamp?: number;
+  /** Raw status word from the Eco API gateway (pending, filled, refundable, refunded, …). */
+  state?: string;
 }
 
 export interface PublishResult {

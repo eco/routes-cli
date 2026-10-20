@@ -8,6 +8,7 @@ import {
   Account,
   Address,
   Chain,
+  defineChain,
   encodeFunctionData,
   erc20Abi,
   Hex,
@@ -352,14 +353,23 @@ export class EvmPublisher extends BasePublisher {
   private getChain(chainId: bigint): Chain {
     const id = Number(chainId);
     const viemChain = Object.values(chains).find((chain: Chain) => chain.id === id);
+    if (viemChain) return viemChain;
 
-    if (!viemChain) {
-      throw new Error(
-        `Chain ID ${id} is not supported. Please use a chain that exists in viem/chains. ` +
-          `Popular chains include: Ethereum (1), Optimism (10), Base (8453), Arbitrum (42161), Polygon (137), BSC (56).`
-      );
+    // Newer chains (e.g. Arc 5042) may be missing from the pinned viem version. Fall back to
+    // the CLI's own chain config, which carries everything viem needs to sign and poll.
+    const configured = this.chains.findChainById(chainId);
+    if (configured) {
+      return defineChain({
+        id,
+        name: configured.name,
+        nativeCurrency: configured.nativeCurrency,
+        rpcUrls: { default: { http: [configured.rpcUrl] } },
+      });
     }
 
-    return viemChain;
+    throw new Error(
+      `Chain ID ${id} is not supported. Please use a chain that exists in viem/chains. ` +
+        `Popular chains include: Ethereum (1), Optimism (10), Base (8453), Arbitrum (42161), Polygon (137), BSC (56).`
+    );
   }
 }
