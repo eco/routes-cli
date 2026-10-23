@@ -124,6 +124,8 @@ Copy `.env.example` to `.env`. All variables except the private keys are optiona
 | `EVM_RPC_URL` | No | Override RPC for all EVM chains |
 | `SVM_RPC_URL` | No | Override Solana RPC (default: mainnet-beta) |
 | `SOLVER_URL` | No | Use a custom solver endpoint for quotes |
+| `DAPP_ID` | No | Quote partner ID (default: `eco-routes-cli`) |
+| `EE528_TEST_CASE` | No | Opt into `destination-mixture` or `source-mixture` forced PE execution testing |
 | `QUOTES_PREPROD` | No | Force preprod quote service (set to `true`) |
 | `PORTAL_ADDRESS_ETH` | No | Override Ethereum portal contract |
 | `PORTAL_ADDRESS_BASE` | No | Override Base portal contract |
@@ -131,6 +133,18 @@ Copy `.env.example` to `.env`. All variables except the private keys are optiona
 | `PORTAL_ADDRESS_SOLANA` | No | Override Solana portal contract |
 
 See `.env.example` for the complete list of portal address overrides.
+
+EE528 testing requires `DAPP_ID=milkshake-ee528` and
+`SOLVER_URL=https://eco-solver-pr-528.eph.ecoinc.xyz` (or an explicit HTTP/HTTPS
+`localhost`, `127.0.0.1`, or `[::1]` test origin). The CLI calls
+`/api/v2/testing/split-quote` with `planner: "pe"` and fixed 50/50 input allocations.
+`destination-mixture` accepts only Base USDC → Arbitrum USDT0;
+`source-mixture` accepts only Arbitrum USDT0 → Base USDC and also fixes source
+swap input at 50%. Ratios describe input allocation, not payout amounts.
+The response must echo the exact forced PE case and ratios with
+`economicAcceptance: false`. A missing, declined, expired, or malformed forced
+quote stops publication. Forced testing never falls back to a manual route.
+Leave `EE528_TEST_CASE` unset for ordinary quote and publication behavior.
 
 ---
 

@@ -256,6 +256,8 @@ export class IntentPublishFlow {
     proverAddress?: UniversalAddress;
     quote?: QuoteResult;
   }> {
+    // Resolve outside the fallback block: invalid opt-in settings must also fail closed.
+    const testCase = this.config.getEe528TestCase();
     const {
       sourceChain,
       destChain,
@@ -268,6 +270,15 @@ export class IntentPublishFlow {
       recipient,
     } = args;
 
+    if (
+      testCase &&
+      (quoteDestinationChainId !== destChain.id ||
+        sourceChain.type !== ChainType.EVM ||
+        destChain.type !== ChainType.EVM)
+    ) {
+      throw RoutesCliError.configurationError('EE528 testing requires the actual EVM route chains');
+    }
+
     try {
       this.display.spinner('Getting quote...');
       const quote = await this.quoteService.getQuote({
@@ -279,6 +290,9 @@ export class IntentPublishFlow {
         routeToken: routeToken.address,
         rewardToken: rewardToken.address,
       });
+      if (testCase) {
+        this.display.warning(`Forced PE execution test: ${testCase}; economicAcceptance=false`);
+      }
       this.display.succeed('Quote received');
       this.display.displayQuote(quote, rewardToken, rewardAmount, routeToken);
       const sourcePortal = this.normalizer.normalize(
@@ -291,6 +305,7 @@ export class IntentPublishFlow {
       );
       return { encodedRoute: quote.encodedRoute, sourcePortal, proverAddress, quote };
     } catch (error) {
+      if (testCase) throw error;
       if (error instanceof RoutesCliError) throw error;
       this.display.warn(`Quote failed: ${getErrorMessage(error)}`);
       this.display.warn('Falling back to manual configuration');

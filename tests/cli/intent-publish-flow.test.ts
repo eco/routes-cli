@@ -58,7 +58,7 @@ interface FlowMocks {
   statusService: { watch: jest.Mock };
 }
 
-function buildFlow(): FlowMocks {
+function buildFlow(testCase?: 'destination-mixture' | 'source-mixture'): FlowMocks {
   const prompt = {
     selectToken: jest.fn().mockResolvedValue(TOKEN_USDC),
     inputAmount: jest.fn().mockResolvedValue({ raw: '1', parsed: 1_000_000n }),
@@ -105,7 +105,10 @@ function buildFlow(): FlowMocks {
   const statusService = { watch: jest.fn().mockResolvedValue('fulfilled') };
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const config: any = { getKeyForChainType: () => TEST_PRIVATE_KEY };
+  const config: any = {
+    getKeyForChainType: () => TEST_PRIVATE_KEY,
+    getEe528TestCase: () => testCase,
+  };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const normalizer: any = { normalize: () => FAKE_UNIVERSAL };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -210,6 +213,52 @@ describe('IntentPublishFlow.publish', () => {
     expect(out).toBeNull();
     expect(publisher.publish).not.toHaveBeenCalled();
     expect(publisherFactory.create).not.toHaveBeenCalled();
+  });
+
+  it.each(['destination-mixture', 'source-mixture'] as const)(
+    '%s never falls back or publishes when the forced quote fails',
+    async testCase => {
+      const { flow, quoteService, intentBuilder, publisher, prompt } = buildFlow(testCase);
+      quoteService.getQuote.mockRejectedValueOnce(new Error('Forced PE quote declined'));
+      await expect(
+        flow.publish({
+          sourceChain: SOURCE_CHAIN,
+          destChain: DEST_CHAIN,
+          options: { privateKey: TEST_PRIVATE_KEY },
+          overrides: {
+            rewardToken: TOKEN_USDC,
+            routeToken: TOKEN_USDC,
+            rewardAmount: 1_000_000n,
+            recipientRaw: '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045',
+          },
+        })
+      ).rejects.toThrow('Forced PE quote declined');
+      expect(intentBuilder.buildManualRoute).not.toHaveBeenCalled();
+      expect(prompt.inputAmount).not.toHaveBeenCalled();
+      expect(prompt.confirmPublish).not.toHaveBeenCalled();
+      expect(publisher.publish).not.toHaveBeenCalled();
+    }
+  );
+
+  it('rejects forced test destination overrides before quoting or publishing', async () => {
+    const { flow, quoteService, publisher, intentBuilder } = buildFlow('destination-mixture');
+    await expect(
+      flow.publish({
+        sourceChain: SOURCE_CHAIN,
+        destChain: DEST_CHAIN,
+        options: { privateKey: TEST_PRIVATE_KEY },
+        overrides: {
+          rewardToken: TOKEN_USDC,
+          routeToken: TOKEN_USDC,
+          rewardAmount: 1_000_000n,
+          recipientRaw: '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045',
+          quoteDestinationChainIdOverride: 42161n,
+        },
+      })
+    ).rejects.toThrow('actual EVM route chains');
+    expect(quoteService.getQuote).not.toHaveBeenCalled();
+    expect(intentBuilder.buildManualRoute).not.toHaveBeenCalled();
+    expect(publisher.publish).not.toHaveBeenCalled();
   });
 
   it('quoteDestinationChainIdOverride only affects the quote request — published intent uses destChain.id', async () => {
