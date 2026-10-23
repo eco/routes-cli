@@ -86,7 +86,8 @@ function buildFlow(testCase?: 'destination-mixture' | 'source-mixture'): FlowMoc
       deadline: 9_999_999_999,
       destinationAmount: '1000000',
       destinationPortalAddress: '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045',
-      destinationChainId: Number(DEST_CHAIN.id),
+      destinationChainId:
+        testCase === 'source-mixture' ? 42161 : testCase ? 8453 : Number(DEST_CHAIN.id),
     }),
   };
 
@@ -255,11 +256,61 @@ describe('IntentPublishFlow.publish', () => {
           quoteDestinationChainIdOverride: 42161n,
         },
       })
-    ).rejects.toThrow('actual EVM route chains');
+    ).rejects.toThrow('EE528 testing');
     expect(quoteService.getQuote).not.toHaveBeenCalled();
     expect(intentBuilder.buildManualRoute).not.toHaveBeenCalled();
     expect(publisher.publish).not.toHaveBeenCalled();
   });
+
+  it.each(['destination-mixture', 'source-mixture'] as const)(
+    'rejects an explicit override equal to the selected destination for %s',
+    async testCase => {
+      const { flow, quoteService, publisher, intentBuilder } = buildFlow(testCase);
+      const sourceChain =
+        testCase === 'destination-mixture' ? SOURCE_CHAIN : { ...SOURCE_CHAIN, id: 42161n };
+      const destChain = { ...DEST_CHAIN, id: testCase === 'destination-mixture' ? 42161n : 8453n };
+      await expect(
+        flow.publish({
+          sourceChain,
+          destChain,
+          options: { privateKey: TEST_PRIVATE_KEY },
+          overrides: {
+            rewardToken: TOKEN_USDC,
+            routeToken: TOKEN_USDC,
+            rewardAmount: 1_000_000n,
+            recipientRaw: '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045',
+            quoteDestinationChainIdOverride: destChain.id,
+          },
+        })
+      ).rejects.toThrow('EE528 testing');
+      expect(quoteService.getQuote).not.toHaveBeenCalled();
+      expect(intentBuilder.buildManualRoute).not.toHaveBeenCalled();
+      expect(publisher.publish).not.toHaveBeenCalled();
+    }
+  );
+
+  it.each(['destination-mixture', 'source-mixture'] as const)(
+    'preserves local-root publication for a successful %s without an override',
+    async testCase => {
+      const { flow, publisher } = buildFlow(testCase);
+      const sourceChain =
+        testCase === 'destination-mixture' ? SOURCE_CHAIN : { ...SOURCE_CHAIN, id: 42161n };
+      const destChain = { ...DEST_CHAIN, id: testCase === 'destination-mixture' ? 42161n : 8453n };
+      await flow.publish({
+        sourceChain,
+        destChain,
+        options: { privateKey: TEST_PRIVATE_KEY },
+        overrides: {
+          rewardToken: TOKEN_USDC,
+          routeToken: TOKEN_USDC,
+          rewardAmount: 1_000_000n,
+          recipientRaw: '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045',
+        },
+      });
+      expect(publisher.publish).toHaveBeenCalledTimes(1);
+      expect(publisher.publish.mock.calls[0][1]).toBe(sourceChain.id);
+    }
+  );
 
   it('quoteDestinationChainIdOverride only affects the quote request — published intent uses destChain.id', async () => {
     const { flow, quoteService, publisher } = buildFlow();

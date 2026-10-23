@@ -87,6 +87,9 @@ export class IntentPublishFlow {
     overrides?: PublishFlowOverrides;
   }): Promise<PublishFlowResult | null> {
     const { sourceChain, destChain, options, overrides = {} } = args;
+    if (this.config.getEe528TestCase() && overrides.quoteDestinationChainIdOverride !== undefined) {
+      throw RoutesCliError.configurationError('EE528 testing forbids quote destination overrides');
+    }
     const tokens = Object.values(TOKEN_CONFIGS);
 
     this.display.section('📏 Route Configuration (Destination Chain)');
