@@ -138,8 +138,8 @@ EE528 testing requires `DAPP_ID=milkshake-ee528` and
 `SOLVER_URL=https://eco-solver-pr-528.eph.ecoinc.xyz` (or an explicit HTTP/HTTPS
 `localhost`, `127.0.0.1`, or `[::1]` test origin). The CLI calls
 `/api/v2/testing/split-quote` with `planner: "pe"` and fixed 50/50 input allocations.
-`destination-mixture` accepts only Base USDC → Arbitrum USDT0;
-`source-mixture` accepts only Arbitrum USDT0 → Base USDC and also fixes source
+`destination-mixture` accepts Base USDC → Arbitrum USDT0 or Arbitrum USDC → Polygon USDT;
+`source-mixture` accepts Arbitrum USDT0 → Base USDC or Polygon USDC and also fixes source
 swap input at 50%. Ratios describe input allocation, not payout amounts.
 The response must echo the exact forced PE case and ratios with
 `economicAcceptance: false`. A missing, declined, expired, or malformed forced

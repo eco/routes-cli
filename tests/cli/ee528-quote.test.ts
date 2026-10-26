@@ -222,6 +222,39 @@ describe('EE528 forced quotes', () => {
     );
   });
 
+  it.each(['destination-mixture', 'source-mixture'] as const)(
+    'accepts the exact Arb/Polygon %s and refuses cross-case tokens',
+    async caseId => {
+      const source = caseId === 'source-mixture';
+      const req = {
+        ...request(caseId),
+        source: 42161n,
+        destination: 137n,
+        rewardToken: source ? ARB_USDT0 : '0xaf88d065e77c8cc2239327c5edb3a432268e5831',
+        routeToken: source
+          ? '0x3c499c542cef5e3811e1192ce70d8cc03d5c3359'
+          : '0xc2132d05d31c914a87c6611c10748aeb04b58e8f',
+      };
+      const raw = response(caseId);
+      Object.assign(raw.quoteResponses[0], {
+        sourceChainID: 42161,
+        destinationChainID: 42161,
+        finalDestinationChainID: 137,
+      });
+      fetchMock.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(raw) });
+      expect((await service(caseId).getQuote(req)).testing).toEqual(raw.testing);
+      await expect(
+        service(caseId).getQuote({
+          ...req,
+          routeToken: source
+            ? '0xc2132d05d31c914a87c6611c10748aeb04b58e8f'
+            : '0x3c499c542cef5e3811e1192ce70d8cc03d5c3359',
+        })
+      ).rejects.toThrow('requires');
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    }
+  );
+
   it.each([
     'empty',
     'multiple',

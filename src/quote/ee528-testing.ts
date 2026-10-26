@@ -21,6 +21,19 @@ export interface Ee528Testing {
 
 const BASE_USDC = '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913';
 const ARB_USDT0 = '0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9';
+const ARB_USDC = '0xaf88d065e77c8cc2239327c5edb3a432268e5831';
+const POLYGON_USDC = '0x3c499c542cef5e3811e1192ce70d8cc03d5c3359';
+const POLYGON_USDT = '0xc2132d05d31c914a87c6611c10748aeb04b58e8f';
+const FORCED_CORRIDORS = {
+  'destination-mixture': [
+    [8453n, 42161n, BASE_USDC, ARB_USDT0],
+    [42161n, 137n, ARB_USDC, POLYGON_USDT],
+  ],
+  'source-mixture': [
+    [42161n, 8453n, ARB_USDT0, BASE_USDC],
+    [42161n, 137n, ARB_USDT0, POLYGON_USDC],
+  ],
+} as const;
 
 export function ee528Case(caseId: Ee528TestCase): Ee528Case {
   return {
@@ -32,16 +45,16 @@ export function ee528Case(caseId: Ee528TestCase): Ee528Case {
 }
 
 export function assertEe528Route(caseId: Ee528TestCase, params: QuoteRequest): void {
-  const destinationMixture = caseId === 'destination-mixture';
-  if (
-    params.source !== (destinationMixture ? 8453n : 42161n) ||
-    params.destination !== (destinationMixture ? 42161n : 8453n) ||
-    params.rewardToken.toLowerCase() !== (destinationMixture ? BASE_USDC : ARB_USDT0) ||
-    params.routeToken.toLowerCase() !== (destinationMixture ? ARB_USDT0 : BASE_USDC) ||
-    params.amount < 2n
-  ) {
+  const approved = FORCED_CORRIDORS[caseId].some(
+    ([source, destination, tokenIn, tokenOut]) =>
+      params.source === source &&
+      params.destination === destination &&
+      params.rewardToken.toLowerCase() === tokenIn &&
+      params.routeToken.toLowerCase() === tokenOut
+  );
+  if (!approved || params.amount < 2n) {
     throw RoutesCliError.configurationError(
-      `EE528 ${caseId} requires ${destinationMixture ? 'Base USDC -> Arbitrum USDT0' : 'Arbitrum USDT0 -> Base USDC'} and a positive 50/50 input split`
+      `EE528 ${caseId} requires an approved Base/Arbitrum or Arbitrum/Polygon corridor and a positive 50/50 input split`
     );
   }
 }
