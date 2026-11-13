@@ -13,9 +13,14 @@ import {
   ContractFunctionArgs,
   createPublicClient,
   createWalletClient,
+  decodeFunctionData,
+  DecodeFunctionDataReturnType,
   erc20Abi,
   Hex,
   http,
+  isAddress,
+  isAddressEqual,
+  isHex,
   parseAbi,
   PublicClient,
   WalletClient,
@@ -41,37 +46,17 @@ export type Route = ContractFunctionArgs<typeof portalAbi, 'nonpayable', 'fulfil
 export type Reward = ContractFunctionArgs<typeof portalAbi, 'nonpayable', 'publishAndFund'>[2];
 
 /**
- * Quote service response structure
+ * A quoted intent from the keyless eco-quotes v4 endpoint
+ * (`POST {quoteServiceUrl}/v4/quotes`). The reward is the exact structure the
+ * quote priced, so publishing it verbatim reproduces the quoted intent hash.
  */
-export interface QuoteResponse {
-  quoteResponse: {
-    sourceChainID: number;
-    destinationChainID: number;
-    sourceToken: Address;
-    destinationToken: Address;
-    sourceAmount: string;
-    destinationAmount: string;
-    funder: Address;
-    refundRecipient: Address;
-    recipient: Address;
-    encodedRoute: Hex;
-    fees: Array<{
-      name: string;
-      description: string;
-      token: {
-        address: Address;
-        decimals: number;
-        symbol: string;
-      };
-      amount: string;
-    }>;
-    deadline: number;
-  };
-  contracts: {
-    sourcePortal: Address;
-    prover: Address;
-    destinationPortal: Address;
-  };
+export interface QuotedIntent {
+  quoteId: string;
+  portal: Address;
+  destinationChainId: bigint;
+  routeBytes: Hex;
+  reward: Reward;
+  destinationAmount: string;
 }
 
 /**
@@ -96,8 +81,6 @@ export interface IntentConfig {
 
   // Optional configurations
   quoteServiceUrl?: string;
-  routeDeadlineSeconds?: number;
-  rewardDeadlineSeconds?: number;
 }
 
 /**
@@ -118,51 +101,36 @@ export interface QuoteRequest {
 // ============================================================================
 
 /**
- * Creates a reward structure for the intent
- */
-export function createReward(
-  config: IntentConfig,
-  account: Account,
-  proverAddress: Address
-): Reward {
-  const now = Math.floor(Date.now() / 1000);
-  const deadline = config.rewardDeadlineSeconds || 8000; // Default 2 hours
-
-  return {
-    deadline: BigInt(now + deadline),
-    creator: account.address,
-    prover: proverAddress,
-    nativeAmount: 0n,
-    tokens: [
-      {
-        token: config.sourceToken,
-        amount: config.rewardAmount,
-      },
-    ],
-  };
-}
-
-/**
- * Fetches a quote from the quote service
+ * Fetches a quote from the keyless eco-quotes v4 endpoint
+ * (`POST {quoteServiceUrl}/v4/quotes`) and validates it against the request.
+ * The returned reward is the exact one the quote priced; publish it verbatim
+ * so the on-chain intent hash matches the quoted one.
+ *
+ * eco-quotes v3 retires on 2026-12-01; v4 is keyless and speaks the same
+ * request/response contract as the Eco API gateway's `/v1/quotes`.
  */
 export async function fetchQuote(
   request: QuoteRequest,
   quoteServiceUrl: string
-): Promise<QuoteResponse> {
-  const url = new URL('/api/v3/quotes/single', quoteServiceUrl);
+): Promise<QuotedIntent> {
+  const url = new URL('/v4/quotes', quoteServiceUrl);
 
   const requestBody = {
-    dAppID: 'dapp',
-    quoteRequest: {
-      sourceChainID: request.source,
-      sourceAmount: request.sourceAmount.toString(),
-      sourceToken: request.sourceToken,
+    type: 'exact-in',
+    source: {
+      chainId: request.source,
+      token: request.sourceToken,
+      amount: request.sourceAmount.toString(),
       funder: request.funder,
-      refundRecipient: request.funder,
-      destinationChainID: request.destination,
-      destinationToken: request.destinationToken,
+    },
+    destination: {
+      chainId: request.destination,
+      token: request.destinationToken,
       recipient: request.recipient,
     },
+    refundRecipient: request.funder,
+    dappId: 'eco-routes-cli-example',
+    intentExecutionTypes: ['SELF_PUBLISH'],
   };
 
   console.info(`📡 Fetching quote from: ${url.toString()}`);
@@ -173,13 +141,148 @@ export async function fetchQuote(
     body: JSON.stringify(requestBody),
   });
 
-  const result = (await response.json()) as { data: QuoteResponse };
-
+  const text = await response.text();
   if (!response.ok) {
-    throw new Error(`Quote service error: ${JSON.stringify(result)}`);
+    // v4 answers RFC 7807 problem+json; 410 means the endpoint is retired.
+    throw new Error(
+      `Quote service error (HTTP ${response.status}) from ${url.toString()}: ${text.slice(0, 500)}`
+    );
   }
 
-  return result.data;
+  let body: unknown;
+  try {
+    body = JSON.parse(text);
+  } catch {
+    throw new Error(
+      `Invalid quote response from ${url.toString()}: body is not JSON (${text.slice(0, 200)})`
+    );
+  }
+  return parseQuotedIntent(body, request, url.toString());
+}
+
+/**
+ * Validates an eco-quotes v4 response at the boundary and maps it to a
+ * `QuotedIntent`. Explicit typeof / `in` checks only — the example scripts
+ * have no zod dependency.
+ */
+function parseQuotedIntent(body: unknown, request: QuoteRequest, url: string): QuotedIntent {
+  const invalid = (reason: string): Error =>
+    new Error(`Invalid quote response from ${url}: ${reason}`);
+
+  if (typeof body !== 'object' || body === null) throw invalid('body is not an object');
+
+  if (!('id' in body) || typeof body.id !== 'string' || body.id.length === 0) {
+    throw invalid('id is not a non-empty string');
+  }
+  const quoteId: string = body.id;
+
+  if (
+    !('expiresAt' in body) ||
+    typeof body.expiresAt !== 'number' ||
+    !Number.isSafeInteger(body.expiresAt)
+  ) {
+    throw invalid('expiresAt is not an integer timestamp');
+  }
+  const expiresAt: number = body.expiresAt;
+  if (expiresAt * 1000 <= Date.now()) {
+    throw invalid(
+      `quote ${quoteId} already expired at ${new Date(expiresAt * 1000).toISOString()}`
+    );
+  }
+
+  if (
+    !('destination' in body) ||
+    typeof body.destination !== 'object' ||
+    body.destination === null
+  ) {
+    throw invalid('destination is missing or not an object');
+  }
+  const destinationField: object = body.destination;
+  if (!('chainId' in destinationField) || destinationField.chainId !== request.destination) {
+    throw invalid(`the quote does not settle on the requested chain ${request.destination}`);
+  }
+  if (!('amountOut' in destinationField) || typeof destinationField.amountOut !== 'string') {
+    throw invalid('destination.amountOut is not a string');
+  }
+  const destinationAmount: string = destinationField.amountOut;
+
+  if (!('execution' in body)) throw invalid('execution is missing');
+  if (body.execution === null || body.execution === undefined) {
+    throw invalid('execution is null; the quote cannot be self-published');
+  }
+  if (typeof body.execution !== 'object') throw invalid('execution is not an object');
+  const execution: object = body.execution;
+
+  if (!('transaction' in execution)) throw invalid('execution.transaction is missing');
+  const transaction: unknown = execution.transaction;
+  if (typeof transaction !== 'object' || transaction === null) {
+    throw invalid('execution.transaction is not an object');
+  }
+  if (!('type' in transaction) || transaction.type !== 'evm') {
+    throw invalid(
+      `execution.transaction.type is ${
+        'type' in transaction ? String(transaction.type) : 'missing'
+      }; these EVM-sourced examples only self-publish evm transactions`
+    );
+  }
+  if (!('to' in transaction) || typeof transaction.to !== 'string' || !isAddress(transaction.to)) {
+    throw invalid('execution.transaction.to is not an EVM address');
+  }
+  const portal: Address = transaction.to;
+  if (
+    !('data' in transaction) ||
+    typeof transaction.data !== 'string' ||
+    !isHex(transaction.data)
+  ) {
+    throw invalid('execution.transaction.data is not hex calldata');
+  }
+  const calldata: Hex = transaction.data;
+
+  let decoded: DecodeFunctionDataReturnType<typeof portalAbi>;
+  try {
+    decoded = decodeFunctionData({ abi: portalAbi, data: calldata });
+  } catch {
+    throw invalid('the funding transaction is not a recognised Portal call');
+  }
+  if (decoded.functionName !== 'publishAndFund') {
+    throw invalid(
+      `the funding transaction calls Portal.${decoded.functionName}; expected publishAndFund`
+    );
+  }
+  // A multi-step quote may first execute on the source chain; publish that first hop unchanged.
+  const [destinationChainId, routeBytes, reward, allowPartial] = decoded.args;
+  if (allowPartial || reward.nativeAmount !== 0n) {
+    throw invalid('these ERC-20 examples require full funding without a native-token reward');
+  }
+
+  if (!isAddress(request.funder) || !isAddressEqual(reward.creator, request.funder)) {
+    throw invalid(
+      `the quoted reward names creator ${reward.creator}, not the funding account ${request.funder}`
+    );
+  }
+
+  const token = reward.tokens.at(0);
+  if (
+    reward.tokens.length !== 1 ||
+    token === undefined ||
+    !isAddress(request.sourceToken) ||
+    !isAddressEqual(token.token, request.sourceToken) ||
+    token.amount !== request.sourceAmount
+  ) {
+    throw invalid(
+      `the quoted reward does not pay exactly one token entry matching the request ` +
+        `(${request.sourceToken}, ${request.sourceAmount.toString()}); got ${reward.tokens.length} entries`
+    );
+  }
+
+  return {
+    quoteId,
+    portal,
+    destinationChainId,
+    routeBytes,
+    reward,
+    destinationAmount,
+  };
 }
 
 /**
@@ -292,7 +395,7 @@ export class IntentCreator {
   /**
    * Gets a quote for the intent
    */
-  async getQuote(): Promise<QuoteResponse> {
+  async getQuote(): Promise<QuotedIntent> {
     const quoteServiceUrl = this.config.quoteServiceUrl || 'https://quotes.eco.com';
 
     const request: QuoteRequest = {
@@ -336,40 +439,27 @@ export class IntentCreator {
 
     // Step 1: Get quote
     console.log('Step 1: Getting quote...');
-    const response = await this.getQuote();
-    const { destinationAmount, encodedRoute } = response.quoteResponse;
-    const { sourcePortal, prover } = response.contracts;
-    console.info(`   Destination amount: ${destinationAmount}`);
+    const quote = await this.getQuote();
+    console.info(`   Quote ID: ${quote.quoteId}`);
+    console.info(`   Destination amount: ${quote.destinationAmount}`);
+    console.info(
+      `   Reward deadline: ${new Date(Number(quote.reward.deadline) * 1000).toISOString()}`
+    );
     console.log('');
 
-    if (!encodedRoute) {
-      console.error('Encoded route not found in quote response');
-      process.exit(1);
-    }
-
-    if (!sourcePortal || !prover) {
-      console.error('Portal and/or Prover addresses not found in quote response');
-      process.exit(1);
-    }
-
-    // Step 2: Approve tokens
+    // Step 2: Approve tokens for the portal the quote pays into
     console.log('Step 2: Approving tokens...');
-    await this.approveTokens(sourcePortal);
+    await this.approveTokens(quote.portal);
     console.log('');
 
-    // Step 3: Create reward
-    console.log('Step 3: Creating reward structure...');
-    const reward = createReward(this.config, this.account, prover);
-    console.info(`   Deadline: ${new Date(Number(reward.deadline) * 1000).toISOString()}`);
-    console.log('');
-
-    // Step 4: Publish intent
-    console.log('Step 4: Publishing intent...');
+    // Step 3: Publish intent with the quoted reward verbatim, so the published
+    // intent hash matches the quote the solver priced.
+    console.log('Step 3: Publishing intent...');
     const txHash = await publishIntent(
-      sourcePortal,
-      this.getDestinationChainId(),
-      encodedRoute,
-      reward,
+      quote.portal,
+      quote.destinationChainId,
+      quote.routeBytes,
+      quote.reward,
       this.walletClient,
       this.publicClient
     );

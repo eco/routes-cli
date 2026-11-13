@@ -141,11 +141,13 @@ Note: Edit the `recipient` field in `OPTIMISM_TO_TRON_CONFIG` with your Tron add
 ## How It Works
 
 1. **Configuration Setup:** Script loads configuration for source/destination chains and tokens
-2. **Quote Request:** Fetches optimal routing from the quote service
-3. **Token Approval:** Approves portal contract to spend reward tokens
-4. **Intent Creation:** Builds intent structure with route and reward details
-5. **Publishing:** Publishes intent to portal contract on source chain
-6. **Fulfillment:** Solvers monitor and fulfill intents for rewards
+2. **Quote Request:** `POST {quoteServiceUrl}/v4/quotes` to the keyless eco-quotes service
+   (quotes v3 retires on 2026-12-01); the response is validated against the request
+3. **Token Approval:** Approves the quoted portal contract to spend reward tokens
+4. **Intent Publishing:** Publishes the quoted route, reward, and first-hop chain unchanged.
+   A multi-step transfer can first execute on the source chain; the quote's final
+   destination is validated separately. Deadlines come from the quote, not local settings.
+5. **Fulfillment:** Solvers monitor and fulfill intents for rewards
 
 ## Customizing Configurations
 
@@ -165,9 +167,7 @@ export const INTENT_CONFIG: IntentConfig = {
   destinationToken: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', // USDC on Base
   rewardAmount: 1000000n, // Change to 1 USDC (6 decimals)
   recipient: '0xYourRecipientAddress', // Add specific recipient
-  quoteServiceUrl: 'https://quotes.eco.com',
-  routeDeadlineSeconds: 3600, // Change to 1 hour
-  rewardDeadlineSeconds: 3600, // Change to 1 hour
+  quoteServiceUrl: 'https://quotes.eco.com', // keyless eco-quotes v4 host
 };
 ```
 
@@ -181,12 +181,11 @@ const myConfig: IntentConfig = {
   sourceChain: optimism,
   destinationChain: base,
   destinationChainId: 8453n, // For non-EVM, override chain ID
-  sourcePortalAddress: '0x2b7F87a98707e6D19504293F6680498731272D4f',
-  proverAddress: '0x3E4a157079Bc846e9d2C71f297d529e0fcb4D44d',
   sourceToken: '0xYourTokenAddress',
   destinationToken: '0xDestinationTokenAddress',
   rewardAmount: 100000n,
   recipient: '0xRecipientAddress',
+  quoteServiceUrl: 'https://quotes.eco.com',
 };
 
 const creator = new IntentCreator(myConfig);
@@ -234,18 +233,18 @@ Successful execution shows:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Step 1: Getting quote...
-📡 Fetching quote from: https://quotes.eco.com
+📡 Fetching quote from: https://quotes.eco.com/v4/quotes
+   Quote ID: quote:0f0e8a2e-...
    Destination amount: 99500
+   Reward deadline: 2024-01-01T12:00:00.000Z
 
 Step 2: Approving tokens...
-✅ Approving 100000 tokens for 0x2b7F87a98707e6D19504293F6680498731272D4f
+✅ Approving 100000 tokens for 0xEC000769A73b70e16f361a442292500b3BCf4A85
    Approval confirmed: 0x...
 
-Step 3: Creating reward structure...
-   Deadline: 2024-01-01T12:00:00.000Z
-
-Step 4: Publishing intent...
+Step 3: Publishing intent...
 📤 Publishing intent to portal...
+
 ✨ Intent published successfully!
    Transaction: 0x...
 
@@ -270,7 +269,6 @@ Step 4: Publishing intent...
 ```typescript
 import {
   IntentCreator,
-  createReward,
   fetchQuote,
   approveToken,
   publishIntent
