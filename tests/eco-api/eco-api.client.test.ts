@@ -36,7 +36,7 @@ function jsonResponse(
 const minimalQuote = { id: 'q1', execution: null } as unknown as V1QuoteResponse;
 
 describe('EcoApiClient', () => {
-  let fetchMock: jest.SpyInstance;
+  let fetchMock: jest.SpyInstance<Promise<Response>, [string | URL | Request, RequestInit?]>;
   beforeEach(() => {
     fetchMock = jest.spyOn(globalThis, 'fetch');
     display.log.mockClear();
@@ -161,6 +161,21 @@ describe('EcoApiClient', () => {
     expect(err).toBeInstanceOf(EcoApiRequestError);
     expect((err as Error).message).toContain('api.eco.com');
     expect((err as Error).message).toContain('fetch failed');
+  });
+
+  it('quoteV4 POSTs to {baseUrl}/v4/quotes and never sends x-api-key even with ECO_API_KEY configured', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(200, minimalQuote));
+    const req = {
+      type: 'exact-in',
+      source: { chainId: 8453, token: '0xa', funder: '0xf' },
+      destination: { chainId: 10, token: '0xb', recipient: '0xr' },
+      dappId: 'eco-routes-cli',
+    } as const;
+
+    await client({ apiKey: 'secret-key' }).quoteV4(req, 'https://quotes.eco.com');
+    const call = fetchMock.mock.lastCall;
+    expect(call?.[0]).toBe('https://quotes.eco.com/v4/quotes');
+    expect(call?.[1]).not.toHaveProperty('headers.x-api-key');
   });
 
   it('debug logging names headers but never prints the key value', async () => {

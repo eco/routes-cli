@@ -56,20 +56,11 @@ interface SolverV2QuoteData {
   estimatedFulfillTimeSec?: number;
 }
 
-interface QuoteServiceV3Data {
-  encodedRoute: string;
-  deadline: number;
-  destinationAmount: string;
-  estimatedFulfillTimeSec?: number;
-  intentExecutionType?: 'SELF_PUBLISH' | 'GASLESS';
-}
-
 interface RawQuoteResponse {
-  quoteResponse?: QuoteServiceV3Data;
   quoteResponses?: SolverV2QuoteData[];
-  contracts: {
-    sourcePortal: Address;
-    prover: Address;
+  contracts?: {
+    sourcePortal?: Address;
+    prover?: Address;
     destinationPortal: Address;
   };
 }
@@ -99,8 +90,18 @@ export class QuoteService {
 
   async getQuote(params: QuoteRequest): Promise<QuoteResult> {
     const endpoint = this.config.getQuoteEndpoint(params.env);
-    if (endpoint.type === 'gateway') return this.getGatewayQuote(params);
-    return this.getLegacyQuote(params, endpoint);
+    switch (endpoint.type) {
+      case 'gateway':
+        return this.getGatewayQuote(params);
+      case 'quotes-v4':
+        return this.getQuotesV4Quote(params, endpoint);
+      case 'solver-v2':
+        return this.getSolverV2Quote(params, endpoint);
+      default: {
+        const exhaustive: never = endpoint;
+        throw new Error(`Unhandled quote endpoint type: ${JSON.stringify(exhaustive)}`);
+      }
+    }
   }
 
   /** Default path: the public Eco API gateway (`POST /v1/quotes`). */
@@ -110,31 +111,41 @@ export class QuoteService {
     return fromV1QuoteResponse(response, params);
   }
 
-  /** Escape hatches: a solver-v2 host (SOLVER_URL) or a quote-service v3 URL. */
-  private async getLegacyQuote(
+  /**
+   * Escape hatch: an eco-quotes host (QUOTES_API_URL), calling the keyless
+   * `{host}/v4/quotes` endpoint through the same v1 request/response contract
+   * the gateway uses. Quote-service v3 retires on 2026-12-01.
+   */
+  private async getQuotesV4Quote(
     params: QuoteRequest,
-    { url, type }: Extract<QuoteEndpoint, { type: 'solver-v2' | 'custom' }>
+    endpoint: Extract<QuoteEndpoint, { type: 'quotes-v4' }>
+  ): Promise<QuoteResult> {
+    const request = toV1QuoteRequest(params, this.config.getDappId());
+    const response = await this.ecoApi.quoteV4(request, endpoint.baseUrl);
+    return fromV1QuoteResponse(response, params);
+  }
+
+  /** Escape hatch: a solver-v2 host (SOLVER_URL). */
+  private async getSolverV2Quote(
+    params: QuoteRequest,
+    { url }: Extract<QuoteEndpoint, { type: 'solver-v2' }>
   ): Promise<QuoteResult> {
     const dAppID = this.config.getDappId();
-    const isSolverV2 = type === 'solver-v2';
 
     const request: QuoteRequestPayload = {
       dAppID,
       quoteRequest: {
-        sourceChainID: isSolverV2 ? params.source.toString() : Number(params.source),
+        sourceChainID: params.source.toString(),
         sourceToken: params.rewardToken,
-        destinationChainID: isSolverV2 ? params.destination.toString() : Number(params.destination),
+        destinationChainID: params.destination.toString(),
         destinationToken: params.routeToken,
         sourceAmount: params.amount.toString(),
         funder: params.funder,
         recipient: params.recipient,
       },
+      quoteID: crypto.randomUUID(),
+      intentExecutionTypes: ['SELF_PUBLISH'],
     };
-
-    if (isSolverV2) {
-      request.quoteID = crypto.randomUUID();
-      request.intentExecutionTypes = ['SELF_PUBLISH'];
-    }
 
     if (this.config.isDebug()) {
       this.display.log(
@@ -154,46 +165,24 @@ export class QuoteService {
     }
     if (!response.ok) throw new Error(JSON.stringify(raw));
 
-    // Solver-v2 returns the object directly; quote-service-v3 wraps in `data`
-    const data: RawQuoteResponse = isSolverV2
-      ? raw
-      : ((raw as unknown as { data?: RawQuoteResponse }).data ?? raw);
-
-    if (!data.contracts?.sourcePortal || !data.contracts?.prover) {
+    if (!raw.contracts?.sourcePortal || !raw.contracts.prover) {
       throw new Error('Quote response missing required contract addresses');
     }
 
-    if (isSolverV2) {
-      if (!data.quoteResponses || data.quoteResponses.length === 0) {
-        throw new Error('Invalid solver-v2 response: no quotes returned');
-      }
-      const q = data.quoteResponses[0];
-      return {
-        encodedRoute: q.encodedRoute,
-        sourcePortal: data.contracts.sourcePortal,
-        prover: data.contracts.prover,
-        deadline: q.deadline,
-        destinationAmount: q.destinationAmount,
-        estimatedFulfillTimeSec: q.estimatedFulfillTimeSec,
-        intentExecutionType: q.intentExecutionType,
-        destinationPortalAddress: data.contracts.destinationPortal,
-        destinationChainId: q.destinationChainID,
-      };
+    const q = raw.quoteResponses?.[0];
+    if (!q) {
+      throw new Error('Invalid solver-v2 response: no quotes returned');
     }
-
-    if (!data.quoteResponse) {
-      throw new Error('Quote response missing quote data');
-    }
-
     return {
-      encodedRoute: data.quoteResponse.encodedRoute,
-      sourcePortal: data.contracts.sourcePortal,
-      prover: data.contracts.prover,
-      deadline: data.quoteResponse.deadline,
-      destinationAmount: data.quoteResponse.destinationAmount,
-      estimatedFulfillTimeSec: data.quoteResponse.estimatedFulfillTimeSec,
-      intentExecutionType: data.quoteResponse.intentExecutionType,
-      destinationPortalAddress: data.contracts.destinationPortal,
+      encodedRoute: q.encodedRoute,
+      sourcePortal: raw.contracts.sourcePortal,
+      prover: raw.contracts.prover,
+      deadline: q.deadline,
+      destinationAmount: q.destinationAmount,
+      estimatedFulfillTimeSec: q.estimatedFulfillTimeSec,
+      intentExecutionType: q.intentExecutionType,
+      destinationPortalAddress: raw.contracts.destinationPortal,
+      destinationChainId: q.destinationChainID,
     };
   }
 }

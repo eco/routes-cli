@@ -18,9 +18,12 @@ Required env (`.env`): `EVM_PRIVATE_KEY`, `TVM_PRIVATE_KEY`, `SVM_PRIVATE_KEY` �
 the chain types you touch. NEVER print these values or echo them into logs or commands.
 
 Optional env: `ECO_ENV=production|staging` (Eco API gateway host, default production),
-`ECO_API_KEY_STAGING` / `ECO_API_KEY_PRODUCTION` (sent as `x-api-key` to that host only; staging
-requires one, production rejects unknown keys — never print them; `ECO_API_KEY` is the fallback), `ECO_API_URL` (gateway
-host override), `SOLVER_URL` / `QUOTES_API_URL` / `QUOTES_PREPROD` (bypass the gateway),
+`ECO_API_KEY_STAGING` / `ECO_API_KEY_PRODUCTION` (sent as `x-api-key` to that host only; the
+gateway requires a key on production and staging — keyless calls get a 403 — never print them;
+`ECO_API_KEY` is the fallback), `ECO_API_URL` (gateway
+host override), `SOLVER_URL` (bypass the gateway) / `QUOTES_API_URL` (an eco-quotes host such as
+`https://quotes.eco.com` — the CLI calls the keyless `{host}/v4/quotes`; quote-service v3 retired
+2026-12-01 and `QUOTES_PREPROD` is removed),
 `NODE_CHAINS_ENV=development` (testnet chains), `DEBUG=1` (stack traces + request logs).
 
 Quotes and `status` go through the public Eco API gateway (`POST /v1/quotes`,

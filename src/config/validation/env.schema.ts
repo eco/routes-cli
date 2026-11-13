@@ -20,15 +20,22 @@ export const EnvSchema = z.object({
 
   // Quote source escape hatches (see ConfigService.getQuoteEndpoint for precedence).
   SOLVER_URL: z.string().url().optional(),
+  // An eco-quotes host (https://quotes.eco.com or https://quotes.stag.eco.com); the CLI
+  // calls the keyless {host}/v4/quotes endpoint. Quote-service v3 URLs (/api/v3/...)
+  // retire on 2026-12-01 and are rejected at configuration time.
   QUOTES_API_URL: z.string().url().optional(),
-  QUOTES_PREPROD: z.string().optional(),
+  QUOTES_PREPROD: z.undefined({
+    error:
+      'QUOTES_PREPROD was removed: the preprod quote service no longer exists. Use ' +
+      'ECO_ENV=staging, or QUOTES_API_URL=https://quotes.stag.eco.com for keyless quotes v4.',
+  }),
 
   // Eco API gateway — the default quote source: host by env, optional override + key.
   ECO_ENV: z.enum(['production', 'staging']).default('production'),
   ECO_API_URL: z.string().url().optional(),
   // Keys are per gateway environment: ECO_API_KEY_<ENV> wins, ECO_API_KEY is the fallback.
-  // Production answers keyless today but rejects unknown keys, so a staging-only key must
-  // never be sent to api.eco.com.
+  // The gateway requires a key on production and staging (keyless calls get a 403);
+  // QUOTES_API_URL=<eco-quotes host> is the keyless path.
   ECO_API_KEY: z.string().min(1).optional(),
   ECO_API_KEY_PRODUCTION: z.string().min(1).optional(),
   ECO_API_KEY_STAGING: z.string().min(1).optional(),

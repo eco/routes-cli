@@ -1,32 +1,38 @@
-import type { V1QuoteResponse } from '@eco-foundation/api-schemas/v1/types';
-import { encodeAbiParameters, encodeFunctionData, type Hex } from 'viem';
+import { ConfigService as NestConfigService } from '@nestjs/config';
 
+import { type Address, encodeAbiParameters, encodeFunctionData, type Hex } from 'viem';
+
+import { DisplayService } from '@/cli/services/display.service';
 import { EVMRouteAbiItem, portalAbi } from '@/commons/abis/portal.abi';
+import { ConfigService } from '@/config/config.service';
+import { EcoApiClient } from '@/eco-api/eco-api.client';
 import { QuoteRequest, QuoteService } from '@/quote/quote.service';
 
+const FUNDER = '0x256B70644f5D77bc8e2bb82C731Ddf747ecb1471';
+const PORTAL: Address = '0xEC000769A73b70e16f361a442292500b3BCf4A85';
+const SALT: Hex = `0x${'22'.repeat(32)}`;
 const req: QuoteRequest = {
   source: 8453n,
   destination: 10n,
   amount: 1_000_000n,
-  funder: '0x256B70644f5D77bc8e2bb82C731Ddf747ecb1471',
+  funder: FUNDER,
   recipient: '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045',
   rewardToken: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
   routeToken: '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85',
   env: 'staging',
 };
-
 const ROUTE = {
-  salt: `0x${'22'.repeat(32)}` as Hex,
   deadline: 1_800_000_000n,
+  salt: SALT,
   source: 8453n,
   destination: 10n,
-  portal: '0xEC000769A73b70e16f361a442292500b3BCf4A85' as const,
+  portal: PORTAL,
   nativeAmount: 0n,
   tokens: [],
   calls: [],
 };
 const ENCODED_ROUTE = encodeAbiParameters([EVMRouteAbiItem], [ROUTE]);
-const v1Quote = {
+const quote = {
   id: 'q',
   type: 'exact-in',
   destination: { chainId: 10, amountOut: '990000' },
@@ -35,7 +41,7 @@ const v1Quote = {
     transaction: {
       type: 'evm',
       chainId: 8453,
-      to: '0xEC000769A73b70e16f361a442292500b3BCf4A85',
+      to: PORTAL,
       data: encodeFunctionData({
         abi: portalAbi,
         functionName: 'publishAndFund',
@@ -44,7 +50,7 @@ const v1Quote = {
           ENCODED_ROUTE,
           {
             deadline: 1_800_000_000n,
-            creator: req.funder as Hex,
+            creator: FUNDER,
             prover: '0xEC08fb4647f3f50d1162a578d481266687C60fc5',
             nativeAmount: 0n,
             tokens: [],
@@ -55,72 +61,57 @@ const v1Quote = {
       value: '0',
     },
     intent: {
-      route: { portal: '0xEC000769A73b70e16f361a442292500b3BCf4A85' },
+      route: { portal: PORTAL },
       reward: { prover: '0xEC08fb4647f3f50d1162a578d481266687C60fc5', deadline: 1_800_000_000 },
     },
   },
-} as unknown as V1QuoteResponse;
+};
 
-function build(endpoint: unknown): {
-  service: QuoteService;
-  config: { getQuoteEndpoint: jest.Mock };
-  ecoApi: { quote: jest.Mock };
-} {
-  const config = {
-    getQuoteEndpoint: jest.fn().mockReturnValue(endpoint),
-    getDappId: () => 'eco-routes-cli',
-    isDebug: () => false,
-  };
-  const display = { log: jest.fn() };
-  const ecoApi = { quote: jest.fn().mockResolvedValue(v1Quote) };
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const service = new QuoteService(config as any, display as any, ecoApi as any);
-  return { service, config, ecoApi };
+function build(env: Record<string, string>): QuoteService {
+  const config = new ConfigService(new NestConfigService(env));
+  const display = new DisplayService();
+  return new QuoteService(config, display, new EcoApiClient(config, display));
 }
 
-describe('QuoteService — gateway branch', () => {
-  it('quotes through EcoApiClient with the per-command env and maps the result', async () => {
-    const { service, config, ecoApi } = build({
-      type: 'gateway',
-      baseUrl: 'https://api.stag.eco.com',
-      env: 'staging',
-    });
-    const result = await service.getQuote(req);
+const sources: ReadonlyArray<readonly [string, Record<string, string>]> = [
+  ['gateway', {}],
+  ['quotes-v4', { QUOTES_API_URL: 'https://quotes.eco.com' }],
+];
 
-    expect(config.getQuoteEndpoint).toHaveBeenCalledWith('staging');
-    expect(ecoApi.quote).toHaveBeenCalledWith(
-      expect.objectContaining({
-        type: 'exact-in',
-        source: expect.objectContaining({ funder: req.funder }),
-        dappId: 'eco-routes-cli',
-      }),
-      { env: 'staging' }
-    );
-    expect(result.encodedRoute).toBe(ENCODED_ROUTE);
-    expect(result.sourcePortal).toBe('0xEC000769A73b70e16f361a442292500b3BCf4A85');
-    expect(result.prover).toBe('0xEC08fb4647f3f50d1162a578d481266687C60fc5');
-    expect(result.destinationAmount).toBe('990000');
-  });
+describe('QuoteService', () => {
+  afterEach(() => jest.restoreAllMocks());
 
-  it('does not touch EcoApiClient for the solver-v2 branch', async () => {
-    const fetchMock = jest.spyOn(globalThis, 'fetch').mockResolvedValue(
+  it.each(sources)(
+    'preserves %s calldata and maps the destination amount',
+    async (_source, env) => {
+      jest.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify(quote)));
+      const result = await build(env).getQuote(req);
+      expect(result).toMatchObject({
+        encodedRoute: ENCODED_ROUTE,
+        sourcePortal: PORTAL,
+        prover: '0xEC08fb4647f3f50d1162a578d481266687C60fc5',
+        destinationAmount: '990000',
+        destinationChainId: 10,
+      });
+    }
+  );
+
+  it('still accepts the solver-v2 response shape', async () => {
+    jest.spyOn(globalThis, 'fetch').mockResolvedValue(
       new Response(
         JSON.stringify({
           contracts: { sourcePortal: '0x1', prover: '0x2', destinationPortal: '0x3' },
           quoteResponses: [
             { encodedRoute: '0xaa', deadline: 1, destinationAmount: '1', destinationChainID: 10 },
           ],
-        }),
-        { status: 200 }
+        })
       )
     );
-    const { service, ecoApi } = build({
-      type: 'solver-v2',
-      url: 'https://solver.example.com/api/v2/quote/reverse',
+    const result = await build({ SOLVER_URL: 'https://solver.example.com' }).getQuote(req);
+    expect(result).toMatchObject({
+      encodedRoute: '0xaa',
+      destinationAmount: '1',
+      destinationChainId: 10,
     });
-    const result = await service.getQuote(req);
-    expect(ecoApi.quote).not.toHaveBeenCalled();
-    expect(result.encodedRoute).toBe('0xaa');
-    fetchMock.mockRestore();
   });
 });

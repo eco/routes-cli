@@ -106,7 +106,8 @@
       "axios": ">=1.13.5",
       "minimatch": ">=10.2.1",
       "test-exclude": "8.0.0",
-      "bn.js": "5.2.3"
+      "bn.js": "5.2.3",
+      "handlebars": "4.7.10"
     },
     "auditConfig": {
       "ignoreCves": [
