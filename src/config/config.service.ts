@@ -3,13 +3,14 @@ import { ConfigService as NestConfigService } from '@nestjs/config';
 
 import { Hex } from 'viem';
 
+import { RoutesCliError } from '@/shared/errors';
 import { ChainType } from '@/shared/types';
 
 export type GatewayEnv = 'production' | 'staging';
 
 export type QuoteEndpoint =
   | { type: 'solver-v2'; url: string }
-  | { type: 'custom'; url: string }
+  | { type: 'quotes-v4'; baseUrl: string }
   | { type: 'gateway'; baseUrl: string; env: GatewayEnv; apiKey?: string };
 
 const GATEWAY_HOSTS: Record<GatewayEnv, string> = {
@@ -65,9 +66,12 @@ export class ConfigService {
   /**
    * Quote source, highest priority first:
    *   1. SOLVER_URL      — solver-v2 API at {SOLVER_URL}/api/v2/quote/reverse
-   *   2. QUOTES_API_URL  — this exact URL, quote-service v3 shape
-   *   3. QUOTES_PREPROD  — the preprod quote service (v3 shape)
-   *   4. Eco API gateway — POST {baseUrl}/v1/quotes (default)
+   *   2. QUOTES_API_URL  — an eco-quotes host (https://quotes.eco.com or
+   *                        https://quotes.stag.eco.com); the CLI calls the
+   *                        keyless {host}/v4/quotes endpoint. Quote-service v3
+   *                        URLs (/api/v3/...) retire on 2026-12-01 and are
+   *                        rejected at configuration time.
+   *   3. Eco API gateway — POST {baseUrl}/v1/quotes (default)
    */
   getQuoteEndpoint(envOverride?: GatewayEnv): QuoteEndpoint {
     const solverUrl = this.config.get<string>('SOLVER_URL')?.replace(/\/$/, '');
@@ -76,10 +80,29 @@ export class ConfigService {
     }
     const quotesUrl = this.config.get<string>('QUOTES_API_URL');
     if (quotesUrl) {
-      return { url: quotesUrl, type: 'custom' };
-    }
-    if (this.config.get('QUOTES_PREPROD')) {
-      return { url: 'https://quotes-preprod.eco.com/api/v3/quotes/single', type: 'custom' };
+      const invalidUrl = (): RoutesCliError =>
+        RoutesCliError.configurationError(
+          'QUOTES_API_URL must be an eco-quotes host such as https://quotes.eco.com; ' +
+            'quote-service v3 URLs (/api/v3/...) retire on 2026-12-01 and the CLI now ' +
+            'calls <host>/v4/quotes'
+        );
+      let parsed: URL;
+      try {
+        parsed = new URL(quotesUrl);
+      } catch {
+        throw invalidUrl();
+      }
+      if (
+        !['http:', 'https:'].includes(parsed.protocol) ||
+        parsed.pathname !== '/' ||
+        parsed.username ||
+        parsed.password ||
+        parsed.search ||
+        parsed.hash
+      ) {
+        throw invalidUrl();
+      }
+      return { type: 'quotes-v4', baseUrl: parsed.origin };
     }
     const { baseUrl, env } = this.getGatewayBaseUrl(envOverride);
     const apiKey = this.getApiKey(env);

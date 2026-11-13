@@ -53,7 +53,7 @@ describe('ConfigService.getQuoteEndpoint — gateway default', () => {
     expect(cfg.getQuoteEndpoint('staging')).toMatchObject({ apiKey: 'k-stag' });
   });
 
-  it('a staging-only key sends nothing to production (which answers keyless)', () => {
+  it('a staging-only key sends nothing to production', () => {
     const cfg = build({ ECO_API_KEY_STAGING: 'k-stag' });
     expect(cfg.getApiKey('production')).toBeUndefined();
     expect(cfg.getQuoteEndpoint()).toEqual({
@@ -70,19 +70,31 @@ describe('ConfigService.getQuoteEndpoint — gateway default', () => {
     ).toEqual({ type: 'solver-v2', url: 'https://solver.example.com/api/v2/quote/reverse' });
   });
 
-  it('QUOTES_API_URL beats the gateway but not SOLVER_URL', () => {
+  it('QUOTES_API_URL as an eco-quotes host beats the gateway but not SOLVER_URL', () => {
+    expect(
+      build({ QUOTES_API_URL: 'https://quotes.eco.com/', ECO_API_KEY: 'k' }).getQuoteEndpoint()
+    ).toEqual({ type: 'quotes-v4', baseUrl: 'https://quotes.eco.com' });
     expect(
       build({
-        QUOTES_API_URL: 'https://q.example.com/api/v3/quotes/single',
+        SOLVER_URL: 'https://solver.example.com',
+        QUOTES_API_URL: 'https://quotes.stag.eco.com',
       }).getQuoteEndpoint()
-    ).toEqual({ type: 'custom', url: 'https://q.example.com/api/v3/quotes/single' });
+    ).toEqual({ type: 'solver-v2', url: 'https://solver.example.com/api/v2/quote/reverse' });
   });
 
-  it('QUOTES_PREPROD still selects the preprod quote service', () => {
-    expect(build({ QUOTES_PREPROD: 'true' }).getQuoteEndpoint()).toEqual({
-      type: 'custom',
-      url: 'https://quotes-preprod.eco.com/api/v3/quotes/single',
-    });
+  it.each([
+    'https://quotes.eco.com/api/v3/quotes/single',
+    'https://quotes.eco.com/deep/path',
+    'https://quotes.eco.com/?key=secret',
+    'https://quotes.eco.com/#fragment',
+    'https://user:secret@quotes.eco.com',
+    'ftp://quotes.eco.com',
+  ])('rejects a non-HTTP origin-only quote host: %s', url => {
+    expect(() => build({ QUOTES_API_URL: url }).getQuoteEndpoint()).toThrow();
+  });
+
+  it('rejects QUOTES_PREPROD rather than silently using production', () => {
+    expect(EnvSchema.safeParse({ QUOTES_PREPROD: 'true' }).success).toBe(false);
   });
 
   it('rejects an unknown ECO_ENV at schema level', () => {

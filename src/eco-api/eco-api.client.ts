@@ -1,11 +1,15 @@
 /**
- * Client for the public Eco API (AWS API Gateway front door, `/v1`).
+ * Client for the public Eco API (AWS API Gateway front door, `/v1`) and for the
+ * keyless eco-quotes v4 service.
  *
- * Hosts come from ConfigService (ECO_API_URL, else ECO_ENV → api.eco.com / api.stag.eco.com);
- * `ECO_API_KEY` is sent as `x-api-key` when present. Non-2xx responses are RFC 7807 problem
- * documents: auth problems become RoutesCliError (hard stop), everything else becomes
- * EcoApiRequestError — a plain Error subclass — so callers such as the publish flow can treat it
- * like any other quote-service outage and fall back to a manual route.
+ * Gateway hosts come from ConfigService (ECO_API_URL, else ECO_ENV → api.eco.com /
+ * api.stag.eco.com); `ECO_API_KEY` is sent as `x-api-key` when present. The gateway
+ * requires a key on production and staging (keyless calls get a 403). eco-quotes v4
+ * (`POST {baseUrl}/v4/quotes` via `quoteV4`) is keyless and never receives a gateway
+ * key. Non-2xx responses are RFC 7807 problem documents: auth problems become
+ * RoutesCliError (hard stop), everything else becomes EcoApiRequestError — a plain
+ * Error subclass — so callers such as the publish flow can treat it like any other
+ * quote-service outage and fall back to a manual route.
  */
 import { Injectable } from '@nestjs/common';
 
@@ -55,6 +59,14 @@ export class EcoApiClient {
     return this.request<V1QuoteResponse>('POST', '/v1/quotes', opts, req);
   }
 
+  /**
+   * Keyless eco-quotes v4 quote. Never sends an `x-api-key`: a gateway key
+   * belongs to the Eco API gateway hosts only and must not leak to another host.
+   */
+  quoteV4(req: V1QuoteRequest, baseUrl: string): Promise<V1QuoteResponse> {
+    return this.request<V1QuoteResponse>('POST', '/v4/quotes', { quotesBaseUrl: baseUrl }, req);
+  }
+
   async intentStatus(
     params: { intentHash: string },
     opts: EcoApiCallOptions = {}
@@ -67,12 +79,18 @@ export class EcoApiClient {
   private async request<T>(
     method: 'GET' | 'POST',
     path: string,
-    opts: EcoApiCallOptions,
+    opts: EcoApiCallOptions & { quotesBaseUrl?: string },
     body?: unknown
   ): Promise<T> {
-    const { baseUrl, env } = this.config.getGatewayBaseUrl(opts.env);
-    const url = `${baseUrl}${path}`;
-    const apiKey = this.config.getApiKey(env);
+    let url: string;
+    let apiKey: string | undefined;
+    if (opts.quotesBaseUrl) {
+      url = `${opts.quotesBaseUrl}${path}`;
+    } else {
+      const { baseUrl, env } = this.config.getGatewayBaseUrl(opts.env);
+      url = `${baseUrl}${path}`;
+      apiKey = this.config.getApiKey(env);
+    }
     const headers: Record<string, string> = {
       accept: 'application/json',
       ...(body !== undefined && { 'content-type': 'application/json' }),

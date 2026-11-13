@@ -335,7 +335,7 @@ TVM_RPC_URL_2      default: https://tron.publicnode.com  (fallback)
 SVM_RPC_URL        default: https://api.mainnet-beta.solana.com
 SVM_RPC_URL_2      default: https://solana.publicnode.com  (fallback)
 SOLVER_URL         optional; enables solver-v2 quote endpoint
-QUOTES_API_URL     optional; enables preprod quote endpoint
+QUOTES_API_URL     optional; eco-quotes host, keyless {host}/v4/quotes (v3 retired 2026-12-01)
 NODE_CHAINS_ENV    'production' (default) | 'development'
 DEBUG              optional; enables verbose logging + stack traces
 ```
@@ -402,29 +402,41 @@ IntentService.buildIntent(config: IntentConfig)
   └─► Return: { reward, encodedRoute, sourcePortal }
 ```
 
-### Quote Service (`src/core/utils/quote.ts`)
+### Quote Service (`src/quote/quote.service.ts`)
 
 **Endpoint selection (priority order):**
-1. `SOLVER_URL` → `{SOLVER_URL}/api/v2/quote/reverse`
-2. `QUOTES_API_URL` or `QUOTES_PREPROD` → `https://quotes-preprod.eco.com/api/v3/quotes/single`
-3. Default → `https://quotes.eco.com/api/v3/quotes/single`
+1. `SOLVER_URL` → `POST {SOLVER_URL}/api/v2/quote/reverse` (solver-v2 wire format)
+2. `QUOTES_API_URL` → an eco-quotes host (`https://quotes.eco.com` or
+   `https://quotes.stag.eco.com`); the CLI calls the keyless `POST {host}/v4/quotes`.
+   Quote-service v3 URLs (`/api/v3/...`) retire on 2026-12-01 and are rejected at
+   configuration time; `QUOTES_PREPROD` is removed (the preprod service no longer exists).
+3. Default → the Eco API gateway, `POST {ECO_API_URL or ECO_ENV host}/v1/quotes`
 
-**Request:**
+The gateway and eco-quotes v4 share the same request/response contract
+(`@eco-foundation/api-schemas` v1 `QuoteRequest`/`QuoteResponse`, mapped by
+`src/quote/gateway-quote.adapter.ts`); the v4 host takes no API key.
+
+**Request (v1 contract):**
 ```typescript
 {
-  dAppID: 'eco-routes-cli',
-  quoteRequest: {
-    sourceChainID, sourceToken, destinationChainID, destinationToken,
-    sourceAmount, funder, recipient   // all in chain-native format
-  }
+  type: 'exact-in',
+  source: { chainId, token, amount, funder },
+  destination: { chainId, token, recipient },
+  refundRecipient,
+  dappId
 }
 ```
 
-**Response (both formats normalized internally):**
+**Response (v1 contract):**
 ```typescript
 {
-  quoteResponse: { encodedRoute, deadline, destinationAmount, estimatedFulfillTimeSec?, ... },
-  contracts: { sourcePortal: Address, prover: Address, destinationPortal: Address }
+  id, expiresAt,
+  destination: { chainId, amountOut },
+  execution: {
+    transaction: { type: 'evm', to, data },   // Portal.publishAndFund calldata
+    intent: { route: { portal }, reward: { deadline, creator, prover, tokens } }
+  },
+  steps: [...]
 }
 ```
 
