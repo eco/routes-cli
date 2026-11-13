@@ -41,8 +41,6 @@ export const INTENT_CONFIG: IntentConfig = {
 
   // Optional configurations
   quoteServiceUrl: 'https://quotes.eco.com',
-  routeDeadlineSeconds: 7200, // 2 hours
-  rewardDeadlineSeconds: 7200, // 2 hours
 };
 
 // ============================================================================
